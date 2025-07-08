@@ -6,9 +6,33 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "server": "node api/server.js"
   },
   "dependencies": {
-    "astro": "^5.10.1"
+    "@astrojs/react": "^4.3.0",
+    "@radix-ui/react-slot": "^1.2.3",
+    "@tailwindcss/vite": "^4.1.11",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "astro": "^5.10.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "highlight.js": "^11.11.1",
+    "json-server": "^1.0.0-beta.3",
+    "lucide-react": "^0.525.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-markdown": "^10.1.0",
+    "rehype-highlight": "^7.0.2",
+    "tailwind-merge": "^3.3.1",
+    "tailwind-scrollbar": "^4.0.2",
+    "tailwindcss": "^4.1.11"
+  },
+  "devDependencies": {
+    "@tailwindcss/typography": "^0.5.16",
+    "tw-animate-css": "^1.3.4"
   }
 }
