@@ -117,7 +117,7 @@ export default function ChatForm() {
   };
 
   return (
-    <Card className="flex flex-col h-full rounded-none !important">
+    <Card className="flex flex-col h-full !rounded-none !border-none">
       <CardHeader className="flex flex-row border-b hidden">
         <img src={isDark ? "/white_blue_horizontal.svg" : "/colored_horizontal.svg"} alt="Logo" className="w-40 h-auto object-contain" />
       </CardHeader>
