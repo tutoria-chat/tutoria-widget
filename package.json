@@ -7,7 +7,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "server": "node api/server.js"
+    "server": "node src/fake-api/server.js"
   },
   "dependencies": {
     "@astrojs/react": "^4.3.0",
