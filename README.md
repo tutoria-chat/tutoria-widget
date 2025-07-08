@@ -1,48 +1,57 @@
-# Astro Starter Kit: Basics
+# Chatbot Widget para Disciplinas
 
-```sh
-npm create astro@latest -- --template basics
+Este projeto é um **front-end leve e responsivo**, desenvolvido para ser **embedado via `iframe`** em plataformas de ensino (como Moodle, Canvas, ou portais institucionais). Ele serve como interface de um **chatbot com IA**, que **responde perguntas apenas com base no conteúdo de uma disciplina específica**, garantindo confiabilidade e foco no material da instituição.
+
+---
+
+## ✨ Funcionalidades
+
+- ✅ Interface minimalista e acessível.
+- 🧠 Respostas geradas por IA com base no conteúdo da disciplina.
+- 🔐 Prevenção contra alucinações: o modelo só responde se houver conteúdo relevante na base da disciplina.
+- 🌗 Suporte a tema escuro automático ou forçado via parâmetros.
+- 🖼️ Fácil integração com `iframe`.
+- ⚙️ Personalização por parâmetros na URL.
+
+---
+
+## 📦 Instalação
+
+1. Clone o projeto:
+   ```bash
+   git clone https://github.com/seu-usuario/chatbot-widget.git
+   ```
+2. Instale as dependências:
+    ```bash
+    npm install
+    ```
+3. Crie um arquivo `.env` na raiz do projeto com as seguintes variáveis:
+    ```env
+    PUBLIC_API_BASE_URL=https://api.sua-instituicao.com
+    PUBLIC_ENABLE_DARK_MODE=true
+    ```
+- `PUBLIC_API_BASE_URL`: URL base da API do backend que recebe as mensagens e responde com o conteúdo da disciplina.
+- `PUBLIC_ENABLE_DARK_MODE`: Controla se o suporte a tema escuro automático será habilitado (true ou false).
+
+## 🚀 Execução local
+```bash
+npm run dev
 ```
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/withastro/astro/tree/latest/examples/basics)
-[![Open with CodeSandbox](https://assets.codesandbox.io/github/button-edit-lime.svg)](https://codesandbox.io/p/sandbox/github/withastro/astro/tree/latest/examples/basics)
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/withastro/astro?devcontainer_path=.devcontainer/basics/devcontainer.json)
+Por padrão, a aplicação roda em `http://localhost:4321.`
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
-
-![just-the-basics](https://github.com/withastro/astro/assets/2244813/a0a5533c-a856-4198-8470-2d67b1d7c554)
-
-## 🚀 Project Structure
-
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-/
-├── public/
-│   └── favicon.svg
-├── src/
-│   ├── layouts/
-│   │   └── Layout.astro
-│   └── pages/
-│       └── index.astro
-└── package.json
+## 🧩 Uso via iframe
+Você pode embedar o chatbot em qualquer página com o seguinte código:
+```html
+<iframe
+  src="https://seu-dominio.com/chatbot?apiRoute=/disciplina-x&dark=auto"
+  loading="lazy"
+></iframe>
 ```
 
-To learn more about the folder structure of an Astro project, refer to [our guide on project structure](https://docs.astro.build/en/basics/project-structure/).
-
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+### Parâmetros suportados
+- `apiRoute`: Sufixo da rota da API (ex: `/disciplina-x`, `/materia-y`). Será concatenado com `PUBLIC_API_BASE_URL`.
+- `dark`: Controla o tema do widget. Valores:
+    - `auto`: usa a preferência do usuário (padrão)
+    - `true`: força modo escuro
+    - `false`: força modo claro
