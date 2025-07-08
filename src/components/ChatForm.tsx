@@ -26,7 +26,7 @@ export default function ChatForm() {
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const suffix = params.get('apiRoute') || 'chat';
   const apiRoute = `${baseUrl}${suffix}`;
-  const darkParam = (params.get('dark')) || (import.meta.env.PUBLIC_ENABLE_DARK_MODE ? import.meta.env.PUBLIC_ENABLE_DARK_MODE : 'auto');
+  const darkParam = params.get('dark') ?? import.meta.env.PUBLIC_ENABLE_DARK_MODE ?? 'auto';
 
 
   
