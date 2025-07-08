@@ -140,7 +140,7 @@ export default function ChatForm() {
                     msg.role === 'user' ? 'bg-border max-w-[80%]' : 'bg-transparent w-full'
                   }`}
                 >
-                    <div className={` ${msg.role === 'user' ? 'whitespace-pre-wrap' : 'prose prose-sm dark:prose-invert max-w-none'}`}>
+                    <div className={` ${msg.role === 'user' ? 'whitespace-pre-wrap w-full break-words' : 'prose prose-sm dark:prose-invert max-w-none'}`}>
                         <ReactMarkdown rehypePlugins={[rehypeHighlight]}>
                             {msg.content}
                         </ReactMarkdown>
