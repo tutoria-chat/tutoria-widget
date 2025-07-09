@@ -132,7 +132,7 @@ export default function ChatForm() {
             <CardTitle className="text-2xl text-foreground">Qual sua dúvida?</CardTitle>
           </CardContent>
         ) : (
-          <div className="flex-1 overflow-y-auto space-y-4 w-full px-4">
+          <div className="flex-1 overflow-y-auto space-y-4 w-full px-4 scrollbar scrollbar-w-2 scrollbar-thumb-rounded-full scrollbar-track-rounded-full scrollbar-thumb-border">
             {messages.map((msg, idx) => (
               <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div
