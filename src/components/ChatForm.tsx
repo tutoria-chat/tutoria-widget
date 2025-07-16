@@ -24,11 +24,9 @@ export default function ChatForm() {
   const baseUrl = import.meta.env.PUBLIC_API_BASE_URL;
   
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
-  const suffix = params.get('apiRoute') || 'chat';
+  const suffix = params.get('apiRoute') || '';
   const apiRoute = `${baseUrl}${suffix}`;
   const darkParam = params.get('dark') ?? import.meta.env.PUBLIC_ENABLE_DARK_MODE ?? 'auto';
-
-
   
   const [isDark, setIsDark] = useState(false);
 
@@ -60,6 +58,42 @@ export default function ChatForm() {
     scrollToBottom();
   }, [messages]);
 
+
+  const authTokenRef = useRef<string | null>(null);
+
+  const fetchToken = async () => {
+    if (authTokenRef.current) return authTokenRef.current;
+
+    const response = await fetch('https://api.tutoria40.com.br/api/v1/authentication/token/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: 'codephoenix',
+        password: 'codephoenix',
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Erro ao obter token: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    const token = data?.token || data?.access; 
+
+    if (!token) throw new Error('Token não encontrado na resposta da API');
+
+    authTokenRef.current = token;
+    return token;
+  };
+
+  useEffect(() => {
+    fetchToken().catch((err) => {
+      console.error('Falha ao autenticar antecipadamente:', err);
+    });
+  }, []);
+
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!message.trim() || isLoading) return;
@@ -70,38 +104,49 @@ export default function ChatForm() {
     setIsLoading(true);
 
     try {
-    const response = await fetch(apiRoute, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message }),
-    });
+      const formData = new FormData();
+      formData.append('usuario', 'codephoenix');
+      formData.append('pergunta', message);
 
-    if (!response.ok) {
+      const headers: HeadersInit = {};
+      if (authTokenRef.current) {
+        headers['Authorization'] = `Bearer ${authTokenRef.current}`;
+      }
+
+      const response = await fetch(apiRoute, {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+
+      if (!response.ok) {
         const errorText = await response.text();
         console.error('Erro na resposta da API:', response.status, errorText);
         throw new Error(`Erro ${response.status}: ${errorText}`);
-    }
+      }
 
-    const data = await response.json();
+      const data = await response.json();
 
-    if (!data?.response) {
+      if (!data?.response) {
         console.error('Resposta inválida:', data);
         throw new Error('Resposta inválida do servidor');
-    }
+      }
 
-    const assistantMessage = { content: data.response, role: 'assistant' as const };
-    setMessages((prev) => [...prev, assistantMessage]);
-
+      const assistantMessage = { content: data.response, role: 'assistant' as const };
+      setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
-    console.error('Erro no fetch:', error);
-    setMessages((prev) => [
+      console.error('Erro no fetch:', error);
+      setMessages((prev) => [
         ...prev,
         { content: 'Ocorreu um erro ao processar sua mensagem.', role: 'assistant' },
-    ]);
+      ]);
     } finally {
-    setIsLoading(false);
+      setIsLoading(false);
     }
   };
+
+
+
 
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(e.target.value);
