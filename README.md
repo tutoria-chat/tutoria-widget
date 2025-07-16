@@ -27,11 +27,18 @@ Este projeto é um **front-end leve e responsivo**, desenvolvido para ser **embe
     ```
 3. Crie um arquivo `.env` na raiz do projeto com as seguintes variáveis:
     ```env
-    PUBLIC_API_BASE_URL=https://api.sua-instituicao.com
-    PUBLIC_ENABLE_DARK_MODE=true
+    PUBLIC_ENABLE_DARK_MODE=auto
+
+    API_BASE_URL=https://api.sua-instituicao.com/
+    API_AUTH_URL=https://api.sua-instituicao.com/auth
+    API_AUTH_USERNAME=yourusername
+    API_AUTH_PASSWORD=yourpassword
     ```
-- `PUBLIC_API_BASE_URL`: URL base da API do backend que recebe as mensagens e responde com o conteúdo da disciplina.
 - `PUBLIC_ENABLE_DARK_MODE`: Controla se o suporte a tema escuro automático será habilitado (true ou false).
+- `API_BASE_URL`: URL base da API do backend que recebe as mensagens e responde com o conteúdo da disciplina.
+- `API_AUTH_URL`: URL da API do backend que autentifica o token de acesso.
+- `API_BASE_USERNAME`: Usuário cadastrado na API do backend.
+- `API_BASE_PASSWORD`: Senha cadastrada na API do backend.
 
 ## 🚀 Execução local
 ```bash
@@ -48,6 +55,7 @@ Você pode embedar o chatbot em qualquer página com o seguinte código:
   loading="lazy"
 ></iframe>
 ```
+Apenas substitua o link no src pelo seu domínio.
 
 ### Parâmetros suportados
 - `apiRoute`: Sufixo da rota da API (ex: `/disciplina-x`, `/materia-y`). Será concatenado com `PUBLIC_API_BASE_URL`.
