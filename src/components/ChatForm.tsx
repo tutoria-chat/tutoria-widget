@@ -1,92 +1,107 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Paperclip, SendHorizontal } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
 import 'highlight.js/styles/tokyo-night-dark.css';
 
+/**
+ * Represents a single chat message.
+ */
 interface ChatMessage {
   content: string;
   role: 'user' | 'assistant';
 }
 
+/**
+ * ChatForm component: Manages a markdown-enabled chat interface with auto-scrolling and token authentication.
+ */
 export default function ChatForm() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  
+
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const suffix = params.get('apiRoute') || '';
   const darkParam = params.get('dark') ?? import.meta.env.PUBLIC_ENABLE_DARK_MODE ?? 'auto';
-  
+
   const [isDark, setIsDark] = useState(false);
 
+  /**
+   * Applies dark/light theme based on preferences or URL params.
+   */
   useEffect(() => {
-  const applyTheme = (dark: boolean) => {
-    setIsDark(dark);
-    document.documentElement.classList.toggle('dark', dark);
-  };
+    const applyTheme = (dark: boolean) => {
+      setIsDark(dark);
+      document.documentElement.classList.toggle('dark', dark);
+    };
 
-  if (darkParam === 'true') {
-    applyTheme(true);
-  } else if (darkParam === 'false') {
-    applyTheme(false);
-  } else {
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const updateTheme = () => applyTheme(mq.matches);
+    if (darkParam === 'true') {
+      applyTheme(true);
+    } else if (darkParam === 'false') {
+      applyTheme(false);
+    } else {
+      const mq = window.matchMedia('(prefers-color-scheme: dark)');
+      const updateTheme = () => applyTheme(mq.matches);
 
-    updateTheme();
-    mq.addEventListener('change', updateTheme);
-    return () => mq.removeEventListener('change', updateTheme);
-  }
-}, [darkParam]);
+      updateTheme();
+      mq.addEventListener('change', updateTheme);
+      return () => mq.removeEventListener('change', updateTheme);
+    }
+  }, [darkParam]);
 
-  const scrollToBottom = () => {
+  /**
+   * Scrolls the chat to the bottom whenever messages change.
+   */
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
   }, [messages]);
-
 
   const authTokenRef = useRef<string | null>(null);
 
-  const fetchToken = async () => {
+  /**
+   * Fetches and caches the auth token for API calls.
+   * @returns The token string.
+   */
+  const fetchToken = async (): Promise<string> => {
     if (authTokenRef.current) return authTokenRef.current;
 
-    const response = await fetch('/api/auth', {
-      method: 'POST',
-    });
+    const response = await fetch('/api/auth', { method: 'POST' });
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Erro ao obter token: ${response.status} - ${errorText}`);
+      throw new Error(`Failed to obtain token: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
     const token = data?.token;
 
-    if (!token) throw new Error('Token não encontrado na resposta da API');
+    if (!token) throw new Error('Token not found in API response.');
 
     authTokenRef.current = token;
     return token;
   };
 
+  /**
+   * Pre-fetch the token when the component mounts.
+   */
   useEffect(() => {
     fetchToken().catch((err) => {
-      console.error('Falha ao autenticar antecipadamente:', err);
+      console.error('Authentication pre-fetch failed:', err);
     });
   }, []);
 
-
+  /**
+   * Handles the chat form submission.
+   * Sends the user's message to the backend and displays the assistant's response.
+   * @param event Form submit event
+   */
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!message.trim() || isLoading) return;
@@ -95,8 +110,6 @@ export default function ChatForm() {
     setMessages((prev) => [...prev, userMessage]);
     setMessage('');
     setIsLoading(true);
-
-    console.log(authTokenRef.current);
 
     try {
       const response = await fetch('/api/submit', {
@@ -107,48 +120,48 @@ export default function ChatForm() {
         },
         body: JSON.stringify({
           pergunta: message,
-          suffix, 
+          suffix,
         }),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Erro na resposta da API:', response.status, errorText);
-        throw new Error(`Erro ${response.status}: ${errorText}`);
+        throw new Error(`API request failed (${response.status}): ${errorText}`);
       }
 
       const data = await response.json();
 
       if (!data?.response) {
-        console.error('Resposta inválida:', data);
-        throw new Error('Resposta inválida do servidor');
+        throw new Error('Invalid response from server.');
       }
 
       const assistantMessage = { content: data.response, role: 'assistant' as const };
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
-      console.error('Erro no fetch:', error);
+      console.error('Fetch error:', error);
       setMessages((prev) => [
         ...prev,
-        { content: 'Ocorreu um erro ao processar sua mensagem.', role: 'assistant' },
+        { content: 'Um erro aconteceu ao processar sua mensagem.', role: 'assistant' },
       ]);
     } finally {
       setIsLoading(false);
     }
   };
 
-
-
-
-
-
-
+  /**
+   * Handles input event and dynamically resizes the textarea.
+   * @param e ChangeEvent for the textarea
+   */
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(e.target.value);
     e.target.style.height = 'auto';
     e.target.style.height = `${e.target.scrollHeight}px`;
   };
 
+  /**
+   * Handles Enter key for form submission, Shift+Enter inserts newline.
+   * @param e Keyboard event from textarea
+   */
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
