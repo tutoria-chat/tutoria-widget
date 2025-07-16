@@ -21,11 +21,9 @@ export default function ChatForm() {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const baseUrl = import.meta.env.PUBLIC_API_BASE_URL;
   
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const suffix = params.get('apiRoute') || '';
-  const apiRoute = `${baseUrl}${suffix}`;
   const darkParam = params.get('dark') ?? import.meta.env.PUBLIC_ENABLE_DARK_MODE ?? 'auto';
   
   const [isDark, setIsDark] = useState(false);
@@ -64,13 +62,8 @@ export default function ChatForm() {
   const fetchToken = async () => {
     if (authTokenRef.current) return authTokenRef.current;
 
-    const response = await fetch('https://api.tutoria40.com.br/api/v1/authentication/token/', {
+    const response = await fetch('/api/auth', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: 'codephoenix',
-        password: 'codephoenix',
-      }),
     });
 
     if (!response.ok) {
@@ -79,7 +72,7 @@ export default function ChatForm() {
     }
 
     const data = await response.json();
-    const token = data?.token || data?.access; 
+    const token = data?.token;
 
     if (!token) throw new Error('Token não encontrado na resposta da API');
 
@@ -103,20 +96,19 @@ export default function ChatForm() {
     setMessage('');
     setIsLoading(true);
 
+    console.log(authTokenRef.current);
+
     try {
-      const formData = new FormData();
-      formData.append('usuario', 'codephoenix');
-      formData.append('pergunta', message);
-
-      const headers: HeadersInit = {};
-      if (authTokenRef.current) {
-        headers['Authorization'] = `Bearer ${authTokenRef.current}`;
-      }
-
-      const response = await fetch(apiRoute, {
+      const response = await fetch('/api/submit', {
         method: 'POST',
-        headers,
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authTokenRef.current}`,
+        },
+        body: JSON.stringify({
+          pergunta: message,
+          suffix, 
+        }),
       });
 
       if (!response.ok) {
@@ -144,6 +136,9 @@ export default function ChatForm() {
       setIsLoading(false);
     }
   };
+
+
+
 
 
 
