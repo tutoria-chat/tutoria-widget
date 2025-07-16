@@ -10,6 +10,7 @@
     "server": "node src/fake-api/server.js"
   },
   "dependencies": {
+    "@astrojs/node": "^9.3.0",
     "@astrojs/react": "^4.3.0",
     "@radix-ui/react-slot": "^1.2.3",
     "@tailwindcss/vite": "^4.1.11",
