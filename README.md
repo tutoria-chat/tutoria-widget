@@ -63,3 +63,6 @@ Apenas substitua o link no src pelo seu domínio.
     - `auto`: usa a preferência do usuário (padrão)
     - `true`: força modo escuro
     - `false`: força modo claro
+- `buttonColor`: Cor do botão de enviar em hexcode sem o `#`.
+- `userMessageColor`: Cor do fundo do balão da mensagem do usuário em hexcode sem o `#`.
+- `agentMessageColor`: Cor do fundo do balão da mensagem do agente em hexcode sem o `#`.
