@@ -30,6 +30,17 @@ export default function ChatForm() {
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const suffix = params.get('apiRoute') || '';
   const darkParam = params.get('dark') ?? import.meta.env.PUBLIC_ENABLE_DARK_MODE ?? 'auto';
+  const buttonColor = params.get('buttonColor') || ''
+  const isValidHexColor = (color: string): string => {
+  const hexRegex = /^[0-9A-Fa-f]{6}$/;
+  
+  if (typeof color === 'string' && hexRegex.test(color)) {
+    return `#${color}`;
+  }
+
+  return 'var(--primary)';
+};
+ 
 
   const [isDark, setIsDark] = useState(false);
 
@@ -171,6 +182,18 @@ export default function ChatForm() {
 
   return (
     <Card className="flex flex-col h-full !rounded-none !border-none">
+      <style>
+        {`
+          .dynamic-color {
+            background-color: ${isValidHexColor(buttonColor)};
+          }
+          .dynamic-color:hover {
+            background-color: ${isValidHexColor(buttonColor)};
+            opacity: 0.9;
+          }
+        `}
+      </style>
+
       <CardHeader className="flex flex-row border-b hidden">
         <img src={isDark ? "/white_blue_horizontal.svg" : "/colored_horizontal.svg"} alt="Logo" className="w-40 h-auto object-contain" />
       </CardHeader>
@@ -239,7 +262,8 @@ export default function ChatForm() {
                 <Button
                 type="submit"
                 disabled={isLoading || !message.trim()}
-                className="max-w-40 rounded-full flex gap-2 items-center"
+                variant="primary"
+                className="dynamic-color max-w-40 rounded-full flex gap-2 items-center"
                 >
                 Enviar
                 <SendHorizontal />
