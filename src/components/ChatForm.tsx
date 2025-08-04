@@ -30,6 +30,26 @@ export default function ChatForm() {
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const suffix = params.get('apiRoute') || '';
   const darkParam = params.get('dark') ?? import.meta.env.PUBLIC_ENABLE_DARK_MODE ?? 'auto';
+  const buttonColor = params.get('buttonColor') || ''
+  const userMessageColor = params.get('userMessageColor') || ''
+  const agentMessageColor = params.get('agentMessageColor') || ''
+
+  /**
+   * Validates a hex color string.
+   * @param color Hex code string without '#'
+   * @param fallbackColor Fallback css class color
+   * @returns The color prefixed with '#', if not a valid hex color returns a fallback color.
+   */
+  const isValidHexColor = (color: string, fallbackColor: string): string => {
+    const hexRegex = /^[0-9A-Fa-f]{6}$/;
+    
+    if (typeof color === 'string' && hexRegex.test(color)) {
+      return `#${color}`;
+    }
+
+    return fallbackColor;
+  };
+ 
 
   const [isDark, setIsDark] = useState(false);
 
@@ -171,6 +191,32 @@ export default function ChatForm() {
 
   return (
     <Card className="flex flex-col h-full !rounded-none !border-none">
+      <style>
+        {`
+          .dynamic-button-color {
+            background-color: ${isValidHexColor(buttonColor, 'var(--primary)')};
+          }
+          .dynamic-button-color:hover {
+            background-color: ${isValidHexColor(buttonColor, 'var(--primary)')};
+            opacity: 0.9;
+          }
+          .dynamic-agent-message-color {
+            background-color: ${isValidHexColor(agentMessageColor, 'var(--accent)')};
+          }
+          .dynamic-agent-message-color:hover {
+            background-color: ${isValidHexColor(agentMessageColor, 'var(--accent)')};
+            opacity: 0.9;
+          }
+          .dynamic-user-message-color {
+            background-color: ${isValidHexColor(userMessageColor, 'var(--border)')};
+          }
+          .dynamic-user-message-color:hover {
+            background-color: ${isValidHexColor(userMessageColor, 'var(--border)')};
+            opacity: 0.9;
+          }
+        `}
+      </style>
+
       <CardHeader className="flex flex-row border-b hidden">
         <img src={isDark ? "/white_blue_horizontal.svg" : "/colored_horizontal.svg"} alt="Logo" className="w-40 h-auto object-contain" />
       </CardHeader>
@@ -190,7 +236,7 @@ export default function ChatForm() {
               <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div
                   className={`rounded-lg px-4 py-3 ${
-                    msg.role === 'user' ? 'bg-border max-w-[80%]' : 'bg-transparent w-full'
+                    msg.role === 'user' ? 'dynamic-user-message-color max-w-[80%]' : 'dynamic-agent-message-color w-full'
                   }`}
                 >
                     <div className={` ${msg.role === 'user' ? 'whitespace-pre-wrap w-full break-words' : 'prose prose-sm dark:prose-invert max-w-none'}`}>
@@ -239,7 +285,8 @@ export default function ChatForm() {
                 <Button
                 type="submit"
                 disabled={isLoading || !message.trim()}
-                className="max-w-40 rounded-full flex gap-2 items-center"
+                variant="primary"
+                className="dynamic-button-color max-w-40 rounded-full flex gap-2 items-center"
                 >
                 Enviar
                 <SendHorizontal />
