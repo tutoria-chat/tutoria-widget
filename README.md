@@ -58,7 +58,7 @@ Você pode embedar o chatbot em qualquer página com o seguinte código:
 Apenas substitua o link no src pelo seu domínio.
 
 ### Parâmetros suportados
-- `apiRoute`: Sufixo da rota da API (ex: `/disciplina-x`, `/materia-y`). Será concatenado com `PUBLIC_API_BASE_URL`.
+- `apiRoute`: Sufixo da rota da API (ex: `/disciplina-x`, `/materia-y`). Será concatenado com `API_BASE_URL`.
 - `dark`: Controla o tema do widget. Valores:
     - `auto`: usa a preferência do usuário (padrão)
     - `true`: força modo escuro
