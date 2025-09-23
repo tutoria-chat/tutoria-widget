@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Paperclip, SendHorizontal } from 'lucide-react';
+import { Paperclip, SendHorizontal, FileText, Download } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
@@ -18,17 +18,45 @@ interface ChatMessage {
 }
 
 /**
+ * Represents module information from the API.
+ */
+interface ModuleInfo {
+  module_name: string;
+  module_description: string;
+  semester: number;
+  year: number;
+  permissions: {
+    allow_chat: boolean;
+    allow_file_access: boolean;
+  };
+}
+
+/**
+ * Represents a file available for download.
+ */
+interface FileInfo {
+  id: number;
+  name: string;
+  file_type: string;
+  download_url: string;
+}
+
+/**
  * ChatForm component: Manages a markdown-enabled chat interface with auto-scrolling and token authentication.
  */
 export default function ChatForm() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [moduleInfo, setModuleInfo] = useState<ModuleInfo | null>(null);
+  const [files, setFiles] = useState<FileInfo[]>([]);
+  const [showFiles, setShowFiles] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
-  const suffix = params.get('apiRoute') || '';
+  const moduleToken = params.get('module_token') || '';
+  const studentId = params.get('student_id') || '';
   const darkParam = params.get('dark') ?? import.meta.env.PUBLIC_ENABLE_DARK_MODE ?? 'auto';
   const buttonColor = params.get('buttonColor') || ''
   const userMessageColor = params.get('userMessageColor') || ''
@@ -83,39 +111,65 @@ export default function ChatForm() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const authTokenRef = useRef<string | null>(null);
-
   /**
-   * Fetches and caches the auth token for API calls.
-   * @returns The token string.
+   * Fetches module information from the API.
    */
-  const fetchToken = async (): Promise<string> => {
-    if (authTokenRef.current) return authTokenRef.current;
-
-    const response = await fetch('/api/auth', { method: 'POST' });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to obtain token: ${response.status} - ${errorText}`);
+  const fetchModuleInfo = async () => {
+    if (!moduleToken) {
+      console.error('No module token provided');
+      return;
     }
 
-    const data = await response.json();
-    const token = data?.token;
+    try {
+      const response = await fetch(`/api/auth?module_token=${moduleToken}`);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch module info: ${response.status} - ${errorText}`);
+      }
 
-    if (!token) throw new Error('Token not found in API response.');
-
-    authTokenRef.current = token;
-    return token;
+      const moduleData = await response.json();
+      setModuleInfo(moduleData);
+    } catch (error) {
+      console.error('Failed to fetch module info:', error);
+    }
   };
 
   /**
-   * Pre-fetch the token when the component mounts.
+   * Fetches available files for the module.
+   */
+  const fetchFiles = async () => {
+    if (!moduleToken || !moduleInfo?.permissions.allow_file_access) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/files?module_token=${moduleToken}`);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch files: ${response.status} - ${errorText}`);
+      }
+
+      const filesData = await response.json();
+      setFiles(filesData);
+    } catch (error) {
+      console.error('Failed to fetch files:', error);
+    }
+  };
+
+  /**
+   * Fetch module info and files when the component mounts.
    */
   useEffect(() => {
-    fetchToken().catch((err) => {
-      console.error('Authentication pre-fetch failed:', err);
-    });
-  }, []);
+    fetchModuleInfo();
+  }, [moduleToken]);
+
+  useEffect(() => {
+    if (moduleInfo) {
+      fetchFiles();
+    }
+  }, [moduleInfo]);
 
   /**
    * Handles the chat form submission.
@@ -124,10 +178,20 @@ export default function ChatForm() {
    */
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!message.trim() || isLoading) return;
+    if (!message.trim() || isLoading || !moduleToken) return;
+
+    // Check if chat is allowed
+    if (!moduleInfo?.permissions.allow_chat) {
+      setMessages((prev) => [
+        ...prev,
+        { content: 'Chat não está habilitado para este módulo.', role: 'assistant' },
+      ]);
+      return;
+    }
 
     const userMessage = { content: message, role: 'user' as const };
     setMessages((prev) => [...prev, userMessage]);
+    const currentMessage = message;
     setMessage('');
     setIsLoading(true);
 
@@ -136,11 +200,11 @@ export default function ChatForm() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${authTokenRef.current}`,
         },
         body: JSON.stringify({
-          pergunta: message,
-          suffix,
+          message: currentMessage,
+          module_token: moduleToken,
+          student_id: studentId,
         }),
       });
 
@@ -217,18 +281,84 @@ export default function ChatForm() {
         `}
       </style>
 
-      <CardHeader className="flex flex-row border-b hidden">
-        <img src={isDark ? "/white_blue_horizontal.svg" : "/colored_horizontal.svg"} alt="Logo" className="w-40 h-auto object-contain" />
+      <CardHeader className="flex flex-row items-center justify-between border-b">
+        <div className="flex flex-col gap-1">
+          {moduleInfo ? (
+            <>
+              <CardTitle className="text-lg">{moduleInfo.module_name}</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                {moduleInfo.semester}º Semestre, {moduleInfo.year}
+              </p>
+            </>
+          ) : (
+            <CardTitle className="text-lg">Carregando módulo...</CardTitle>
+          )}
+        </div>
+        {moduleInfo?.permissions.allow_file_access && files.length > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFiles(!showFiles)}
+            className="flex items-center gap-2"
+          >
+            <FileText className="w-4 h-4" />
+            Arquivos ({files.length})
+          </Button>
+        )}
       </CardHeader>
+
+      {/* Files Panel */}
+      {showFiles && (
+        <div className="border-b bg-muted/50 p-4">
+          <h3 className="font-medium mb-3">Arquivos Disponíveis</h3>
+          <div className="grid gap-2">
+            {files.map((file) => (
+              <div key={file.id} className="flex items-center justify-between p-2 rounded-md bg-background border">
+                <div className="flex items-center gap-3">
+                  <FileText className="w-4 h-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">{file.name}</p>
+                    <p className="text-xs text-muted-foreground uppercase">{file.file_type}</p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  asChild
+                  className="h-8 w-8 p-0"
+                >
+                  <a href={`/api/download/${file.id}?module_token=${moduleToken}`} target="_blank" rel="noopener noreferrer">
+                    <Download className="w-4 h-4" />
+                  </a>
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div
         className={`flex flex-col flex-1 overflow-hidden gap-6 ${
           messages.length > 0 ? 'justify-start' : 'justify-end sm:justify-center sm:items-center '
         }`}
       >
-        {messages.length === 0 ? (
+        {!moduleToken ? (
           <CardContent className="max-sm:flex-1 flex flex-col justify-center items-center text-center">
-            <CardTitle className="text-2xl text-foreground">Qual sua dúvida?</CardTitle>
+            <CardTitle className="text-2xl text-foreground">Token de módulo necessário</CardTitle>
+            <p className="text-sm text-muted-foreground mt-2 max-w-md">
+              Este widget precisa de um token de módulo válido para funcionar. Verifique se a URL contém o parâmetro <code>module_token</code>.
+            </p>
+          </CardContent>
+        ) : messages.length === 0 ? (
+          <CardContent className="max-sm:flex-1 flex flex-col justify-center items-center text-center">
+            <CardTitle className="text-2xl text-foreground">
+              {moduleInfo ? `Qual sua dúvida sobre ${moduleInfo.module_name}?` : 'Qual sua dúvida?'}
+            </CardTitle>
+            {moduleInfo && (
+              <p className="text-sm text-muted-foreground mt-2 max-w-md">
+                {moduleInfo.module_description}
+              </p>
+            )}
           </CardContent>
         ) : (
           <div className="flex-1 overflow-y-auto space-y-4 w-full px-4 scrollbar scrollbar-w-2 scrollbar-thumb-rounded-full scrollbar-track-rounded-full scrollbar-thumb-border">
@@ -284,7 +414,7 @@ export default function ChatForm() {
                 <div></div>
                 <Button
                 type="submit"
-                disabled={isLoading || !message.trim()}
+                disabled={isLoading || !message.trim() || !moduleInfo?.permissions.allow_chat}
                 variant="primary"
                 className="dynamic-button-color max-w-40 rounded-full flex gap-2 items-center"
                 >

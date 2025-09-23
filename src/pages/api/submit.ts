@@ -1,39 +1,28 @@
 export const prerender = false;
 
-// Base URL for the external API endpoint
-const API_BASE_URL = import.meta.env.API_BASE_URL;
-const API_AUTH_USERNAME = import.meta.env.API_AUTH_USERNAME;
+// Base URL for the tutoria API
+const API_BASE_URL = import.meta.env.API_BASE_URL || 'http://localhost:8000';
 
 /**
- * Handles POST requests that forward a user's question to an external API.
+ * Handles POST requests that forward a user's question to the tutoria widget chat API.
  * 
  * Expects a JSON body with the following fields:
- * - pergunta: string (the user question)
- * - suffix: optional string (used to append to the API base URL)
- * 
- * Requires an Authorization header with a Bearer token.
+ * - message: string (the user question)
+ * - module_token: string (the module access token)
+ * - student_id: optional string (external student identifier)
  * 
  * @param request Incoming Request object
- * @returns {Response} A JSON response containing the external API's answer or an error
+ * @returns {Response} A JSON response containing the AI tutor's answer or an error
  */
 export async function POST({ request }: { request: Request }) {
   try {
     const body = await request.json();
-    const pergunta = body.pergunta; // User's question (keep in Portuguese)
-    const suffix = body.suffix || '';
-    const usuario = API_AUTH_USERNAME; // Static user identifier (keep in Portuguese)
-
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+    const { message, module_token, student_id } = body;
 
     // Validate required fields
-    if (!pergunta || !token) {
-      return new Response('Missing pergunta or token.', { status: 400 });
+    if (!message || !module_token) {
+      return new Response('Missing message or module_token.', { status: 400 });
     }
-
-    // Build FormData to forward to external API
-    const formData = new FormData();
-    formData.append('usuario', usuario);
-    formData.append('pergunta', pergunta);
 
     // Validate base API URL
     const baseUrl = API_BASE_URL;
@@ -41,21 +30,19 @@ export async function POST({ request }: { request: Request }) {
       return new Response('API_BASE_URL is not configured.', { status: 500 });
     }
 
-    // Build final request URL by appending optional suffix
-    const base = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-    let url = base;
-    if (suffix) {
-      const suffixPath = suffix.startsWith('/') ? suffix : `/${suffix}`;
-      url += suffixPath;
-    }
+    // Build final request URL
+    const url = `${baseUrl}/api/widget/chat?module_token=${module_token}`;
 
-    // Forward request to external API
+    // Forward request to tutoria widget API
     const apiResponse = await fetch(url, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
       },
-      body: formData,
+      body: JSON.stringify({
+        message,
+        student_id,
+      }),
     });
 
     // Handle failure response
@@ -65,9 +52,13 @@ export async function POST({ request }: { request: Request }) {
     }
 
     // Return response content
-    const resposta = await apiResponse.json();
+    const responseData = await apiResponse.json();
     return new Response(
-      JSON.stringify({ response: resposta?.resposta ?? resposta }),
+      JSON.stringify({ 
+        response: responseData.response,
+        module_name: responseData.module_name,
+        files_used: responseData.files_used 
+      }),
       { headers: { 'Content-Type': 'application/json' } }
     );
   } catch (err) {

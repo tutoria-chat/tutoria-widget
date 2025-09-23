@@ -4,10 +4,10 @@ export const prerender = false;
 const API_BASE_URL = import.meta.env.API_BASE_URL || 'http://localhost:8000';
 
 /**
- * Handles GET requests to fetch module information using the module token.
+ * Handles GET requests to list files available for a module.
  * 
  * @param request Incoming Request object
- * @returns {Response} JSON response containing module info or an error message.
+ * @returns {Response} JSON response containing available files or an error message.
  */
 export async function GET({ request }: { request: Request }) {
   const url = new URL(request.url);
@@ -18,20 +18,20 @@ export async function GET({ request }: { request: Request }) {
   }
 
   try {
-    // Fetch module info from the tutoria API
-    const response = await fetch(`${API_BASE_URL}/api/widget/info?module_token=${moduleToken}`);
+    // Fetch files list from the tutoria API
+    const response = await fetch(`${API_BASE_URL}/api/widget/files?module_token=${moduleToken}`);
 
     if (!response.ok) {
       const errorText = await response.text();
       return new Response(errorText, { status: response.status });
     }
 
-    const moduleInfo = await response.json();
-    return new Response(JSON.stringify(moduleInfo), {
+    const files = await response.json();
+    return new Response(JSON.stringify(files), {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Error fetching module info:', error);
-    return new Response('Failed to fetch module information.', { status: 500 });
+    console.error('Error fetching files:', error);
+    return new Response('Failed to fetch files.', { status: 500 });
   }
 }
