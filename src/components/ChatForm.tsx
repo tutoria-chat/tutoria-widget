@@ -62,6 +62,8 @@ export default function ChatForm() {
   const userMessageColor = params.get('userMessageColor') || ''
   const agentMessageColor = params.get('agentMessageColor') || ''
 
+  const apiBaseUrl = import.meta.env.PUBLIC_API_BASE_URL || 'http://localhost:8000';
+
   /**
    * Validates a hex color string.
    * @param color Hex code string without '#'
@@ -121,8 +123,8 @@ export default function ChatForm() {
     }
 
     try {
-      const response = await fetch(`/api/auth?module_token=${moduleToken}`);
-      
+      const response = await fetch(`${apiBaseUrl}/api/widget/info?module_token=${moduleToken}`);
+
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Failed to fetch module info: ${response.status} - ${errorText}`);
@@ -144,8 +146,8 @@ export default function ChatForm() {
     }
 
     try {
-      const response = await fetch(`/api/files?module_token=${moduleToken}`);
-      
+      const response = await fetch(`${apiBaseUrl}/api/widget/files?module_token=${moduleToken}`);
+
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Failed to fetch files: ${response.status} - ${errorText}`);
@@ -196,14 +198,13 @@ export default function ChatForm() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/submit', {
+      const response = await fetch(`${apiBaseUrl}/api/widget/chat?module_token=${moduleToken}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           message: currentMessage,
-          module_token: moduleToken,
           student_id: studentId,
         }),
       });
@@ -327,7 +328,7 @@ export default function ChatForm() {
                   asChild
                   className="h-8 w-8 p-0"
                 >
-                  <a href={`/api/download/${file.id}?module_token=${moduleToken}`} target="_blank" rel="noopener noreferrer">
+                  <a href={`${apiBaseUrl}/api/widget/files/${file.id}/download?module_token=${moduleToken}`} target="_blank" rel="noopener noreferrer">
                     <Download className="w-4 h-4" />
                   </a>
                 </Button>

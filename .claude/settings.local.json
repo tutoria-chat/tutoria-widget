@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Read(//d/Users/Steve/Code/**)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(if [ -f .env ])",
+      "Bash(then echo \"exists\")",
+      "Bash(else echo \"not found\")",
+      "Bash(fi)"
     ],
     "deny": [],
     "ask": []
