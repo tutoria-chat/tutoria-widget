@@ -27,13 +27,19 @@ Este projeto é um **front-end leve e responsivo** que conecta com a **Tutoria A
     ```bash
     npm install
     ```
-3. Crie um arquivo `.env` na raiz do projeto com as seguintes variáveis:
-    ```env
-    PUBLIC_ENABLE_DARK_MODE=auto
-    API_BASE_URL=http://localhost:8000
+3. Configure as variáveis de ambiente:
+    ```bash
+    cp .env.example .env
     ```
-- `PUBLIC_ENABLE_DARK_MODE`: Controla se o suporte a tema escuro automático será habilitado (auto, true ou false).
-- `API_BASE_URL`: URL base da API Tutoria v2.0 (padrão: http://localhost:8000).
+    Edite o arquivo `.env` e configure:
+    ```env
+    PUBLIC_API_BASE_URL=http://localhost:8000
+    ```
+    - `PUBLIC_API_BASE_URL`: URL base da API Tutoria v2.0
+      - Desenvolvimento local: `http://localhost:8000`
+      - Produção: URL do seu servidor de API
+
+> **⚠️ Importante**: Nunca commite o arquivo `.env` no git! Ele já está no `.gitignore` para sua segurança.
 
 ## 🚀 Execução local
 ```bash
@@ -41,6 +47,32 @@ npm run dev
 ```
 
 Por padrão, a aplicação roda em `http://localhost:4321.`
+
+## 🌐 Deploy em Produção
+
+### Vercel (Recomendado)
+
+1. **Faça push do código para o GitHub** (certifique-se de que `.env` não foi commitado!)
+2. **Importe o projeto no Vercel**:
+   - Acesse [vercel.com](https://vercel.com)
+   - Clique em "Import Project"
+   - Selecione seu repositório GitHub
+3. **Configure as variáveis de ambiente** no Vercel:
+   - Vá em **Settings** → **Environment Variables**
+   - Adicione:
+     - `PUBLIC_API_BASE_URL`: URL da sua API em produção
+       ```
+       https://tutoria-api-dev.orangesmoke-8addc8f4.eastus2.azurecontainerapps.io
+       ```
+4. **Deploy**: O Vercel fará o deploy automaticamente a cada push!
+
+> **🔒 Segurança**: As variáveis de ambiente configuradas no Vercel são privadas e seguras. Apenas variáveis com prefixo `PUBLIC_` são expostas no cliente.
+
+### Outras Plataformas
+Para Netlify, Cloudflare Pages, ou outras plataformas:
+- Configure `PUBLIC_API_BASE_URL` nas variáveis de ambiente da plataforma
+- Build command: `npm run build`
+- Output directory: `dist/`
 
 ## 🧩 Uso via iframe
 Você pode embedar o chatbot em qualquer página com o seguinte código:
