@@ -51,6 +51,7 @@ export default function ChatForm() {
   const [moduleInfo, setModuleInfo] = useState<ModuleInfo | null>(null);
   const [files, setFiles] = useState<FileInfo[]>([]);
   const [showFiles, setShowFiles] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null); // Track conversation ID
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -206,6 +207,7 @@ export default function ChatForm() {
         body: JSON.stringify({
           message: currentMessage,
           student_id: studentId,
+          conversation_id: conversationId, // Send existing conversation_id if available
         }),
       });
 
@@ -218,6 +220,12 @@ export default function ChatForm() {
 
       if (!data?.response) {
         throw new Error('Invalid response from server.');
+      }
+
+      // Store conversation_id from response for conversation threading
+      if (data.conversation_id) {
+        setConversationId(data.conversation_id);
+        console.log('Conversation ID:', data.conversation_id);
       }
 
       const assistantMessage = { content: data.response, role: 'assistant' as const };
