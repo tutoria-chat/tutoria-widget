@@ -55,6 +55,11 @@ export default function ChatForm() {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
+  // Message history for arrow key navigation (console-like behavior)
+  const [messageHistory, setMessageHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState<number>(-1);
+  const [currentDraft, setCurrentDraft] = useState<string>(''); // Save current typing when browsing history
+
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const moduleToken = params.get('module_token') || '';
   const studentId = params.get('student_id') || '';
@@ -192,6 +197,11 @@ export default function ChatForm() {
       return;
     }
 
+    // Add to message history for arrow key navigation
+    setMessageHistory((prev) => [...prev, message.trim()]);
+    setHistoryIndex(-1);
+    setCurrentDraft('');
+
     const userMessage = { content: message, role: 'user' as const };
     setMessages((prev) => [...prev, userMessage]);
     const currentMessage = message;
@@ -252,10 +262,45 @@ export default function ChatForm() {
   };
 
   /**
-   * Handles Enter key for form submission, Shift+Enter inserts newline.
+   * Handles keyboard navigation: Arrow keys for history, Enter for submission.
    * @param e Keyboard event from textarea
    */
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // ArrowUp - go to older messages
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (messageHistory.length === 0) return;
+
+      // Save current draft on first up arrow press
+      if (historyIndex === -1) {
+        setCurrentDraft(message);
+      }
+
+      const newIndex = Math.min(historyIndex + 1, messageHistory.length - 1);
+      setHistoryIndex(newIndex);
+      setMessage(messageHistory[messageHistory.length - 1 - newIndex]);
+      return;
+    }
+
+    // ArrowDown - go to newer messages
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (historyIndex === -1) return;
+
+      const newIndex = historyIndex - 1;
+      if (newIndex === -1) {
+        // Restore draft
+        setMessage(currentDraft);
+        setHistoryIndex(-1);
+        setCurrentDraft('');
+      } else {
+        setHistoryIndex(newIndex);
+        setMessage(messageHistory[messageHistory.length - 1 - newIndex]);
+      }
+      return;
+    }
+
+    // Enter key - submit form
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e as unknown as React.FormEvent);
