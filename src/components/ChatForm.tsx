@@ -3,11 +3,12 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Paperclip, SendHorizontal, FileText, Download } from 'lucide-react';
+import { Paperclip, SendHorizontal, FileText, Download, AlertCircle, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
 import 'highlight.js/styles/tokyo-night-dark.css';
+import { apiClient } from '@/lib/api-client';
 
 /**
  * Represents a single chat message.
@@ -62,6 +63,7 @@ export default function ChatForm() {
 
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const moduleToken = params.get('module_token') || '';
+  const professorAgentToken = params.get('professor_agent_token') || '';
   const studentId = params.get('student_id') || '';
   const darkParam = params.get('dark') ?? import.meta.env.PUBLIC_ENABLE_DARK_MODE ?? 'auto';
   const buttonColor = params.get('buttonColor') || ''
@@ -69,6 +71,7 @@ export default function ChatForm() {
   const agentMessageColor = params.get('agentMessageColor') || ''
 
   const apiBaseUrl = import.meta.env.PUBLIC_API_BASE_URL || 'http://localhost:8000';
+  const isProfessorMode = !!professorAgentToken;
 
   /**
    * Validates a hex color string.
@@ -120,7 +123,7 @@ export default function ChatForm() {
   }, [messages]);
 
   /**
-   * Fetches module information from the API.
+   * Fetches module information from the API with automatic retry.
    */
   const fetchModuleInfo = async () => {
     if (!moduleToken) {
@@ -129,22 +132,23 @@ export default function ChatForm() {
     }
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/widget/info?module_token=${moduleToken}`);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to fetch module info: ${response.status} - ${errorText}`);
-      }
-
-      const moduleData = await response.json();
+      const moduleData = await apiClient.getModuleInfo(moduleToken);
       setModuleInfo(moduleData);
     } catch (error) {
       console.error('Failed to fetch module info:', error);
+      // Show error message in chat
+      setMessages((prev) => [
+        ...prev,
+        {
+          content: `⚠️ Unable to load module information. ${error instanceof Error ? error.message : 'Please refresh the page and try again.'}`,
+          role: 'assistant',
+        },
+      ]);
     }
   };
 
   /**
-   * Fetches available files for the module.
+   * Fetches available files for the module with automatic retry.
    */
   const fetchFiles = async () => {
     if (!moduleToken || !moduleInfo?.permissions.allow_file_access) {
@@ -152,17 +156,11 @@ export default function ChatForm() {
     }
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/widget/files?module_token=${moduleToken}`);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to fetch files: ${response.status} - ${errorText}`);
-      }
-
-      const filesData = await response.json();
+      const filesData = await apiClient.getModuleFiles(moduleToken);
       setFiles(filesData);
     } catch (error) {
       console.error('Failed to fetch files:', error);
+      // Files are optional, so we don't show error to user
     }
   };
 
@@ -180,16 +178,19 @@ export default function ChatForm() {
   }, [moduleInfo]);
 
   /**
-   * Handles the chat form submission.
+   * Handles the chat form submission with robust error handling and retry logic.
    * Sends the user's message to the backend and displays the assistant's response.
    * @param event Form submit event
    */
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!message.trim() || isLoading || !moduleToken) return;
+    if (!message.trim() || isLoading) return;
 
-    // Check if chat is allowed
-    if (!moduleInfo?.permissions.allow_chat) {
+    // Check if we have either moduleToken or professorAgentToken
+    if (!moduleToken && !professorAgentToken) return;
+
+    // Check if chat is allowed (only for student mode)
+    if (!isProfessorMode && !moduleInfo?.permissions.allow_chat) {
       setMessages((prev) => [
         ...prev,
         { content: 'Chat não está habilitado para este módulo.', role: 'assistant' },
@@ -209,28 +210,19 @@ export default function ChatForm() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/widget/chat?module_token=${moduleToken}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: currentMessage,
-          student_id: studentId,
-          conversation_id: conversationId, // Send existing conversation_id if available
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API request failed (${response.status}): ${errorText}`);
-      }
-
-      const data = await response.json();
-
-      if (!data?.response) {
-        throw new Error('Invalid response from server.');
-      }
+      // Use new API client with automatic retry
+      const data = isProfessorMode
+        ? await apiClient.sendProfessorChatMessage({
+            professorAgentToken,
+            message: currentMessage,
+            conversationId,
+          })
+        : await apiClient.sendChatMessage({
+            moduleToken,
+            message: currentMessage,
+            studentId,
+            conversationId,
+          });
 
       // Store conversation_id from response for conversation threading
       if (data.conversation_id) {
@@ -241,10 +233,40 @@ export default function ChatForm() {
       const assistantMessage = { content: data.response, role: 'assistant' as const };
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
-      console.error('Fetch error:', error);
+      console.error('Chat error:', error);
+
+      // User-friendly error message based on error type
+      let errorMessage = isProfessorMode
+        ? 'An error occurred while processing your message.'
+        : 'Um erro aconteceu ao processar sua mensagem.';
+
+      if (error instanceof Error) {
+        // Use error message from API client if available
+        if (error.message.includes('Network error')) {
+          errorMessage = isProfessorMode
+            ? '🔌 Network error. Please check your internet connection.'
+            : '🔌 Erro de rede. Por favor, verifique sua conexão com a internet.';
+        } else if (error.message.includes('timed out')) {
+          errorMessage = isProfessorMode
+            ? '⏱️ Request timed out. The server is taking too long to respond. Please try again.'
+            : '⏱️ Tempo esgotado. O servidor está demorando muito para responder. Tente novamente.';
+        } else if (error.message.includes('Invalid or expired')) {
+          errorMessage = isProfessorMode
+            ? '🔑 Your access token has expired. Please refresh the page.'
+            : '🔑 Seu token de acesso expirou. Por favor, atualize a página.';
+        } else if (error.message.includes('Too many requests')) {
+          errorMessage = isProfessorMode
+            ? '🚦 Too many requests. Please wait a moment before trying again.'
+            : '🚦 Muitas solicitações. Aguarde um momento antes de tentar novamente.';
+        } else {
+          // Include the specific error message
+          errorMessage += ` (${error.message})`;
+        }
+      }
+
       setMessages((prev) => [
         ...prev,
-        { content: 'Um erro aconteceu ao processar sua mensagem.', role: 'assistant' },
+        { content: errorMessage, role: 'assistant' },
       ]);
     } finally {
       setIsLoading(false);
