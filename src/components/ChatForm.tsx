@@ -61,7 +61,12 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
   const [historyIndex, setHistoryIndex] = useState<number>(-1);
   const [currentDraft, setCurrentDraft] = useState<string>(''); // Save current typing when browsing history
 
-  const params = useMemo(() => new URLSearchParams(window.location.search), []);
+  // Only access window on the client side
+  const params = useMemo(() => {
+    if (typeof window === 'undefined') return new URLSearchParams();
+    return new URLSearchParams(window.location.search);
+  }, []);
+
   const moduleToken = params.get('module_token') || '';
   const professorAgentToken = params.get('professor_agent_token') || '';
   const studentId = params.get('student_id') || '';
