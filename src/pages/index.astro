@@ -1,8 +1,11 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import ChatForm from '@/components/ChatForm';
+
+// Get API URL from environment variable (server-side)
+const apiBaseUrl = import.meta.env.PUBLIC_API_BASE_URL || 'https://tutoria-api-dev.orangesmoke-8addc8f4.eastus2.azurecontainerapps.io';
 ---
 
 <Layout>
-  <ChatForm client:only />
+  <ChatForm client:only apiBaseUrl={apiBaseUrl} />
 </Layout>

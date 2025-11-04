@@ -8,7 +8,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
 import 'highlight.js/styles/tokyo-night-dark.css';
-import { apiClient } from '@/lib/api-client';
+import { WidgetAPIClient } from '@/lib/api-client';
 
 /**
  * Represents a single chat message.
@@ -45,7 +45,7 @@ interface FileInfo {
 /**
  * ChatForm component: Manages a markdown-enabled chat interface with auto-scrolling and token authentication.
  */
-export default function ChatForm() {
+export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: string }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -70,7 +70,10 @@ export default function ChatForm() {
   const userMessageColor = params.get('userMessageColor') || ''
   const agentMessageColor = params.get('agentMessageColor') || ''
 
-  const apiBaseUrl = import.meta.env.PUBLIC_API_BASE_URL || 'http://localhost:8000';
+  // Use prop from server-side or fallback to default
+  const apiBaseUrl = apiBaseUrlProp || 'https://tutoria-api-dev.orangesmoke-8addc8f4.eastus2.azurecontainerapps.io';
+  // Create API client instance with the correct base URL
+  const apiClient = useMemo(() => new WidgetAPIClient(apiBaseUrl), [apiBaseUrl]);
   const isProfessorMode = !!professorAgentToken;
 
   /**
