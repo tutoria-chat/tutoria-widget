@@ -70,6 +70,12 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
   const moduleToken = params.get('module_token') || '';
   const professorAgentToken = params.get('professor_agent_token') || '';
   const studentId = params.get('student_id') || '';
+
+  // UP Business mode parameters
+  const upId = params.get('up_id') || '';
+  const upApiKey = params.get('up_api_key') || '';
+  const teamName = params.get('team_name') || '';
+
   const darkParam = params.get('dark') ?? import.meta.env.PUBLIC_ENABLE_DARK_MODE ?? 'auto';
   const buttonColor = params.get('buttonColor') || ''
   const userMessageColor = params.get('userMessageColor') || ''
@@ -79,7 +85,10 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
   const apiBaseUrl = apiBaseUrlProp || 'https://tutoria-api-dev.orangesmoke-8addc8f4.eastus2.azurecontainerapps.io';
   // Create API client instance with the correct base URL
   const apiClient = useMemo(() => new WidgetAPIClient(apiBaseUrl), [apiBaseUrl]);
+
+  // Determine widget mode
   const isProfessorMode = !!professorAgentToken;
+  const isUpBusinessMode = !!upApiKey;
 
   /**
    * Validates a hex color string.
@@ -174,10 +183,13 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
 
   /**
    * Fetch module info and files when the component mounts.
+   * Skip if in UP Business mode (no module needed).
    */
   useEffect(() => {
-    fetchModuleInfo();
-  }, [moduleToken]);
+    if (!isUpBusinessMode) {
+      fetchModuleInfo();
+    }
+  }, [moduleToken, isUpBusinessMode]);
 
   useEffect(() => {
     if (moduleInfo) {
@@ -194,11 +206,11 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
     event.preventDefault();
     if (!message.trim() || isLoading) return;
 
-    // Check if we have either moduleToken or professorAgentToken
-    if (!moduleToken && !professorAgentToken) return;
+    // Check if we have authentication (moduleToken OR professorAgentToken OR upApiKey)
+    if (!moduleToken && !professorAgentToken && !upApiKey) return;
 
-    // Check if chat is allowed (only for student mode)
-    if (!isProfessorMode && !moduleInfo?.permissions.allow_chat) {
+    // Check if chat is allowed (only for student mode with module)
+    if (!isProfessorMode && !isUpBusinessMode && !moduleInfo?.permissions.allow_chat) {
       setMessages((prev) => [
         ...prev,
         { content: 'Chat não está habilitado para este módulo.', role: 'assistant' },
@@ -218,19 +230,33 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
     setIsLoading(true);
 
     try {
-      // Use new API client with automatic retry
-      const data = isProfessorMode
-        ? await apiClient.sendProfessorChatMessage({
-            professorAgentToken,
-            message: currentMessage,
-            conversationId,
-          })
-        : await apiClient.sendChatMessage({
-            moduleToken,
-            message: currentMessage,
-            studentId,
-            conversationId,
-          });
+      // Use appropriate API method based on mode
+      let data;
+      if (isUpBusinessMode) {
+        // UP Business mode
+        data = await apiClient.sendUpBusinessChatMessage({
+          upApiKey,
+          message: currentMessage,
+          upId: upId || undefined,
+          teamName: teamName || undefined,
+          conversationId,
+        });
+      } else if (isProfessorMode) {
+        // Professor mode
+        data = await apiClient.sendProfessorChatMessage({
+          professorAgentToken,
+          message: currentMessage,
+          conversationId,
+        });
+      } else {
+        // Student module mode
+        data = await apiClient.sendChatMessage({
+          moduleToken,
+          message: currentMessage,
+          studentId,
+          conversationId,
+        });
+      }
 
       // Store conversation_id from response for conversation threading
       if (data.conversation_id) {
@@ -243,27 +269,31 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
     } catch (error) {
       console.error('Chat error:', error);
 
-      // User-friendly error message based on error type
-      let errorMessage = isProfessorMode
+      // User-friendly error message based on error type and mode
+      let errorMessage = isUpBusinessMode
+        ? 'An error occurred while processing your message.'
+        : isProfessorMode
         ? 'An error occurred while processing your message.'
         : 'Um erro aconteceu ao processar sua mensagem.';
 
       if (error instanceof Error) {
         // Use error message from API client if available
         if (error.message.includes('Network error')) {
-          errorMessage = isProfessorMode
+          errorMessage = isUpBusinessMode || isProfessorMode
             ? '🔌 Network error. Please check your internet connection.'
             : '🔌 Erro de rede. Por favor, verifique sua conexão com a internet.';
         } else if (error.message.includes('timed out')) {
-          errorMessage = isProfessorMode
+          errorMessage = isUpBusinessMode || isProfessorMode
             ? '⏱️ Request timed out. The server is taking too long to respond. Please try again.'
             : '⏱️ Tempo esgotado. O servidor está demorando muito para responder. Tente novamente.';
         } else if (error.message.includes('Invalid or expired')) {
-          errorMessage = isProfessorMode
+          errorMessage = isUpBusinessMode
+            ? '🔑 Your UP Business API key is invalid or expired. Please contact support.'
+            : isProfessorMode
             ? '🔑 Your access token has expired. Please refresh the page.'
             : '🔑 Seu token de acesso expirou. Por favor, atualize a página.';
         } else if (error.message.includes('Too many requests')) {
-          errorMessage = isProfessorMode
+          errorMessage = isUpBusinessMode || isProfessorMode
             ? '🚦 Too many requests. Please wait a moment before trying again.'
             : '🚦 Muitas solicitações. Aguarde um momento antes de tentar novamente.';
         } else {
@@ -367,7 +397,14 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
 
       <CardHeader className="flex flex-row items-center justify-between border-b">
         <div className="flex flex-col gap-1">
-          {moduleInfo ? (
+          {isUpBusinessMode ? (
+            <>
+              <CardTitle className="text-lg">UP Business Game</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                {teamName || (upId ? `Team ${upId}` : 'AI Tutor')}
+              </p>
+            </>
+          ) : moduleInfo ? (
             <>
               <CardTitle className="text-lg">{moduleInfo.module_name}</CardTitle>
               <p className="text-sm text-muted-foreground">
@@ -378,7 +415,7 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
             <CardTitle className="text-lg">Carregando módulo...</CardTitle>
           )}
         </div>
-        {moduleInfo?.permissions.allow_file_access && files.length > 0 && (
+        {!isUpBusinessMode && moduleInfo?.permissions.allow_file_access && files.length > 0 && (
           <Button
             variant="outline"
             size="sm"
@@ -426,17 +463,21 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
           messages.length > 0 ? 'justify-start' : 'justify-end sm:justify-center sm:items-center '
         }`}
       >
-        {!moduleToken ? (
+        {!moduleToken && !upApiKey ? (
           <CardContent className="max-sm:flex-1 flex flex-col justify-center items-center text-center">
-            <CardTitle className="text-2xl text-foreground">Token de módulo necessário</CardTitle>
+            <CardTitle className="text-2xl text-foreground">Authentication required</CardTitle>
             <p className="text-sm text-muted-foreground mt-2 max-w-md">
-              Este widget precisa de um token de módulo válido para funcionar. Verifique se a URL contém o parâmetro <code>module_token</code>.
+              This widget requires either a <code>module_token</code> or <code>up_api_key</code> parameter to function.
             </p>
           </CardContent>
         ) : messages.length === 0 ? (
           <CardContent className="max-sm:flex-1 flex flex-col justify-center items-center text-center">
             <CardTitle className="text-2xl text-foreground">
-              {moduleInfo ? `Qual sua dúvida sobre ${moduleInfo.module_name}?` : 'Qual sua dúvida?'}
+              {isUpBusinessMode
+                ? 'How can I help you with the UP Business Game?'
+                : moduleInfo
+                ? `Qual sua dúvida sobre ${moduleInfo.module_name}?`
+                : 'Qual sua dúvida?'}
             </CardTitle>
             {moduleInfo && (
               <p className="text-sm text-muted-foreground mt-2 max-w-md">

@@ -342,6 +342,90 @@ export class WidgetAPIClient {
   }
 
   /**
+   * Send UP Business chat message
+   * Uses UP Business API Key authentication instead of module token
+   */
+  async sendUpBusinessChatMessage(params: {
+    upApiKey: string;
+    message: string;
+    upId?: string;
+    conversationId?: string | null;
+    teamName?: string;
+  }): Promise<any> {
+    const url = `${this.baseUrl}/api/upbusiness/chat`;
+
+    try {
+      // Build form data
+      const formData = new FormData();
+      formData.append('message', params.message);
+
+      if (params.upId) {
+        formData.append('up_id', params.upId);
+      }
+
+      if (params.conversationId) {
+        formData.append('conversation_id', params.conversationId);
+      }
+
+      if (params.teamName) {
+        formData.append('team_name', params.teamName);
+      }
+
+      const response = await robustFetch(url, {
+        method: 'POST',
+        headers: {
+          'X-API-Key': params.upApiKey,
+          // Note: Don't set Content-Type, browser will set it with boundary for FormData
+        },
+        body: formData,
+        timeout: 60000, // 60 seconds for AI responses
+        retries: 3, // 3 retries for chat
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unknown error');
+
+        // Provide user-friendly error messages
+        if (response.status === 401 || response.status === 403) {
+          throw new Error('Invalid or expired UP Business API key. Please contact support.');
+        }
+        if (response.status === 429) {
+          throw new Error('Too many requests. Please wait a moment and try again.');
+        }
+
+        throw new Error(`Chat request failed: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+
+      // UP Business API returns different structure
+      // { combined_analysis, conversation_id, files_analyzed, individual_analyses, ... }
+      if (!data?.combined_analysis && !data?.response) {
+        throw new Error('Invalid response from server');
+      }
+
+      // Normalize response to match widget expectations
+      return {
+        response: data.combined_analysis || data.response || '',
+        conversation_id: data.conversation_id,
+        files_used: data.individual_analyses || [],
+      };
+    } catch (error: any) {
+      console.error('[API] sendUpBusinessChatMessage failed:', error);
+
+      // Re-throw with user-friendly message
+      if (error.message.includes('fetch')) {
+        throw new Error('Network error. Please check your connection and try again.');
+      }
+      if (error.name === 'AbortError') {
+        throw new Error('Request timed out. The server may be slow. Please try again.');
+      }
+
+      throw error;
+    }
+  }
+
+  /**
    * Health check - verify API is reachable
    */
   async healthCheck(): Promise<boolean> {
