@@ -284,6 +284,122 @@ export class WidgetAPIClient {
   }
 
   /**
+   * Send chat message with streaming (student mode)
+   * Returns an async generator that yields response chunks
+   */
+  async *sendChatMessageStream(params: {
+    moduleToken: string;
+    message: string;
+    studentId?: string;
+    conversationId?: string | null;
+  }): AsyncGenerator<{ type: 'chunk' | 'done' | 'error' | 'connected'; content?: string; conversationId?: string; error?: string }, void, unknown> {
+    const url = `${this.baseUrl}/api/widget/chat/stream?module_token=${encodeURIComponent(params.moduleToken)}`;
+
+    // Use AbortController with 120s timeout for streaming requests
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120000);
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: params.message,
+          student_id: params.studentId,
+          conversation_id: params.conversationId,
+        }),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unknown error');
+
+        // Provide user-friendly error messages
+        if (response.status === 401 || response.status === 403) {
+          throw new Error('Invalid or expired access token. Please refresh the page.');
+        }
+        if (response.status === 429) {
+          throw new Error('Too many requests. Please wait a moment and try again.');
+        }
+        if (response.status === 501) {
+          throw new Error('Streaming is not enabled on the server. Please try again.');
+        }
+
+        throw new Error(`Chat request failed: ${response.status} - ${errorText}`);
+      }
+
+      if (!response.body) {
+        throw new Error('No response body received');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+
+          if (done) {
+            break;
+          }
+
+          // Decode the chunk and add to buffer
+          buffer += decoder.decode(value, { stream: true });
+
+          // Process complete SSE messages (split by double newline)
+          const messages = buffer.split('\n\n');
+          buffer = messages.pop() || ''; // Keep incomplete message in buffer
+
+          for (const message of messages) {
+            if (!message.trim()) continue;
+
+            // Parse SSE format: "data: {...}"
+            const lines = message.split('\n');
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.substring(6));
+
+                  if (data.event === 'connected') {
+                    yield { type: 'connected' };
+                  } else if (data.chunk) {
+                    yield { type: 'chunk', content: data.chunk };
+                  } else if (data.event === 'done') {
+                    yield { type: 'done', conversationId: data.conversation_id };
+                  } else if (data.event === 'error') {
+                    yield { type: 'error', error: data.message };
+                  }
+                } catch (parseError) {
+                  console.error('[API] Failed to parse SSE message:', line, parseError);
+                }
+              }
+            }
+          }
+        }
+      } finally {
+        reader.releaseLock();
+      }
+    } catch (error: any) {
+      console.error('[API] sendChatMessageStream failed:', error);
+
+      // Re-throw with user-friendly message
+      if (error.name === 'AbortError') {
+        throw new Error('Request timed out. The server took too long to respond. Please try again.');
+      }
+      if (error.message.includes('fetch')) {
+        throw new Error('Network error. Please check your connection and try again.');
+      }
+
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  /**
    * Send professor chat message
    */
   async sendProfessorChatMessage(params: {
@@ -422,6 +538,38 @@ export class WidgetAPIClient {
       }
 
       throw error;
+    }
+  }
+
+  /**
+   * Fetch quiz questions for a module
+   */
+  async getQuizzes(params: {
+    moduleToken: string;
+    difficulty?: 'easy' | 'medium' | 'hard';
+    count?: number;
+  }): Promise<{ quizzes: any[]; total_available: number; count: number; module_name: string }> {
+    let url = `${this.baseUrl}/api/widget/quizzes?module_token=${encodeURIComponent(params.moduleToken)}&count=${params.count || 5}`;
+    if (params.difficulty) {
+      url += `&difficulty=${params.difficulty}`;
+    }
+
+    try {
+      const response = await robustFetch(url, {
+        method: 'GET',
+        timeout: 15000,
+        retries: 2,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unknown error');
+        throw new Error(`Failed to fetch quizzes: ${response.status} - ${errorText}`);
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      console.error('[API] getQuizzes failed:', error);
+      throw new Error(`Unable to load quizzes: ${error.message}`);
     }
   }
 

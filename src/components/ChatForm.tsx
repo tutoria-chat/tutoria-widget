@@ -3,12 +3,13 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Paperclip, SendHorizontal, FileText, Download, AlertCircle, RefreshCw } from 'lucide-react';
+import { SendHorizontal, FileText, Download, Brain } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
 import 'highlight.js/styles/tokyo-night-dark.css';
 import { WidgetAPIClient } from '@/lib/api-client';
+import QuizModal from '@/components/QuizModal';
 
 /**
  * Represents a single chat message.
@@ -16,6 +17,7 @@ import { WidgetAPIClient } from '@/lib/api-client';
 interface ChatMessage {
   content: string;
   role: 'user' | 'assistant';
+  isThinking?: boolean;
 }
 
 /**
@@ -61,6 +63,15 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
   const [historyIndex, setHistoryIndex] = useState<number>(-1);
   const [currentDraft, setCurrentDraft] = useState<string>(''); // Save current typing when browsing history
 
+  // Module load error state
+  const [moduleLoadError, setModuleLoadError] = useState(false);
+
+  // Quiz state
+  const [showQuizPrompt, setShowQuizPrompt] = useState(false);
+  const [showQuizModal, setShowQuizModal] = useState(false);
+  const [quizQuestions, setQuizQuestions] = useState<any[]>([]);
+  const [quizLoading, setQuizLoading] = useState(false);
+
   // Only access window on the client side
   const params = useMemo(() => {
     if (typeof window === 'undefined') return new URLSearchParams();
@@ -80,6 +91,9 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
   const buttonColor = params.get('buttonColor') || ''
   const userMessageColor = params.get('userMessageColor') || ''
   const agentMessageColor = params.get('agentMessageColor') || ''
+
+  // Check if streaming is enabled (via URL param or env variable)
+  const enableStreaming = params.get('streaming') === 'true' || import.meta.env.PUBLIC_ENABLE_STREAMING === 'true';
 
   // Use prop from server-side or fallback to default
   const apiBaseUrl = apiBaseUrlProp || 'https://tutoria-api-dev.orangesmoke-8addc8f4.eastus2.azurecontainerapps.io';
@@ -137,7 +151,7 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
    */
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, showQuizPrompt]);
 
   /**
    * Fetches module information from the API with automatic retry.
@@ -153,11 +167,12 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
       setModuleInfo(moduleData);
     } catch (error) {
       console.error('Failed to fetch module info:', error);
+      setModuleLoadError(true);
       // Show error message in chat
       setMessages((prev) => [
         ...prev,
         {
-          content: `⚠️ Unable to load module information. ${error instanceof Error ? error.message : 'Please refresh the page and try again.'}`,
+          content: `⚠️ Não foi possível carregar as informações do módulo. ${error instanceof Error ? error.message : 'Atualize a página e tente novamente.'}`,
           role: 'assistant',
         },
       ]);
@@ -182,14 +197,60 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
   };
 
   /**
+   * Detects if a message indicates the user wants a quiz/challenge.
+   */
+  const detectQuizIntent = (text: string): boolean => {
+    const quizKeywords = [
+      'quiz', 'quizz', 'teste', 'prova', 'exercício', 'exercicio',
+      'desafio', 'challenge', 'question', 'perguntas', 'pergunta',
+      'avaliação', 'avaliacao', 'testar', 'me testa', 'me teste',
+      'prática', 'pratica', 'treinar', 'treino', 'questões', 'questoes',
+      'flashcard', 'simulado', 'quero praticar', 'quero treinar',
+      'me desafie', 'me desafia', 'questions', 'practice',
+    ];
+    const lower = text.toLowerCase();
+    return quizKeywords.some((kw) => lower.includes(kw));
+  };
+
+  /**
+   * Loads quiz questions from the API and opens the modal.
+   */
+  const startQuiz = async (difficulty?: 'easy' | 'medium' | 'hard') => {
+    setShowQuizPrompt(false);
+    setQuizLoading(true);
+    setShowQuizModal(true);
+
+    try {
+      const data = await apiClient.getQuizzes({
+        moduleToken,
+        difficulty,
+        count: 5,
+      });
+      setQuizQuestions(data.quizzes);
+    } catch (error) {
+      console.error('Failed to load quiz:', error);
+      setQuizQuestions([]);
+    } finally {
+      setQuizLoading(false);
+    }
+  };
+
+  /**
+   * Handles sharing quiz result back into the chat.
+   */
+  const handleQuizResult = (summary: string) => {
+    setMessages((prev) => [...prev, { content: summary, role: 'user' }]);
+  };
+
+  /**
    * Fetch module info and files when the component mounts.
    * Skip if in UP Business mode (no module needed).
    */
   useEffect(() => {
-    if (!isUpBusinessMode) {
+    if (!isUpBusinessMode && !isProfessorMode) {
       fetchModuleInfo();
     }
-  }, [moduleToken, isUpBusinessMode]);
+  }, [moduleToken, isUpBusinessMode, isProfessorMode]);
 
   useEffect(() => {
     if (moduleInfo) {
@@ -218,6 +279,9 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
       return;
     }
 
+    // Dismiss quiz prompt if visible
+    setShowQuizPrompt(false);
+
     // Add to message history for arrow key navigation
     setMessageHistory((prev) => [...prev, message.trim()]);
     setHistoryIndex(-1);
@@ -227,45 +291,120 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
     setMessages((prev) => [...prev, userMessage]);
     const currentMessage = message;
     setMessage('');
+
+    // Check if the user wants a quiz before sending to AI
+    if (!isUpBusinessMode && !isProfessorMode && moduleToken && detectQuizIntent(currentMessage)) {
+      setShowQuizPrompt(true);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      // Use appropriate API method based on mode
-      let data;
-      if (isUpBusinessMode) {
-        // UP Business mode
-        data = await apiClient.sendUpBusinessChatMessage({
-          upApiKey,
-          message: currentMessage,
-          upId: upId || undefined,
-          teamName: teamName || undefined,
-          conversationId,
-        });
-      } else if (isProfessorMode) {
-        // Professor mode
-        data = await apiClient.sendProfessorChatMessage({
-          professorAgentToken,
-          message: currentMessage,
-          conversationId,
-        });
+      // Use streaming if enabled and in student module mode
+      if (enableStreaming && !isUpBusinessMode && !isProfessorMode) {
+        // Create placeholder assistant message with thinking state
+        const assistantMessageIndex = messages.length + 1;
+        setMessages((prev) => [...prev, { content: '', role: 'assistant' as const, isThinking: true }]);
+
+        let fullResponse = '';
+        let receivedConversationId: string | undefined;
+
+        try {
+          const streamGenerator = apiClient.sendChatMessageStream({
+            moduleToken,
+            message: currentMessage,
+            studentId,
+            conversationId,
+          });
+
+          for await (const event of streamGenerator) {
+            if (event.type === 'connected') {
+              console.log('[Streaming] Connected to server');
+            } else if (event.type === 'chunk' && event.content) {
+              fullResponse += event.content;
+              // Update the assistant message with accumulated content, clear thinking state
+              setMessages((prev) => {
+                const newMessages = [...prev];
+                newMessages[assistantMessageIndex] = {
+                  content: fullResponse,
+                  role: 'assistant',
+                  isThinking: false,
+                };
+                return newMessages;
+              });
+            } else if (event.type === 'done') {
+              console.log('[Streaming] Stream completed');
+              if (event.conversationId) {
+                receivedConversationId = event.conversationId;
+              }
+            } else if (event.type === 'error') {
+              console.error('[Streaming] Error:', event.error);
+              throw new Error(event.error || 'Streaming error occurred');
+            }
+          }
+
+          // Store conversation_id from stream
+          if (receivedConversationId) {
+            setConversationId(receivedConversationId);
+            console.log('Conversation ID:', receivedConversationId);
+          }
+
+          // If stream completed but no content was received, show a fallback message
+          if (!fullResponse.trim()) {
+            setMessages((prev) => {
+              const newMessages = [...prev];
+              newMessages[assistantMessageIndex] = {
+                content: 'Não foi possível gerar uma resposta. Por favor, tente novamente.',
+                role: 'assistant',
+                isThinking: false,
+              };
+              return newMessages;
+            });
+          }
+        } catch (streamError) {
+          // If streaming fails, remove placeholder and show error
+          setMessages((prev) => prev.slice(0, -1));
+          throw streamError;
+        }
       } else {
-        // Student module mode
-        data = await apiClient.sendChatMessage({
-          moduleToken,
-          message: currentMessage,
-          studentId,
-          conversationId,
-        });
-      }
+        // Use regular non-streaming API
+        let data;
+        if (isUpBusinessMode) {
+          // UP Business mode
+          data = await apiClient.sendUpBusinessChatMessage({
+            upApiKey,
+            message: currentMessage,
+            upId: upId || undefined,
+            teamName: teamName || undefined,
+            conversationId,
+          });
+        } else if (isProfessorMode) {
+          // Professor mode
+          data = await apiClient.sendProfessorChatMessage({
+            professorAgentToken,
+            message: currentMessage,
+            conversationId,
+          });
+        } else {
+          // Student module mode (non-streaming)
+          data = await apiClient.sendChatMessage({
+            moduleToken,
+            message: currentMessage,
+            studentId,
+            conversationId,
+          });
+        }
 
-      // Store conversation_id from response for conversation threading
-      if (data.conversation_id) {
-        setConversationId(data.conversation_id);
-        console.log('Conversation ID:', data.conversation_id);
-      }
+        // Store conversation_id from response for conversation threading
+        if (data.conversation_id) {
+          setConversationId(data.conversation_id);
+          console.log('Conversation ID:', data.conversation_id);
+        }
 
-      const assistantMessage = { content: data.response, role: 'assistant' as const };
-      setMessages((prev) => [...prev, assistantMessage]);
+        const assistantMessage = { content: data.response, role: 'assistant' as const };
+        setMessages((prev) => [...prev, assistantMessage]);
+      }
     } catch (error) {
       console.error('Chat error:', error);
 
@@ -404,6 +543,11 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
                 {teamName || (upId ? `Team ${upId}` : 'AI Tutor')}
               </p>
             </>
+          ) : isProfessorMode ? (
+            <>
+              <CardTitle className="text-lg">Agente do Professor</CardTitle>
+              <p className="text-sm text-muted-foreground">Modo de teste</p>
+            </>
           ) : moduleInfo ? (
             <>
               <CardTitle className="text-lg">{moduleInfo.module_name}</CardTitle>
@@ -411,6 +555,8 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
                 {moduleInfo.semester}º Semestre, {moduleInfo.year}
               </p>
             </>
+          ) : moduleLoadError ? (
+            <CardTitle className="text-lg text-destructive">Erro ao carregar módulo</CardTitle>
           ) : (
             <CardTitle className="text-lg">Carregando módulo...</CardTitle>
           )}
@@ -463,11 +609,11 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
           messages.length > 0 ? 'justify-start' : 'justify-end sm:justify-center sm:items-center '
         }`}
       >
-        {!moduleToken && !upApiKey ? (
+        {!moduleToken && !upApiKey && !professorAgentToken ? (
           <CardContent className="max-sm:flex-1 flex flex-col justify-center items-center text-center">
-            <CardTitle className="text-2xl text-foreground">Authentication required</CardTitle>
+            <CardTitle className="text-2xl text-foreground">Autenticação necessária</CardTitle>
             <p className="text-sm text-muted-foreground mt-2 max-w-md">
-              This widget requires either a <code>module_token</code> or <code>up_api_key</code> parameter to function.
+              Este widget requer um <code>module_token</code> ou <code>up_api_key</code> para funcionar.
             </p>
           </CardContent>
         ) : messages.length === 0 ? (
@@ -475,6 +621,8 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
             <CardTitle className="text-2xl text-foreground">
               {isUpBusinessMode
                 ? 'How can I help you with the UP Business Game?'
+                : isProfessorMode
+                ? 'Como posso ajudar?'
                 : moduleInfo
                 ? `Qual sua dúvida sobre ${moduleInfo.module_name}?`
                 : 'Qual sua dúvida?'}
@@ -494,25 +642,91 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
                     msg.role === 'user' ? 'dynamic-user-message-color max-w-[80%]' : 'dynamic-agent-message-color w-full'
                   }`}
                 >
-                    <div className={` ${msg.role === 'user' ? 'whitespace-pre-wrap w-full break-words' : 'prose prose-sm dark:prose-invert max-w-none'}`}>
-                        <ReactMarkdown rehypePlugins={[rehypeHighlight]}>
-                            {msg.content}
-                        </ReactMarkdown>
-                    </div>
+                    {msg.isThinking ? (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <div className="flex space-x-1">
+                          <div className="w-1.5 h-1.5 rounded-full bg-current animate-bounce"></div>
+                          <div className="w-1.5 h-1.5 rounded-full bg-current animate-bounce [animation-delay:0.15s]"></div>
+                          <div className="w-1.5 h-1.5 rounded-full bg-current animate-bounce [animation-delay:0.3s]"></div>
+                        </div>
+                        <span className="text-sm">Pensando...</span>
+                      </div>
+                    ) : (
+                      <div className={` ${msg.role === 'user' ? 'whitespace-pre-wrap w-full break-words' : 'prose prose-sm dark:prose-invert max-w-none'}`}>
+                          <ReactMarkdown rehypePlugins={[rehypeHighlight]}>
+                              {msg.content}
+                          </ReactMarkdown>
+                      </div>
+                    )}
                 </div>
               </div>
             ))}
-            {isLoading && (
+            {isLoading && !messages.some(m => m.isThinking) && (
               <div className="flex justify-start">
                 <div className="max-w-[80%] rounded-lg px-4 py-3 bg-muted">
                   <div className="flex space-x-2">
                     <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"></div>
-                    <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce delay-75"></div>
-                    <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce delay-150"></div>
+                    <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce [animation-delay:0.15s]"></div>
+                    <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce [animation-delay:0.3s]"></div>
                   </div>
                 </div>
               </div>
             )}
+
+            {/* Quiz prompt - appears when quiz intent is detected */}
+            {showQuizPrompt && (
+              <div className="flex justify-start">
+                <div className="dynamic-agent-message-color rounded-lg px-4 py-4 w-full space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Brain className="w-5 h-5 text-primary" />
+                    <span className="font-medium text-sm">Quer fazer um quiz?</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Posso testar seus conhecimentos com perguntas sobre o conteúdo do módulo!
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => startQuiz('easy')}
+                      className="text-xs"
+                    >
+                      Fácil
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => startQuiz('medium')}
+                      className="text-xs"
+                    >
+                      Médio
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => startQuiz('hard')}
+                      className="text-xs"
+                    >
+                      Difícil
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => startQuiz()}
+                      className="text-xs bg-primary text-primary-foreground hover:bg-primary/90"
+                    >
+                      Misto
+                    </Button>
+                  </div>
+                  <button
+                    onClick={() => setShowQuizPrompt(false)}
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Não, continuar no chat
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div ref={messagesEndRef} />
           </div>
         )}
@@ -524,32 +738,34 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
                 value={message}
                 onChange={handleInput}
                 onKeyDown={handleKeyDown}
-                placeholder="Pergunte alguma coisa"
+                placeholder={isUpBusinessMode ? 'Type your question...' : 'Pergunte alguma coisa...'}
+
                 className="w-full resize-none overflow-y-scroll !text-base placeholder:text-base min-h-20 max-h-30 scrollbar scrollbar-w-2 scrollbar-thumb-rounded-full scrollbar-track-rounded-full scrollbar-thumb-border"
             />
-            <div className="flex flex-row items-center justify-between w-full mt-4">
-                <Button
-                type="button"
-                variant="ghost"
-                className="max-w-40 rounded-full flex gap-2 items-center hidden"
-                >
-                Anexar arquivo
-                <Paperclip />
-                </Button>
-                <div></div>
+            <div className="flex flex-row items-center justify-end w-full mt-4">
                 <Button
                 type="submit"
-                disabled={isLoading || !message.trim() || !moduleInfo?.permissions.allow_chat}
+                disabled={isLoading || !message.trim() || (!isProfessorMode && !isUpBusinessMode && !moduleInfo?.permissions.allow_chat)}
                 variant="primary"
                 className="dynamic-button-color max-w-40 rounded-full flex gap-2 items-center"
                 >
-                Enviar
+                {isUpBusinessMode ? 'Send' : 'Enviar'}
                 <SendHorizontal />
                 </Button>
             </div>
             </form>
         </CardFooter>
       </div>
+
+      {/* Quiz Modal */}
+      <QuizModal
+        isOpen={showQuizModal}
+        onClose={() => setShowQuizModal(false)}
+        questions={quizQuestions}
+        moduleName={moduleInfo?.module_name || 'Quiz'}
+        isLoading={quizLoading}
+        onSendResult={handleQuizResult}
+      />
     </Card>
   );
 }
