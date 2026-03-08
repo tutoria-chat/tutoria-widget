@@ -10,6 +10,7 @@ import rehypeHighlight from 'rehype-highlight';
 import 'highlight.js/styles/tokyo-night-dark.css';
 import { WidgetAPIClient } from '@/lib/api-client';
 import QuizModal from '@/components/QuizModal';
+import VerificationGate from '@/components/VerificationGate';
 
 /**
  * Represents a single chat message.
@@ -72,6 +73,11 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
   const [quizQuestions, setQuizQuestions] = useState<any[]>([]);
   const [quizLoading, setQuizLoading] = useState(false);
 
+  // Verification gate state
+  const [verifiedStudentId, setVerifiedStudentId] = useState<number | null>(null);
+  const [verifiedStudentName, setVerifiedStudentName] = useState<string>('');
+  const [verificationPassed, setVerificationPassed] = useState<boolean>(false);
+
   // Only access window on the client side
   const params = useMemo(() => {
     if (typeof window === 'undefined') return new URLSearchParams();
@@ -103,6 +109,24 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
   // Determine widget mode
   const isProfessorMode = !!professorAgentToken;
   const isUpBusinessMode = !!upApiKey;
+
+  // Determine the effective student ID to send with chat requests.
+  // If verification provided a student ID, use that. Otherwise fall back to URL param.
+  const effectiveStudentId = verifiedStudentId && verifiedStudentId > 0
+    ? String(verifiedStudentId)
+    : studentId;
+
+  // Whether verification gate is needed (only for student module mode)
+  const needsVerificationGate = moduleToken && !isProfessorMode && !isUpBusinessMode && !verificationPassed;
+
+  /**
+   * Called when VerificationGate completes (either no verification needed or student verified).
+   */
+  const handleVerified = (sid: number, sname: string) => {
+    setVerifiedStudentId(sid);
+    setVerifiedStudentName(sname);
+    setVerificationPassed(true);
+  };
 
   /**
    * Validates a hex color string.
@@ -314,7 +338,7 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
           const streamGenerator = apiClient.sendChatMessageStream({
             moduleToken,
             message: currentMessage,
-            studentId,
+            studentId: effectiveStudentId,
             conversationId,
           });
 
@@ -391,7 +415,7 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
           data = await apiClient.sendChatMessage({
             moduleToken,
             message: currentMessage,
-            studentId,
+            studentId: effectiveStudentId,
             conversationId,
           });
         }
@@ -506,6 +530,19 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
     }
   };
 
+  // Show verification gate if needed (student module mode, not yet verified)
+  if (needsVerificationGate) {
+    return (
+      <Card className="flex flex-col h-full !rounded-none !border-none">
+        <VerificationGate
+          moduleToken={moduleToken}
+          apiBaseUrl={apiBaseUrl}
+          onVerified={handleVerified}
+        />
+      </Card>
+    );
+  }
+
   return (
     <Card className="flex flex-col h-full !rounded-none !border-none">
       <style>
@@ -552,7 +589,9 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
             <>
               <CardTitle className="text-lg">{moduleInfo.module_name}</CardTitle>
               <p className="text-sm text-muted-foreground">
-                {moduleInfo.semester}º Semestre, {moduleInfo.year}
+                {verifiedStudentName
+                  ? `${verifiedStudentName} - ${moduleInfo.semester}º Semestre, ${moduleInfo.year}`
+                  : `${moduleInfo.semester}º Semestre, ${moduleInfo.year}`}
               </p>
             </>
           ) : moduleLoadError ? (

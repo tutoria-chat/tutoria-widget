@@ -574,6 +574,73 @@ export class WidgetAPIClient {
   }
 
   /**
+   * Check if the module requires student verification (matricula)
+   */
+  async requiresVerification(moduleToken: string): Promise<{ requires_verification: boolean; course_name: string }> {
+    const url = `${this.baseUrl}/api/widget/requires-verification?module_token=${encodeURIComponent(moduleToken)}`;
+
+    try {
+      const response = await robustFetch(url, {
+        method: 'GET',
+        timeout: 15000,
+        retries: 2,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unknown error');
+        throw new Error(`Failed to check verification: ${response.status} - ${errorText}`);
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      console.error('[API] requiresVerification failed:', error);
+      throw new Error(`Unable to check verification requirement: ${error.message}`);
+    }
+  }
+
+  /**
+   * Verify a student's matricula for a given module
+   */
+  async verifyStudent(moduleToken: string, matricula: string): Promise<{ verified: boolean; student_id?: number; student_name?: string; message?: string }> {
+    const url = `${this.baseUrl}/api/widget/verify-student?module_token=${encodeURIComponent(moduleToken)}`;
+
+    try {
+      const response = await robustFetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ matricula }),
+        timeout: 15000,
+        retries: 2,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unknown error');
+
+        if (response.status === 401 || response.status === 403) {
+          throw new Error('Invalid or expired access token. Please refresh the page.');
+        }
+
+        throw new Error(`Verification failed: ${response.status} - ${errorText}`);
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      console.error('[API] verifyStudent failed:', error);
+
+      if (error.message.includes('fetch')) {
+        throw new Error('Network error. Please check your connection and try again.');
+      }
+      if (error.name === 'AbortError') {
+        throw new Error('Request timed out. Please try again.');
+      }
+
+      throw error;
+    }
+  }
+
+  /**
    * Health check - verify API is reachable
    */
   async healthCheck(): Promise<boolean> {
