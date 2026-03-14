@@ -11,6 +11,7 @@ import 'highlight.js/styles/tokyo-night-dark.css';
 import { WidgetAPIClient } from '@/lib/api-client';
 import QuizModal from '@/components/QuizModal';
 import VerificationGate from '@/components/VerificationGate';
+import ConsentGate from '@/components/ConsentGate';
 
 /**
  * Represents a single chat message.
@@ -77,6 +78,9 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
   const [verifiedStudentId, setVerifiedStudentId] = useState<number | null>(null);
   const [verifiedStudentName, setVerifiedStudentName] = useState<string>('');
   const [verificationPassed, setVerificationPassed] = useState<boolean>(false);
+
+  // Consent gate state (LGPD compliance)
+  const [consentPassed, setConsentPassed] = useState<boolean>(false);
 
   // Only access window on the client side
   const params = useMemo(() => {
@@ -538,6 +542,25 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
           moduleToken={moduleToken}
           apiBaseUrl={apiBaseUrl}
           onVerified={handleVerified}
+        />
+      </Card>
+    );
+  }
+
+  // Show consent gate after verification (LGPD compliance)
+  // Only for student module mode, after verification has passed, if consent not yet given
+  const needsConsentGate = moduleToken && !isProfessorMode && !isUpBusinessMode
+    && verificationPassed && !consentPassed
+    && verifiedStudentId !== null && verifiedStudentId > 0;
+
+  if (needsConsentGate) {
+    return (
+      <Card className="flex flex-col h-full !rounded-none !border-none">
+        <ConsentGate
+          moduleToken={moduleToken}
+          apiBaseUrl={apiBaseUrl}
+          studentId={verifiedStudentId!}
+          onConsented={() => setConsentPassed(true)}
         />
       </Card>
     );

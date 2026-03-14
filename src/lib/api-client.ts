@@ -641,6 +641,63 @@ export class WidgetAPIClient {
   }
 
   /**
+   * Check if a student has given all required LGPD consents
+   */
+  async checkConsentStatus(moduleToken: string, studentId: number): Promise<{ has_all_consents: boolean; consents: Record<string, any> }> {
+    const url = `${this.baseUrl}/api/widget/privacy/consent-status?module_token=${encodeURIComponent(moduleToken)}&student_id=${studentId}`;
+
+    try {
+      const response = await robustFetch(url, {
+        method: 'GET',
+        timeout: 15000,
+        retries: 2,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unknown error');
+        throw new Error(`Failed to check consent: ${response.status} - ${errorText}`);
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      console.error('[API] checkConsentStatus failed:', error);
+      throw new Error(`Unable to check consent status: ${error.message}`);
+    }
+  }
+
+  /**
+   * Record student consent for LGPD compliance
+   */
+  async recordConsent(moduleToken: string, studentId: number, consentTypes: string[]): Promise<{ status: string; recorded_consents: string[] }> {
+    const url = `${this.baseUrl}/api/widget/privacy/record-consent?module_token=${encodeURIComponent(moduleToken)}`;
+
+    try {
+      const response = await robustFetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          student_id: studentId,
+          consent_types: consentTypes,
+        }),
+        timeout: 15000,
+        retries: 2,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unknown error');
+        throw new Error(`Failed to record consent: ${response.status} - ${errorText}`);
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      console.error('[API] recordConsent failed:', error);
+      throw new Error(`Unable to record consent: ${error.message}`);
+    }
+  }
+
+  /**
    * Health check - verify API is reachable
    */
   async healthCheck(): Promise<boolean> {
