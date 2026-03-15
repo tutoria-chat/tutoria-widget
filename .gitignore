@@ -1,5 +1,6 @@
 # build output
 dist/
+.vercel/
 
 # generated types
 .astro/
@@ -22,3 +23,9 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# Claude Code temporary files
+.claude_code_pwd
+*.claude_code_pwd
+.claude_*
+tmpclaude-*

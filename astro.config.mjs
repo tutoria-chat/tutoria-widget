@@ -7,6 +7,7 @@ import react from '@astrojs/react';
 
 // https://astro.build/config
 export default defineConfig({
+  output: 'server', // Server-side rendering - allows runtime environment variables
   integrations: [react()],
   vite: {
     plugins: [tailwindcss()],
