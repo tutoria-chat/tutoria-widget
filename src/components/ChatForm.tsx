@@ -7,6 +7,9 @@ import { SendHorizontal, FileText, Download, Brain } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 import 'highlight.js/styles/tokyo-night-dark.css';
 import { WidgetAPIClient } from '@/lib/api-client';
 import QuizModal from '@/components/QuizModal';
@@ -715,7 +718,7 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
                       </div>
                     ) : (
                       <div className={` ${msg.role === 'user' ? 'whitespace-pre-wrap w-full break-words' : 'prose prose-sm dark:prose-invert max-w-none'}`}>
-                          <ReactMarkdown rehypePlugins={[rehypeHighlight]}>
+                          <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex, rehypeHighlight]}>
                               {msg.content}
                           </ReactMarkdown>
                       </div>
