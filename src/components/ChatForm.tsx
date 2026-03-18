@@ -73,6 +73,7 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
 
   // Quiz state
   const [showQuizPrompt, setShowQuizPrompt] = useState(false);
+  const [availableDifficulties, setAvailableDifficulties] = useState<string[]>([]);
   const [showQuizModal, setShowQuizModal] = useState(false);
   const [quizQuestions, setQuizQuestions] = useState<any[]>([]);
   const [quizLoading, setQuizLoading] = useState(false);
@@ -330,7 +331,27 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
 
     // Check if the user wants a quiz before sending to AI
     if (!isUpBusinessMode && !isProfessorMode && moduleToken && detectQuizIntent(currentMessage)) {
-      setShowQuizPrompt(true);
+      try {
+        const data = await apiClient.getQuizzes({ moduleToken, count: 0 });
+        if (data.available_difficulties.length === 0) {
+          // No questions configured — let the student know via a bot message
+          setMessages((prev) => [
+            ...prev,
+            {
+              content:
+                'Desculpe, o quiz ainda não foi configurado pelo seu tutor para este módulo. 😕',
+              role: 'assistant' as const,
+            },
+          ]);
+        } else {
+          setAvailableDifficulties(data.available_difficulties);
+          setShowQuizPrompt(true);
+        }
+      } catch {
+        // On error fall back to showing all difficulties
+        setAvailableDifficulties(['easy', 'medium', 'hard']);
+        setShowQuizPrompt(true);
+      }
       return;
     }
 
@@ -773,37 +794,26 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
                     Posso testar seus conhecimentos com perguntas sobre o conteúdo do módulo!
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => startQuiz('easy')}
-                      className="text-xs"
-                    >
-                      Fácil
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => startQuiz('medium')}
-                      className="text-xs"
-                    >
-                      Médio
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => startQuiz('hard')}
-                      className="text-xs"
-                    >
-                      Difícil
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => startQuiz()}
-                      className="text-xs bg-primary text-primary-foreground hover:bg-primary/90"
-                    >
-                      Misto
-                    </Button>
+                    {availableDifficulties.map((d) => (
+                      <Button
+                        key={d}
+                        size="sm"
+                        variant="outline"
+                        onClick={() => startQuiz(d as 'easy' | 'medium' | 'hard')}
+                        className="text-xs"
+                      >
+                        {{ easy: 'Fácil', medium: 'Médio', hard: 'Difícil' }[d] ?? d}
+                      </Button>
+                    ))}
+                    {availableDifficulties.length > 1 && (
+                      <Button
+                        size="sm"
+                        onClick={() => startQuiz()}
+                        className="text-xs bg-primary text-primary-foreground hover:bg-primary/90"
+                      >
+                        Misto
+                      </Button>
+                    )}
                   </div>
                   <button
                     onClick={() => setShowQuizPrompt(false)}

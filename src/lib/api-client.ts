@@ -566,14 +566,16 @@ export class WidgetAPIClient {
   }
 
   /**
-   * Fetch quiz questions for a module
+   * Fetch quiz questions for a module.
+   * Pass count=0 for a lightweight pre-flight that returns only available_difficulties.
    */
   async getQuizzes(params: {
     moduleToken: string;
     difficulty?: 'easy' | 'medium' | 'hard';
     count?: number;
-  }): Promise<{ quizzes: any[]; total_available: number; count: number; module_name: string }> {
-    let url = `${this.baseUrl}/api/widget/quizzes?module_token=${encodeURIComponent(params.moduleToken)}&count=${params.count || 5}`;
+  }): Promise<{ quizzes: any[]; total_available: number; count: number; module_name: string; available_difficulties: string[] }> {
+    const count = params.count ?? 5;
+    let url = `${this.baseUrl}/api/widget/quizzes?module_token=${encodeURIComponent(params.moduleToken)}&count=${count}`;
     if (params.difficulty) {
       url += `&difficulty=${params.difficulty}`;
     }

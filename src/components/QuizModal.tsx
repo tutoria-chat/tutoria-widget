@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { X, CheckCircle2, XCircle, Trophy, ArrowRight, Loader2, Brain } from 'lucide-react';
 
@@ -12,6 +12,13 @@ interface QuizQuestion {
   correct_answer: string;
   explanations: Record<string, string | null>;
   concepts_covered: string[];
+}
+
+interface ShuffledOption {
+  displayKey: string;   // letter shown to student (A, B, C, …)
+  value: string;        // answer text
+  originalKey: string;  // original letter from the API (used to look up the explanation)
+  explanation: string | null;
 }
 
 interface QuizModalProps {
@@ -31,6 +38,37 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [score, setScore] = useState(0);
   const [answers, setAnswers] = useState<{ question: number; selected: string; correct: string; isCorrect: boolean }[]>([]);
+
+  // Pre-compute shuffled options for every question when the question list changes.
+  // Each entry stores the re-ordered options and which display key is now correct.
+  const shuffledData = useMemo(() => {
+    const displayKeys = ['A', 'B', 'C', 'D', 'E'];
+    return questions.map((q) => {
+      const valid = (Object.entries(q.options) as [string, string | null][]).filter(
+        ([, v]) => v != null,
+      ) as [string, string][];
+
+      // Fisher-Yates shuffle
+      const shuffled = [...valid];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+
+      const options: ShuffledOption[] = shuffled.map(([originalKey, value], idx) => ({
+        displayKey: displayKeys[idx],
+        value,
+        originalKey,
+        explanation: q.explanations[originalKey] ?? null,
+      }));
+
+      const correctDisplayKey =
+        options.find((o) => o.originalKey === q.correct_answer)?.displayKey ??
+        q.correct_answer;
+
+      return { options, correctDisplayKey };
+    });
+  }, [questions]);
 
   // Reset state when modal opens
   useEffect(() => {
@@ -81,7 +119,8 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
   const handleConfirm = () => {
     if (!selectedAnswer || !currentQuestion) return;
 
-    const isCorrect = selectedAnswer === currentQuestion.correct_answer;
+    const correctDisplayKey = shuffledData[currentIndex]?.correctDisplayKey ?? currentQuestion.correct_answer;
+    const isCorrect = selectedAnswer === correctDisplayKey;
     if (isCorrect) setScore((prev) => prev + 1);
 
     setAnswers((prev) => [
@@ -89,7 +128,7 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
       {
         question: currentIndex + 1,
         selected: selectedAnswer,
-        correct: currentQuestion.correct_answer,
+        correct: correctDisplayKey,
         isCorrect,
       },
     ]);
@@ -111,11 +150,6 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
     const summary = `Acabei um quiz sobre ${moduleName}! Acertei ${score}/${totalQuestions} (${percentage}%).`;
     onSendResult?.(summary);
     onClose();
-  };
-
-  // Get valid options (filter out null option E)
-  const getValidOptions = (options: Record<string, string | null>) => {
-    return Object.entries(options).filter(([_, value]) => value != null) as [string, string][];
   };
 
   return (
@@ -212,17 +246,17 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
               <p className="text-sm font-medium leading-relaxed">{currentQuestion.question_text}</p>
 
               <div className="space-y-2">
-                {getValidOptions(currentQuestion.options).map(([key, value]) => (
+                {(shuffledData[currentIndex]?.options ?? []).map(({ displayKey, value }) => (
                   <button
-                    key={key}
-                    onClick={() => handleSelectAnswer(key)}
+                    key={displayKey}
+                    onClick={() => handleSelectAnswer(displayKey)}
                     className={`w-full text-left px-4 py-3 rounded-lg border text-sm transition-all ${
-                      selectedAnswer === key
+                      selectedAnswer === displayKey
                         ? 'border-primary bg-primary/10 ring-1 ring-primary'
                         : 'border-border hover:border-muted-foreground/30 hover:bg-accent/50'
                     }`}
                   >
-                    <span className="font-semibold mr-2 text-muted-foreground">{key}.</span>
+                    <span className="font-semibold mr-2 text-muted-foreground">{displayKey}.</span>
                     {value}
                   </button>
                 ))}
@@ -241,31 +275,38 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
           {/* Feedback Screen */}
           {!isLoading && quizState === 'feedback' && currentQuestion && selectedAnswer && (
             <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                {selectedAnswer === currentQuestion.correct_answer ? (
-                  <>
-                    <CheckCircle2 className="w-6 h-6 text-green-500" />
-                    <span className="font-semibold text-green-600 dark:text-green-400">Correto!</span>
-                  </>
-                ) : (
-                  <>
-                    <XCircle className="w-6 h-6 text-red-500" />
-                    <span className="font-semibold text-red-600 dark:text-red-400">Incorreto</span>
-                  </>
-                )}
-              </div>
+              {(() => {
+                const correctDisplayKey = shuffledData[currentIndex]?.correctDisplayKey ?? currentQuestion.correct_answer;
+                const isAnswerCorrect = selectedAnswer === correctDisplayKey;
+                return (
+                  <div className="flex items-center gap-2">
+                    {isAnswerCorrect ? (
+                      <>
+                        <CheckCircle2 className="w-6 h-6 text-green-500" />
+                        <span className="font-semibold text-green-600 dark:text-green-400">Correto!</span>
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="w-6 h-6 text-red-500" />
+                        <span className="font-semibold text-red-600 dark:text-red-400">Incorreto</span>
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
 
               <p className="text-sm text-muted-foreground">{currentQuestion.question_text}</p>
 
               <div className="space-y-2">
-                {getValidOptions(currentQuestion.options).map(([key, value]) => {
-                  const isCorrect = key === currentQuestion.correct_answer;
-                  const isSelected = key === selectedAnswer;
+                {(shuffledData[currentIndex]?.options ?? []).map(({ displayKey, value, explanation }) => {
+                  const correctDisplayKey = shuffledData[currentIndex]?.correctDisplayKey ?? currentQuestion.correct_answer;
+                  const isCorrect = displayKey === correctDisplayKey;
+                  const isSelected = displayKey === selectedAnswer;
                   const showExplanation = isCorrect || isSelected;
 
                   return (
                     <div
-                      key={key}
+                      key={displayKey}
                       className={`px-4 py-3 rounded-lg border text-sm ${
                         isCorrect
                           ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
@@ -275,14 +316,14 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-muted-foreground">{key}.</span>
+                        <span className="font-semibold text-muted-foreground">{displayKey}.</span>
                         <span>{value}</span>
                         {isCorrect && <CheckCircle2 className="w-4 h-4 text-green-500 ml-auto shrink-0" />}
                         {isSelected && !isCorrect && <XCircle className="w-4 h-4 text-red-500 ml-auto shrink-0" />}
                       </div>
-                      {showExplanation && currentQuestion.explanations[key] && (
+                      {showExplanation && explanation && (
                         <p className="text-xs text-muted-foreground mt-2 pl-5 border-l-2 border-muted ml-1">
-                          {currentQuestion.explanations[key]}
+                          {explanation}
                         </p>
                       )}
                     </div>
