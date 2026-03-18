@@ -66,9 +66,10 @@ export default function VerificationGate({ moduleToken, apiBaseUrl, onVerified }
         setCourseName(result.course_name || '');
         setState('form');
       } catch (error: any) {
-        console.error('Failed to check verification requirement:', error);
-        setLoadError(error.message || 'Erro ao verificar requisitos. Atualize a pagina.');
-        setState('error');
+        // Fail closed: if we can't determine whether verification is required,
+        // show the form rather than bypassing security or blocking with an error screen.
+        console.warn('Failed to check verification requirement, defaulting to required:', error);
+        setState('form');
       }
     };
 

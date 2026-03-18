@@ -339,7 +339,7 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
             ...prev,
             {
               content:
-                'Desculpe, o quiz ainda não foi configurado pelo seu tutor para este módulo. 😕',
+                'Desculpe, as perguntas de prática ainda não foram configuradas para este módulo. 😕',
               role: 'assistant' as const,
             },
           ]);
@@ -487,7 +487,9 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
             ? '⏱️ Request timed out. The server is taking too long to respond. Please try again.'
             : '⏱️ Tempo esgotado. O servidor está demorando muito para responder. Tente novamente.';
         } else if (error.message.includes('Verification expired')) {
-          // Verification token (HMAC) expired — clear cached verification and re-trigger gate
+          // Verification token (HMAC) expired or student not verified — clear cached verification
+          // and silently re-show the gate. Do NOT append a chat message: the gate overlay
+          // makes the situation clear and "Sua verificação expirou" is confusing for first-time users.
           if (!isProfessorMode && !isUpBusinessMode && moduleToken) {
             try {
               sessionStorage.removeItem(`tutoria-verified-${moduleToken}`);
@@ -496,7 +498,7 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
             setVerificationToken(undefined);
             setVerifiedStudentId(null);
             setVerifiedStudentName('');
-            errorMessage = '🔑 Sua verificação expirou. Por favor, verifique sua matrícula novamente.';
+            return; // gate will re-render; no chat message needed
           } else {
             errorMessage = '🔑 Your access token has expired. Please refresh the page.';
           }
@@ -788,7 +790,7 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
                 <div className="dynamic-agent-message-color rounded-lg px-4 py-4 w-full space-y-3">
                   <div className="flex items-center gap-2">
                     <Brain className="w-5 h-5 text-primary" />
-                    <span className="font-medium text-sm">Quer fazer um quiz?</span>
+                    <span className="font-medium text-sm">Quer praticar?</span>
                   </div>
                   <p className="text-sm text-muted-foreground">
                     Posso testar seus conhecimentos com perguntas sobre o conteúdo do módulo!
