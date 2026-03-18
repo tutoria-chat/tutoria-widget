@@ -101,6 +101,9 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
   const upApiKey = params.get('up_api_key') || '';
   const teamName = params.get('team_name') || '';
 
+  // Auth token for professor/admin JWT bypass of enrollment gating
+  const authToken = params.get('auth_token') || '';
+
   const darkParam = params.get('dark') ?? import.meta.env.PUBLIC_ENABLE_DARK_MODE ?? 'auto';
   const buttonColor = params.get('buttonColor') || ''
   const userMessageColor = params.get('userMessageColor') || ''
@@ -124,8 +127,8 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
     ? String(verifiedStudentId)
     : studentId;
 
-  // Whether verification gate is needed (only for student module mode)
-  const needsVerificationGate = moduleToken && !isProfessorMode && !isUpBusinessMode && !verificationPassed;
+  // Whether verification gate is needed (only for student module mode, skip if professor auth_token present)
+  const needsVerificationGate = moduleToken && !isProfessorMode && !isUpBusinessMode && !verificationPassed && !authToken;
 
   /**
    * Called when VerificationGate completes (either no verification needed or student verified).
@@ -350,6 +353,7 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
             studentId: effectiveStudentId,
             conversationId,
             verificationToken,
+            authToken: authToken || undefined,
           });
 
           for await (const event of streamGenerator) {
@@ -428,6 +432,7 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
             studentId: effectiveStudentId,
             conversationId,
             verificationToken,
+            authToken: authToken || undefined,
           });
         }
 
@@ -570,7 +575,7 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
 
   // Show consent gate after verification (LGPD compliance)
   // Only for student module mode, after verification has passed, if consent not yet given
-  const needsConsentGate = moduleToken && !isProfessorMode && !isUpBusinessMode
+  const needsConsentGate = moduleToken && !isProfessorMode && !isUpBusinessMode && !authToken
     && verificationPassed && !consentPassed
     && verifiedStudentId !== null && verifiedStudentId > 0;
 

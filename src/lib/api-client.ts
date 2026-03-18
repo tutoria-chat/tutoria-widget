@@ -230,15 +230,21 @@ export class WidgetAPIClient {
     studentId?: string;
     conversationId?: string | null;
     verificationToken?: string;
+    authToken?: string;
   }): Promise<any> {
     const url = `${this.baseUrl}/api/widget/chat?module_token=${encodeURIComponent(params.moduleToken)}`;
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (params.authToken) {
+      headers['Authorization'] = `Bearer ${params.authToken}`;
+    }
 
     try {
       const response = await robustFetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           message: params.message,
           student_id: params.studentId,
@@ -299,6 +305,7 @@ export class WidgetAPIClient {
     studentId?: string;
     conversationId?: string | null;
     verificationToken?: string;
+    authToken?: string;
   }): AsyncGenerator<{ type: 'chunk' | 'done' | 'error' | 'connected'; content?: string; conversationId?: string; error?: string }, void, unknown> {
     const url = `${this.baseUrl}/api/widget/chat/stream?module_token=${encodeURIComponent(params.moduleToken)}`;
 
@@ -306,12 +313,17 @@ export class WidgetAPIClient {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 120000);
 
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (params.authToken) {
+      headers['Authorization'] = `Bearer ${params.authToken}`;
+    }
+
     try {
       const response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           message: params.message,
           student_id: params.studentId,
@@ -630,7 +642,19 @@ export class WidgetAPIClient {
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error');
 
-        if (response.status === 401 || response.status === 403) {
+        // Parse the detail from the backend error response
+        let detail = '';
+        try {
+          const parsed = JSON.parse(errorText);
+          detail = parsed.detail || '';
+        } catch { /* ignore */ }
+
+        // 401 from verify-student means matricula not found — return as unverified
+        if (response.status === 401 && detail) {
+          return { verified: false, message: detail };
+        }
+
+        if (response.status === 403) {
           throw new Error('Invalid or expired access token. Please refresh the page.');
         }
 
