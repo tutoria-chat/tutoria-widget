@@ -490,8 +490,8 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
             ? '🚦 Too many requests. Please wait a moment before trying again.'
             : '🚦 Muitas solicitações. Aguarde um momento antes de tentar novamente.';
         } else {
-          // Include the specific error message
-          errorMessage += ` (${error.message})`;
+          // Don't expose raw API errors to students — show generic message
+          console.error('Unhandled chat error:', error.message);
         }
       }
 
