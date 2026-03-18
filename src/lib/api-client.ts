@@ -229,6 +229,7 @@ export class WidgetAPIClient {
     message: string;
     studentId?: string;
     conversationId?: string | null;
+    verificationToken?: string;
   }): Promise<any> {
     const url = `${this.baseUrl}/api/widget/chat?module_token=${encodeURIComponent(params.moduleToken)}`;
 
@@ -242,6 +243,7 @@ export class WidgetAPIClient {
           message: params.message,
           student_id: params.studentId,
           conversation_id: params.conversationId,
+          verification_token: params.verificationToken,
         }),
         timeout: 60000, // 60 seconds for AI responses
         retries: 3, // 3 retries for chat (most critical)
@@ -292,6 +294,7 @@ export class WidgetAPIClient {
     message: string;
     studentId?: string;
     conversationId?: string | null;
+    verificationToken?: string;
   }): AsyncGenerator<{ type: 'chunk' | 'done' | 'error' | 'connected'; content?: string; conversationId?: string; error?: string }, void, unknown> {
     const url = `${this.baseUrl}/api/widget/chat/stream?module_token=${encodeURIComponent(params.moduleToken)}`;
 
@@ -309,6 +312,7 @@ export class WidgetAPIClient {
           message: params.message,
           student_id: params.studentId,
           conversation_id: params.conversationId,
+          verification_token: params.verificationToken,
         }),
         signal: controller.signal,
       });
@@ -601,7 +605,7 @@ export class WidgetAPIClient {
   /**
    * Verify a student's matricula for a given module
    */
-  async verifyStudent(moduleToken: string, matricula: string): Promise<{ verified: boolean; student_id?: number; student_name?: string; message?: string }> {
+  async verifyStudent(moduleToken: string, matricula: string): Promise<{ verified: boolean; student_id?: number; student_name?: string; verification_token?: string; message?: string }> {
     const url = `${this.baseUrl}/api/widget/verify-student?module_token=${encodeURIComponent(moduleToken)}`;
 
     try {

@@ -8,7 +8,7 @@ import { WidgetAPIClient } from '@/lib/api-client';
 interface VerificationGateProps {
   moduleToken: string;
   apiBaseUrl: string;
-  onVerified: (studentId: number, studentName: string) => void;
+  onVerified: (studentId: number, studentName: string, verificationToken?: string) => void;
 }
 
 type GateState = 'loading' | 'form' | 'verifying' | 'error';
@@ -38,7 +38,7 @@ export default function VerificationGate({ moduleToken, apiBaseUrl, onVerified }
         if (stored) {
           const parsed = JSON.parse(stored);
           if (parsed && typeof parsed.studentId === 'number' && typeof parsed.studentName === 'string') {
-            onVerified(parsed.studentId, parsed.studentName);
+            onVerified(parsed.studentId, parsed.studentName, parsed.verificationToken);
             return;
           }
         }
@@ -99,18 +99,19 @@ export default function VerificationGate({ moduleToken, apiBaseUrl, onVerified }
       if (result.verified && result.student_id !== undefined) {
         const studentId = result.student_id;
         const studentName = result.student_name || '';
+        const verificationToken = result.verification_token;
 
         // Store in sessionStorage so refreshing doesn't re-ask
         try {
           sessionStorage.setItem(
             sessionStorageKey,
-            JSON.stringify({ studentId, studentName })
+            JSON.stringify({ studentId, studentName, verificationToken })
           );
         } catch {
           // sessionStorage may be unavailable in some contexts, that is fine
         }
 
-        onVerified(studentId, studentName);
+        onVerified(studentId, studentName, verificationToken);
       } else {
         setErrorMessage(result.message || 'Matricula nao encontrada. Verifique e tente novamente.');
         setState('form');

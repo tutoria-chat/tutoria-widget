@@ -80,6 +80,7 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
   // Verification gate state
   const [verifiedStudentId, setVerifiedStudentId] = useState<number | null>(null);
   const [verifiedStudentName, setVerifiedStudentName] = useState<string>('');
+  const [verificationToken, setVerificationToken] = useState<string | undefined>(undefined);
   const [verificationPassed, setVerificationPassed] = useState<boolean>(false);
 
   // Consent gate state (LGPD compliance)
@@ -129,9 +130,10 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
   /**
    * Called when VerificationGate completes (either no verification needed or student verified).
    */
-  const handleVerified = (sid: number, sname: string) => {
+  const handleVerified = (sid: number, sname: string, vtoken?: string) => {
     setVerifiedStudentId(sid);
     setVerifiedStudentName(sname);
+    setVerificationToken(vtoken);
     setVerificationPassed(true);
   };
 
@@ -347,6 +349,7 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
             message: currentMessage,
             studentId: effectiveStudentId,
             conversationId,
+            verificationToken,
           });
 
           for await (const event of streamGenerator) {
@@ -424,6 +427,7 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
             message: currentMessage,
             studentId: effectiveStudentId,
             conversationId,
+            verificationToken,
           });
         }
 
