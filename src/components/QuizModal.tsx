@@ -145,11 +145,13 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
   const handleFinishAndShare = () => {
     const percentage = Math.round((score / totalQuestions) * 100);
     const wrongAnswers = answers.filter((a) => !a.isCorrect);
+    // Escape $ signs so they don't trigger KaTeX math mode in the chat renderer
+    const escapeDollar = (text: string) => text.replace(/\$/g, '＄');
 
     let summary: string;
 
     if (wrongAnswers.length === 0) {
-      summary = `Acabei uma avaliação sobre "${moduleName}" e acertei tudo (${score}/${totalQuestions}, ${percentage}%)! Pode me sugerir tópicos avançados para continuar aprendendo?`;
+      summary = `Acabei uma avaliação sobre "${escapeDollar(moduleName)}" e acertei tudo (${score}/${totalQuestions}, ${percentage}%)! Pode me sugerir tópicos avançados para continuar aprendendo?`;
     } else {
       const wrongDetails = wrongAnswers
         .map((ans) => {
@@ -158,11 +160,13 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
           const opts = shuffledData[qIdx]?.options ?? [];
           const correctOpt = opts.find((o) => o.displayKey === ans.correct);
           const concepts = question?.concepts_covered?.join(', ') || '';
-          return `• "${question?.question_text}"${concepts ? ` (temas: ${concepts})` : ''} — resposta correta: ${ans.correct}. ${correctOpt?.value || ''}`;
+          const questionText = escapeDollar(question?.question_text ?? '');
+          const correctText = escapeDollar(correctOpt?.value ?? '');
+          return `• "${questionText}"${concepts ? ` (temas: ${concepts})` : ''} — resposta correta: ${ans.correct}. ${correctText}`;
         })
         .join('\n');
 
-      summary = `Acabei uma avaliação sobre "${moduleName}". Acertei ${score}/${totalQuestions} (${percentage}%).\n\nErrei ${wrongAnswers.length} questão${wrongAnswers.length > 1 ? 'ões' : ''}:\n${wrongDetails}\n\nPode me ajudar a entender melhor esses pontos e me sugerir como estudá-los?`;
+      summary = `Acabei uma avaliação sobre "${escapeDollar(moduleName)}". Acertei ${score}/${totalQuestions} (${percentage}%).\n\nErrei ${wrongAnswers.length} questão${wrongAnswers.length > 1 ? 'ões' : ''}:\n${wrongDetails}\n\nPode me ajudar a entender melhor esses pontos e me sugerir como estudá-los?`;
     }
 
     onSendResult?.(summary);
