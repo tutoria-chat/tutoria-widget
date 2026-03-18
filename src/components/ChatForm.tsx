@@ -460,6 +460,20 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
           errorMessage = isUpBusinessMode || isProfessorMode
             ? '⏱️ Request timed out. The server is taking too long to respond. Please try again.'
             : '⏱️ Tempo esgotado. O servidor está demorando muito para responder. Tente novamente.';
+        } else if (error.message.includes('Verification expired')) {
+          // Verification token (HMAC) expired — clear cached verification and re-trigger gate
+          if (!isProfessorMode && !isUpBusinessMode && moduleToken) {
+            try {
+              sessionStorage.removeItem(`tutoria-verified-${moduleToken}`);
+            } catch { /* ignore */ }
+            setVerificationPassed(false);
+            setVerificationToken(undefined);
+            setVerifiedStudentId(null);
+            setVerifiedStudentName('');
+            errorMessage = '🔑 Sua verificação expirou. Por favor, verifique sua matrícula novamente.';
+          } else {
+            errorMessage = '🔑 Your access token has expired. Please refresh the page.';
+          }
         } else if (error.message.includes('Invalid or expired')) {
           errorMessage = isUpBusinessMode
             ? '🔑 Your UP Business API key is invalid or expired. Please contact support.'

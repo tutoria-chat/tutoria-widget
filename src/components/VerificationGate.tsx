@@ -32,15 +32,19 @@ export default function VerificationGate({ moduleToken, apiBaseUrl, onVerified }
    */
   useEffect(() => {
     const checkVerification = async () => {
-      // Check sessionStorage for existing verification
+      // Check sessionStorage for existing verification (only if a real token was stored)
       try {
         const stored = sessionStorage.getItem(sessionStorageKey);
         if (stored) {
           const parsed = JSON.parse(stored);
-          if (parsed && typeof parsed.studentId === 'number' && typeof parsed.studentName === 'string') {
+          if (parsed && typeof parsed.studentId === 'number' && typeof parsed.studentName === 'string' && parsed.verificationToken) {
+            // Only trust cached data if it includes a real verification token
             onVerified(parsed.studentId, parsed.studentName, parsed.verificationToken);
             return;
           }
+          // Cached entry has no verification token (e.g. from when course had no enrollments)
+          // Clear it and re-check with the API
+          sessionStorage.removeItem(sessionStorageKey);
         }
       } catch {
         // Invalid stored data, continue with API check

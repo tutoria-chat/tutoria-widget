@@ -253,8 +253,12 @@ export class WidgetAPIClient {
         const errorText = await response.text().catch(() => 'Unknown error');
 
         // Provide user-friendly error messages
-        if (response.status === 401 || response.status === 403) {
+        if (response.status === 401) {
           throw new Error('Invalid or expired access token. Please refresh the page.');
+        }
+        if (response.status === 403) {
+          // 403 may be verification-related (expired HMAC token, not enrolled, etc.)
+          throw new Error(`Verification expired: ${errorText}`);
         }
         if (response.status === 429) {
           throw new Error('Too many requests. Please wait a moment and try again.');
@@ -321,8 +325,12 @@ export class WidgetAPIClient {
         const errorText = await response.text().catch(() => 'Unknown error');
 
         // Provide user-friendly error messages
-        if (response.status === 401 || response.status === 403) {
+        if (response.status === 401) {
           throw new Error('Invalid or expired access token. Please refresh the page.');
+        }
+        if (response.status === 403) {
+          // 403 may be verification-related (expired HMAC token, not enrolled, etc.)
+          throw new Error(`Verification expired: ${errorText}`);
         }
         if (response.status === 429) {
           throw new Error('Too many requests. Please wait a moment and try again.');
