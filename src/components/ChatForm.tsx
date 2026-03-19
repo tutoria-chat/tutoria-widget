@@ -70,6 +70,7 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
 
   // Module load error state
   const [moduleLoadError, setModuleLoadError] = useState(false);
+  const [moduleUnavailable, setModuleUnavailable] = useState(false); // true when soft-deleted
 
   // Quiz state
   const [showQuizPrompt, setShowQuizPrompt] = useState(false);
@@ -205,11 +206,15 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
     } catch (error) {
       console.error('Failed to fetch module info:', error);
       setModuleLoadError(true);
-      // Show error message in chat
+      // Show a specific message when the module has been removed
+      const isUnavailable = error instanceof Error && error.message === 'MODULE_NOT_AVAILABLE';
+      if (isUnavailable) setModuleUnavailable(true);
       setMessages((prev) => [
         ...prev,
         {
-          content: `⚠️ Não foi possível carregar as informações do módulo. ${error instanceof Error ? error.message : 'Atualize a página e tente novamente.'}`,
+          content: isUnavailable
+            ? '🚫 Este módulo não está mais disponível. Entre em contato com o seu professor.'
+            : `⚠️ Não foi possível carregar as informações do módulo. ${error instanceof Error ? error.message : 'Atualize a página e tente novamente.'}`,
           role: 'assistant',
         },
       ]);
@@ -667,7 +672,9 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
               </p>
             </>
           ) : moduleLoadError ? (
-            <CardTitle className="text-lg text-destructive">Erro ao carregar módulo</CardTitle>
+            <CardTitle className="text-lg text-destructive">
+              {moduleUnavailable ? 'Módulo indisponível' : 'Erro ao carregar módulo'}
+            </CardTitle>
           ) : (
             <CardTitle className="text-lg">Carregando módulo...</CardTitle>
           )}

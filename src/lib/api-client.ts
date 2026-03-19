@@ -186,11 +186,15 @@ export class WidgetAPIClient {
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error');
+        if (response.status === 404) {
+          throw new Error('MODULE_NOT_AVAILABLE');
+        }
         throw new Error(`Failed to fetch module info: ${response.status} - ${errorText}`);
       }
 
       return await response.json();
     } catch (error: any) {
+      if (error.message === 'MODULE_NOT_AVAILABLE') throw error;
       console.error('[API] getModuleInfo failed:', error);
       throw new Error(`Unable to load module information: ${error.message}`);
     }
