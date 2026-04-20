@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { SendHorizontal, FileText, Download, Brain } from 'lucide-react';
+import { SendHorizontal, FileText, Download, Brain, ClipboardList } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
@@ -15,6 +15,7 @@ import { WidgetAPIClient } from '@/lib/api-client';
 import QuizModal from '@/components/QuizModal';
 import VerificationGate from '@/components/VerificationGate';
 import ConsentGate from '@/components/ConsentGate';
+import AssignmentFeedbackModal from '@/components/AssignmentFeedbackModal';
 
 /**
  * Represents a single chat message.
@@ -33,6 +34,7 @@ interface ModuleInfo {
   module_description: string;
   semester: number;
   year: number;
+  has_assignments?: boolean;
   permissions: {
     allow_chat: boolean;
     allow_file_access: boolean;
@@ -87,6 +89,9 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
 
   // Consent gate state (LGPD compliance)
   const [consentPassed, setConsentPassed] = useState<boolean>(false);
+
+  // Assignment feedback modal
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
 
   // Only access window on the client side
   const params = useMemo(() => {
@@ -679,17 +684,30 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
             <CardTitle className="text-lg">Carregando módulo...</CardTitle>
           )}
         </div>
-        {!isUpBusinessMode && moduleInfo?.permissions.allow_file_access && files.length > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowFiles(!showFiles)}
-            className="flex items-center gap-2"
-          >
-            <FileText className="w-4 h-4" />
-            Arquivos ({files.length})
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {!isUpBusinessMode && moduleInfo?.permissions.allow_file_access && files.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowFiles(!showFiles)}
+              className="flex items-center gap-2"
+            >
+              <FileText className="w-4 h-4" />
+              Arquivos ({files.length})
+            </Button>
+          )}
+          {!isUpBusinessMode && moduleInfo?.has_assignments && verifiedStudentId && verifiedStudentId > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAssignmentModal(true)}
+              className="flex items-center gap-2"
+            >
+              <ClipboardList className="w-4 h-4" />
+              Atividades
+            </Button>
+          )}
+        </div>
       </CardHeader>
 
       {/* Files Panel */}
@@ -873,6 +891,24 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
         isLoading={quizLoading}
         onSendResult={handleQuizResult}
       />
+
+      {showAssignmentModal && (
+        <AssignmentFeedbackModal
+          moduleToken={moduleToken}
+          verificationToken={verificationToken}
+          studentId={verifiedStudentId ? String(verifiedStudentId) : undefined}
+          conversationId={conversationId ?? undefined}
+          apiBaseUrl={apiBaseUrl}
+          onClose={() => setShowAssignmentModal(false)}
+          onFeedbackReceived={(response, newConversationId) => {
+            setMessages(prev => [
+              ...prev,
+              { role: 'assistant', content: response },
+            ]);
+            if (newConversationId) setConversationId(newConversationId);
+          }}
+        />
+      )}
     </Card>
   );
 }

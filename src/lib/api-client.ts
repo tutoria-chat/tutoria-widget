@@ -742,6 +742,50 @@ export class WidgetAPIClient {
   /**
    * Health check - verify API is reachable
    */
+  async getAssignments(moduleToken: string): Promise<any[]> {
+    const url = `${this.baseUrl}/api/widget/assignments?module_token=${encodeURIComponent(moduleToken)}`;
+    const response = await robustFetch(url, { method: 'GET', timeout: 10000, retries: 1 });
+    if (!response.ok) throw new Error(`Failed to fetch assignments: ${response.status}`);
+    return response.json();
+  }
+
+  async getAssignmentDownloadUrl(moduleToken: string, assignmentId: number): Promise<string> {
+    const url = `${this.baseUrl}/api/widget/assignments/${assignmentId}/download?module_token=${encodeURIComponent(moduleToken)}`;
+    const response = await robustFetch(url, { method: 'GET', timeout: 10000, retries: 1 });
+    if (!response.ok) throw new Error(`Failed to get download URL: ${response.status}`);
+    const data = await response.json();
+    return data.download_url;
+  }
+
+  async submitAssignmentFeedback(params: {
+    moduleToken: string;
+    assignmentId: number;
+    file: File;
+    studentId?: string;
+    conversationId?: string;
+    verificationToken?: string;
+  }): Promise<{ response: string; conversation_id: string; message_id?: string }> {
+    const formData = new FormData();
+    formData.append('assignment_id', String(params.assignmentId));
+    formData.append('file', params.file);
+    if (params.studentId) formData.append('student_id', params.studentId);
+    if (params.conversationId) formData.append('conversation_id', params.conversationId);
+    if (params.verificationToken) formData.append('verification_token', params.verificationToken);
+
+    const url = `${this.baseUrl}/api/widget/assignments/get-feedback?module_token=${encodeURIComponent(params.moduleToken)}`;
+    const response = await robustFetch(url, {
+      method: 'POST',
+      body: formData,
+      timeout: 120000,
+      retries: 0,
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ detail: 'Failed to get feedback' }));
+      throw new Error(err.detail || 'Failed to get feedback');
+    }
+    return response.json();
+  }
+
   async healthCheck(): Promise<boolean> {
     try {
       const response = await robustFetch(`${this.baseUrl}/health`, {
