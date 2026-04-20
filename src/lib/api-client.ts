@@ -186,11 +186,15 @@ export class WidgetAPIClient {
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error');
+        if (response.status === 404) {
+          throw new Error('MODULE_NOT_AVAILABLE');
+        }
         throw new Error(`Failed to fetch module info: ${response.status} - ${errorText}`);
       }
 
       return await response.json();
     } catch (error: any) {
+      if (error.message === 'MODULE_NOT_AVAILABLE') throw error;
       console.error('[API] getModuleInfo failed:', error);
       throw new Error(`Unable to load module information: ${error.message}`);
     }
@@ -229,19 +233,27 @@ export class WidgetAPIClient {
     message: string;
     studentId?: string;
     conversationId?: string | null;
+    verificationToken?: string;
+    authToken?: string;
   }): Promise<any> {
     const url = `${this.baseUrl}/api/widget/chat?module_token=${encodeURIComponent(params.moduleToken)}`;
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (params.authToken) {
+      headers['Authorization'] = `Bearer ${params.authToken}`;
+    }
 
     try {
       const response = await robustFetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           message: params.message,
           student_id: params.studentId,
           conversation_id: params.conversationId,
+          verification_token: params.verificationToken,
         }),
         timeout: 60000, // 60 seconds for AI responses
         retries: 3, // 3 retries for chat (most critical)
@@ -251,8 +263,12 @@ export class WidgetAPIClient {
         const errorText = await response.text().catch(() => 'Unknown error');
 
         // Provide user-friendly error messages
-        if (response.status === 401 || response.status === 403) {
+        if (response.status === 401) {
           throw new Error('Invalid or expired access token. Please refresh the page.');
+        }
+        if (response.status === 403) {
+          // 403 may be verification-related (expired HMAC token, not enrolled, etc.)
+          throw new Error(`Verification expired: ${errorText}`);
         }
         if (response.status === 429) {
           throw new Error('Too many requests. Please wait a moment and try again.');
@@ -292,6 +308,8 @@ export class WidgetAPIClient {
     message: string;
     studentId?: string;
     conversationId?: string | null;
+    verificationToken?: string;
+    authToken?: string;
   }): AsyncGenerator<{ type: 'chunk' | 'done' | 'error' | 'connected'; content?: string; conversationId?: string; error?: string }, void, unknown> {
     const url = `${this.baseUrl}/api/widget/chat/stream?module_token=${encodeURIComponent(params.moduleToken)}`;
 
@@ -299,16 +317,22 @@ export class WidgetAPIClient {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 120000);
 
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (params.authToken) {
+      headers['Authorization'] = `Bearer ${params.authToken}`;
+    }
+
     try {
       const response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           message: params.message,
           student_id: params.studentId,
           conversation_id: params.conversationId,
+          verification_token: params.verificationToken,
         }),
         signal: controller.signal,
       });
@@ -317,8 +341,12 @@ export class WidgetAPIClient {
         const errorText = await response.text().catch(() => 'Unknown error');
 
         // Provide user-friendly error messages
-        if (response.status === 401 || response.status === 403) {
+        if (response.status === 401) {
           throw new Error('Invalid or expired access token. Please refresh the page.');
+        }
+        if (response.status === 403) {
+          // 403 may be verification-related (expired HMAC token, not enrolled, etc.)
+          throw new Error(`Verification expired: ${errorText}`);
         }
         if (response.status === 429) {
           throw new Error('Too many requests. Please wait a moment and try again.');
@@ -542,14 +570,16 @@ export class WidgetAPIClient {
   }
 
   /**
-   * Fetch quiz questions for a module
+   * Fetch quiz questions for a module.
+   * Pass count=0 for a lightweight pre-flight that returns only available_difficulties.
    */
   async getQuizzes(params: {
     moduleToken: string;
     difficulty?: 'easy' | 'medium' | 'hard';
     count?: number;
-  }): Promise<{ quizzes: any[]; total_available: number; count: number; module_name: string }> {
-    let url = `${this.baseUrl}/api/widget/quizzes?module_token=${encodeURIComponent(params.moduleToken)}&count=${params.count || 5}`;
+  }): Promise<{ quizzes: any[]; total_available: number; count: number; module_name: string; available_difficulties: string[] }> {
+    const count = params.count ?? 5;
+    let url = `${this.baseUrl}/api/widget/quizzes?module_token=${encodeURIComponent(params.moduleToken)}&count=${count}`;
     if (params.difficulty) {
       url += `&difficulty=${params.difficulty}`;
     }
@@ -601,7 +631,7 @@ export class WidgetAPIClient {
   /**
    * Verify a student's matricula for a given module
    */
-  async verifyStudent(moduleToken: string, matricula: string): Promise<{ verified: boolean; student_id?: number; student_name?: string; message?: string }> {
+  async verifyStudent(moduleToken: string, matricula: string): Promise<{ verified: boolean; student_id?: number; student_name?: string; verification_token?: string; message?: string }> {
     const url = `${this.baseUrl}/api/widget/verify-student?module_token=${encodeURIComponent(moduleToken)}`;
 
     try {
@@ -618,7 +648,19 @@ export class WidgetAPIClient {
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error');
 
-        if (response.status === 401 || response.status === 403) {
+        // Parse the detail from the backend error response
+        let detail = '';
+        try {
+          const parsed = JSON.parse(errorText);
+          detail = parsed.detail || '';
+        } catch { /* ignore */ }
+
+        // 401 from verify-student means matricula not found — return as unverified
+        if (response.status === 401 && detail) {
+          return { verified: false, message: detail };
+        }
+
+        if (response.status === 403) {
           throw new Error('Invalid or expired access token. Please refresh the page.');
         }
 

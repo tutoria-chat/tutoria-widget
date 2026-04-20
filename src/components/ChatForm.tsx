@@ -7,6 +7,9 @@ import { SendHorizontal, FileText, Download, Brain } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 import 'highlight.js/styles/tokyo-night-dark.css';
 import { WidgetAPIClient } from '@/lib/api-client';
 import QuizModal from '@/components/QuizModal';
@@ -67,9 +70,11 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
 
   // Module load error state
   const [moduleLoadError, setModuleLoadError] = useState(false);
+  const [moduleUnavailable, setModuleUnavailable] = useState(false); // true when soft-deleted
 
   // Quiz state
   const [showQuizPrompt, setShowQuizPrompt] = useState(false);
+  const [availableDifficulties, setAvailableDifficulties] = useState<string[]>([]);
   const [showQuizModal, setShowQuizModal] = useState(false);
   const [quizQuestions, setQuizQuestions] = useState<any[]>([]);
   const [quizLoading, setQuizLoading] = useState(false);
@@ -77,6 +82,7 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
   // Verification gate state
   const [verifiedStudentId, setVerifiedStudentId] = useState<number | null>(null);
   const [verifiedStudentName, setVerifiedStudentName] = useState<string>('');
+  const [verificationToken, setVerificationToken] = useState<string | undefined>(undefined);
   const [verificationPassed, setVerificationPassed] = useState<boolean>(false);
 
   // Consent gate state (LGPD compliance)
@@ -96,6 +102,9 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
   const upId = params.get('up_id') || '';
   const upApiKey = params.get('up_api_key') || '';
   const teamName = params.get('team_name') || '';
+
+  // Auth token for professor/admin JWT bypass of enrollment gating
+  const authToken = params.get('auth_token') || '';
 
   const darkParam = params.get('dark') ?? import.meta.env.PUBLIC_ENABLE_DARK_MODE ?? 'auto';
   const buttonColor = params.get('buttonColor') || ''
@@ -120,15 +129,16 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
     ? String(verifiedStudentId)
     : studentId;
 
-  // Whether verification gate is needed (only for student module mode)
-  const needsVerificationGate = moduleToken && !isProfessorMode && !isUpBusinessMode && !verificationPassed;
+  // Whether verification gate is needed (only for student module mode, skip if professor auth_token present)
+  const needsVerificationGate = moduleToken && !isProfessorMode && !isUpBusinessMode && !verificationPassed && !authToken;
 
   /**
    * Called when VerificationGate completes (either no verification needed or student verified).
    */
-  const handleVerified = (sid: number, sname: string) => {
+  const handleVerified = (sid: number, sname: string, vtoken?: string) => {
     setVerifiedStudentId(sid);
     setVerifiedStudentName(sname);
+    setVerificationToken(vtoken);
     setVerificationPassed(true);
   };
 
@@ -196,11 +206,15 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
     } catch (error) {
       console.error('Failed to fetch module info:', error);
       setModuleLoadError(true);
-      // Show error message in chat
+      // Show a specific message when the module has been removed
+      const isUnavailable = error instanceof Error && error.message === 'MODULE_NOT_AVAILABLE';
+      if (isUnavailable) setModuleUnavailable(true);
       setMessages((prev) => [
         ...prev,
         {
-          content: `⚠️ Não foi possível carregar as informações do módulo. ${error instanceof Error ? error.message : 'Atualize a página e tente novamente.'}`,
+          content: isUnavailable
+            ? '🚫 Este módulo não está mais disponível. Entre em contato com o seu professor.'
+            : `⚠️ Não foi possível carregar as informações do módulo. ${error instanceof Error ? error.message : 'Atualize a página e tente novamente.'}`,
           role: 'assistant',
         },
       ]);
@@ -322,7 +336,27 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
 
     // Check if the user wants a quiz before sending to AI
     if (!isUpBusinessMode && !isProfessorMode && moduleToken && detectQuizIntent(currentMessage)) {
-      setShowQuizPrompt(true);
+      try {
+        const data = await apiClient.getQuizzes({ moduleToken, count: 0 });
+        if (data.available_difficulties.length === 0) {
+          // No questions configured — let the student know via a bot message
+          setMessages((prev) => [
+            ...prev,
+            {
+              content:
+                'Desculpe, as perguntas de prática ainda não foram configuradas para este módulo. 😕',
+              role: 'assistant' as const,
+            },
+          ]);
+        } else {
+          setAvailableDifficulties(data.available_difficulties);
+          setShowQuizPrompt(true);
+        }
+      } catch {
+        // On error fall back to showing all difficulties
+        setAvailableDifficulties(['easy', 'medium', 'hard']);
+        setShowQuizPrompt(true);
+      }
       return;
     }
 
@@ -344,6 +378,8 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
             message: currentMessage,
             studentId: effectiveStudentId,
             conversationId,
+            verificationToken,
+            authToken: authToken || undefined,
           });
 
           for await (const event of streamGenerator) {
@@ -421,6 +457,8 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
             message: currentMessage,
             studentId: effectiveStudentId,
             conversationId,
+            verificationToken,
+            authToken: authToken || undefined,
           });
         }
 
@@ -453,6 +491,22 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
           errorMessage = isUpBusinessMode || isProfessorMode
             ? '⏱️ Request timed out. The server is taking too long to respond. Please try again.'
             : '⏱️ Tempo esgotado. O servidor está demorando muito para responder. Tente novamente.';
+        } else if (error.message.includes('Verification expired')) {
+          // Verification token (HMAC) expired or student not verified — clear cached verification
+          // and silently re-show the gate. Do NOT append a chat message: the gate overlay
+          // makes the situation clear and "Sua verificação expirou" is confusing for first-time users.
+          if (!isProfessorMode && !isUpBusinessMode && moduleToken) {
+            try {
+              sessionStorage.removeItem(`tutoria-verified-${moduleToken}`);
+            } catch { /* ignore */ }
+            setVerificationPassed(false);
+            setVerificationToken(undefined);
+            setVerifiedStudentId(null);
+            setVerifiedStudentName('');
+            return; // gate will re-render; no chat message needed
+          } else {
+            errorMessage = '🔑 Your access token has expired. Please refresh the page.';
+          }
         } else if (error.message.includes('Invalid or expired')) {
           errorMessage = isUpBusinessMode
             ? '🔑 Your UP Business API key is invalid or expired. Please contact support.'
@@ -464,8 +518,8 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
             ? '🚦 Too many requests. Please wait a moment before trying again.'
             : '🚦 Muitas solicitações. Aguarde um momento antes de tentar novamente.';
         } else {
-          // Include the specific error message
-          errorMessage += ` (${error.message})`;
+          // Don't expose raw API errors to students — show generic message
+          console.error('Unhandled chat error:', error.message);
         }
       }
 
@@ -549,7 +603,7 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
 
   // Show consent gate after verification (LGPD compliance)
   // Only for student module mode, after verification has passed, if consent not yet given
-  const needsConsentGate = moduleToken && !isProfessorMode && !isUpBusinessMode
+  const needsConsentGate = moduleToken && !isProfessorMode && !isUpBusinessMode && !authToken
     && verificationPassed && !consentPassed
     && verifiedStudentId !== null && verifiedStudentId > 0;
 
@@ -618,7 +672,9 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
               </p>
             </>
           ) : moduleLoadError ? (
-            <CardTitle className="text-lg text-destructive">Erro ao carregar módulo</CardTitle>
+            <CardTitle className="text-lg text-destructive">
+              {moduleUnavailable ? 'Módulo indisponível' : 'Erro ao carregar módulo'}
+            </CardTitle>
           ) : (
             <CardTitle className="text-lg">Carregando módulo...</CardTitle>
           )}
@@ -715,7 +771,7 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
                       </div>
                     ) : (
                       <div className={` ${msg.role === 'user' ? 'whitespace-pre-wrap w-full break-words' : 'prose prose-sm dark:prose-invert max-w-none'}`}>
-                          <ReactMarkdown rehypePlugins={[rehypeHighlight]}>
+                          <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex, rehypeHighlight]}>
                               {msg.content}
                           </ReactMarkdown>
                       </div>
@@ -741,43 +797,32 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
                 <div className="dynamic-agent-message-color rounded-lg px-4 py-4 w-full space-y-3">
                   <div className="flex items-center gap-2">
                     <Brain className="w-5 h-5 text-primary" />
-                    <span className="font-medium text-sm">Quer fazer um quiz?</span>
+                    <span className="font-medium text-sm">Quer praticar?</span>
                   </div>
                   <p className="text-sm text-muted-foreground">
                     Posso testar seus conhecimentos com perguntas sobre o conteúdo do módulo!
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => startQuiz('easy')}
-                      className="text-xs"
-                    >
-                      Fácil
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => startQuiz('medium')}
-                      className="text-xs"
-                    >
-                      Médio
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => startQuiz('hard')}
-                      className="text-xs"
-                    >
-                      Difícil
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => startQuiz()}
-                      className="text-xs bg-primary text-primary-foreground hover:bg-primary/90"
-                    >
-                      Misto
-                    </Button>
+                    {availableDifficulties.map((d) => (
+                      <Button
+                        key={d}
+                        size="sm"
+                        variant="outline"
+                        onClick={() => startQuiz(d as 'easy' | 'medium' | 'hard')}
+                        className="text-xs"
+                      >
+                        {{ easy: 'Fácil', medium: 'Médio', hard: 'Difícil' }[d] ?? d}
+                      </Button>
+                    ))}
+                    {availableDifficulties.length > 1 && (
+                      <Button
+                        size="sm"
+                        onClick={() => startQuiz()}
+                        className="text-xs bg-primary text-primary-foreground hover:bg-primary/90"
+                      >
+                        Misto
+                      </Button>
+                    )}
                   </div>
                   <button
                     onClick={() => setShowQuizPrompt(false)}

@@ -8,7 +8,7 @@ import { WidgetAPIClient } from '@/lib/api-client';
 interface VerificationGateProps {
   moduleToken: string;
   apiBaseUrl: string;
-  onVerified: (studentId: number, studentName: string) => void;
+  onVerified: (studentId: number, studentName: string, verificationToken?: string) => void;
 }
 
 type GateState = 'loading' | 'form' | 'verifying' | 'error';
@@ -32,15 +32,19 @@ export default function VerificationGate({ moduleToken, apiBaseUrl, onVerified }
    */
   useEffect(() => {
     const checkVerification = async () => {
-      // Check sessionStorage for existing verification
+      // Check sessionStorage for existing verification (only if a real token was stored)
       try {
         const stored = sessionStorage.getItem(sessionStorageKey);
         if (stored) {
           const parsed = JSON.parse(stored);
-          if (parsed && typeof parsed.studentId === 'number' && typeof parsed.studentName === 'string') {
-            onVerified(parsed.studentId, parsed.studentName);
+          if (parsed && typeof parsed.studentId === 'number' && typeof parsed.studentName === 'string' && parsed.verificationToken) {
+            // Only trust cached data if it includes a real verification token
+            onVerified(parsed.studentId, parsed.studentName, parsed.verificationToken);
             return;
           }
+          // Cached entry has no verification token (e.g. from when course had no enrollments)
+          // Clear it and re-check with the API
+          sessionStorage.removeItem(sessionStorageKey);
         }
       } catch {
         // Invalid stored data, continue with API check
@@ -62,9 +66,10 @@ export default function VerificationGate({ moduleToken, apiBaseUrl, onVerified }
         setCourseName(result.course_name || '');
         setState('form');
       } catch (error: any) {
-        console.error('Failed to check verification requirement:', error);
-        setLoadError(error.message || 'Erro ao verificar requisitos. Atualize a pagina.');
-        setState('error');
+        // Fail closed: if we can't determine whether verification is required,
+        // show the form rather than bypassing security or blocking with an error screen.
+        console.warn('Failed to check verification requirement, defaulting to required:', error);
+        setState('form');
       }
     };
 
@@ -99,18 +104,19 @@ export default function VerificationGate({ moduleToken, apiBaseUrl, onVerified }
       if (result.verified && result.student_id !== undefined) {
         const studentId = result.student_id;
         const studentName = result.student_name || '';
+        const verificationToken = result.verification_token;
 
         // Store in sessionStorage so refreshing doesn't re-ask
         try {
           sessionStorage.setItem(
             sessionStorageKey,
-            JSON.stringify({ studentId, studentName })
+            JSON.stringify({ studentId, studentName, verificationToken })
           );
         } catch {
           // sessionStorage may be unavailable in some contexts, that is fine
         }
 
-        onVerified(studentId, studentName);
+        onVerified(studentId, studentName, verificationToken);
       } else {
         setErrorMessage(result.message || 'Matricula nao encontrada. Verifique e tente novamente.');
         setState('form');

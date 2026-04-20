@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { X, CheckCircle2, XCircle, Trophy, ArrowRight, Loader2, Brain } from 'lucide-react';
 
@@ -12,6 +12,13 @@ interface QuizQuestion {
   correct_answer: string;
   explanations: Record<string, string | null>;
   concepts_covered: string[];
+}
+
+interface ShuffledOption {
+  displayKey: string;   // letter shown to student (A, B, C, …)
+  value: string;        // answer text
+  originalKey: string;  // original letter from the API (used to look up the explanation)
+  explanation: string | null;
 }
 
 interface QuizModalProps {
@@ -32,6 +39,36 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
   const [score, setScore] = useState(0);
   const [answers, setAnswers] = useState<{ question: number; selected: string; correct: string; isCorrect: boolean }[]>([]);
 
+  // Pre-compute shuffled options for every question when the question list changes.
+  const shuffledData = useMemo(() => {
+    const displayKeys = ['A', 'B', 'C', 'D', 'E'];
+    return questions.map((q) => {
+      const valid = (Object.entries(q.options) as [string, string | null][]).filter(
+        ([, v]) => v != null,
+      ) as [string, string][];
+
+      // Fisher-Yates shuffle
+      const shuffled = [...valid];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+
+      const options: ShuffledOption[] = shuffled.map(([originalKey, value], idx) => ({
+        displayKey: displayKeys[idx],
+        value,
+        originalKey,
+        explanation: q.explanations[originalKey] ?? null,
+      }));
+
+      const correctDisplayKey =
+        options.find((o) => o.originalKey === q.correct_answer)?.displayKey ??
+        q.correct_answer;
+
+      return { options, correctDisplayKey };
+    });
+  }, [questions]);
+
   // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -47,9 +84,7 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
+      if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -81,7 +116,8 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
   const handleConfirm = () => {
     if (!selectedAnswer || !currentQuestion) return;
 
-    const isCorrect = selectedAnswer === currentQuestion.correct_answer;
+    const correctDisplayKey = shuffledData[currentIndex]?.correctDisplayKey ?? currentQuestion.correct_answer;
+    const isCorrect = selectedAnswer === correctDisplayKey;
     if (isCorrect) setScore((prev) => prev + 1);
 
     setAnswers((prev) => [
@@ -89,7 +125,7 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
       {
         question: currentIndex + 1,
         selected: selectedAnswer,
-        correct: currentQuestion.correct_answer,
+        correct: correctDisplayKey,
         isCorrect,
       },
     ]);
@@ -108,14 +144,33 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
 
   const handleFinishAndShare = () => {
     const percentage = Math.round((score / totalQuestions) * 100);
-    const summary = `Acabei um quiz sobre ${moduleName}! Acertei ${score}/${totalQuestions} (${percentage}%).`;
+    const wrongAnswers = answers.filter((a) => !a.isCorrect);
+    // Escape $ signs so they don't trigger KaTeX math mode in the chat renderer
+    const escapeDollar = (text: string) => text.replace(/\$/g, '＄');
+
+    let summary: string;
+
+    if (wrongAnswers.length === 0) {
+      summary = `Acabei uma avaliação sobre "${escapeDollar(moduleName)}" e acertei tudo (${score}/${totalQuestions}, ${percentage}%)! Pode me sugerir tópicos avançados para continuar aprendendo?`;
+    } else {
+      const wrongDetails = wrongAnswers
+        .map((ans) => {
+          const qIdx = ans.question - 1;
+          const question = questions[qIdx];
+          const opts = shuffledData[qIdx]?.options ?? [];
+          const correctOpt = opts.find((o) => o.displayKey === ans.correct);
+          const concepts = question?.concepts_covered?.join(', ') || '';
+          const questionText = escapeDollar(question?.question_text ?? '');
+          const correctText = escapeDollar(correctOpt?.value ?? '');
+          return `• "${questionText}"${concepts ? ` (temas: ${concepts})` : ''} — resposta correta: ${ans.correct}. ${correctText}`;
+        })
+        .join('\n');
+
+      summary = `Acabei uma avaliação sobre "${escapeDollar(moduleName)}". Acertei ${score}/${totalQuestions} (${percentage}%).\n\nErrei ${wrongAnswers.length} questão${wrongAnswers.length > 1 ? 'ões' : ''}:\n${wrongDetails}\n\nPode me ajudar a entender melhor esses pontos e me sugerir como estudá-los?`;
+    }
+
     onSendResult?.(summary);
     onClose();
-  };
-
-  // Get valid options (filter out null option E)
-  const getValidOptions = (options: Record<string, string | null>) => {
-    return Object.entries(options).filter(([_, value]) => value != null) as [string, string][];
   };
 
   return (
@@ -129,7 +184,7 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
         <div className="sticky top-0 z-10 bg-background border-b px-5 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Brain className="w-5 h-5 text-primary" />
-            <span className="font-semibold text-sm">Quiz</span>
+            <span className="font-semibold text-sm">Prática</span>
           </div>
           <button onClick={onClose} className="p-1 rounded-md hover:bg-accent transition-colors">
             <X className="w-4 h-4" />
@@ -151,7 +206,7 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
           {isLoading && (
             <div className="flex flex-col items-center justify-center py-12 gap-3">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">Carregando quiz...</p>
+              <p className="text-sm text-muted-foreground">Carregando perguntas...</p>
             </div>
           )}
 
@@ -163,7 +218,7 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
               </div>
               <div>
                 <h2 className="text-xl font-bold">
-                  {totalQuestions === 0 ? 'Quiz indisponível' : 'Teste seus conhecimentos!'}
+                  {totalQuestions === 0 ? 'Exercícios indisponíveis' : 'Teste seus conhecimentos!'}
                 </h2>
                 <p className="text-sm text-muted-foreground mt-1">{moduleName}</p>
               </div>
@@ -176,7 +231,7 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
                     onClick={() => setQuizState('question')}
                     className="mt-2 bg-primary text-primary-foreground hover:bg-primary/90"
                   >
-                    Começar Quiz
+                    Começar
                     <ArrowRight className="w-4 h-4 ml-1" />
                   </Button>
                 </>
@@ -185,11 +240,7 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
                   <p className="text-sm text-muted-foreground">
                     Ainda não há perguntas disponíveis para este módulo. As perguntas são geradas automaticamente — tente novamente mais tarde.
                   </p>
-                  <Button
-                    variant="outline"
-                    onClick={onClose}
-                    className="mt-2"
-                  >
+                  <Button variant="outline" onClick={onClose} className="mt-2">
                     Fechar
                   </Button>
                 </>
@@ -212,17 +263,17 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
               <p className="text-sm font-medium leading-relaxed">{currentQuestion.question_text}</p>
 
               <div className="space-y-2">
-                {getValidOptions(currentQuestion.options).map(([key, value]) => (
+                {(shuffledData[currentIndex]?.options ?? []).map(({ displayKey, value }) => (
                   <button
-                    key={key}
-                    onClick={() => handleSelectAnswer(key)}
+                    key={displayKey}
+                    onClick={() => handleSelectAnswer(displayKey)}
                     className={`w-full text-left px-4 py-3 rounded-lg border text-sm transition-all ${
-                      selectedAnswer === key
+                      selectedAnswer === displayKey
                         ? 'border-primary bg-primary/10 ring-1 ring-primary'
                         : 'border-border hover:border-muted-foreground/30 hover:bg-accent/50'
                     }`}
                   >
-                    <span className="font-semibold mr-2 text-muted-foreground">{key}.</span>
+                    <span className="font-semibold mr-2 text-muted-foreground">{displayKey}.</span>
                     {value}
                   </button>
                 ))}
@@ -241,31 +292,38 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
           {/* Feedback Screen */}
           {!isLoading && quizState === 'feedback' && currentQuestion && selectedAnswer && (
             <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                {selectedAnswer === currentQuestion.correct_answer ? (
-                  <>
-                    <CheckCircle2 className="w-6 h-6 text-green-500" />
-                    <span className="font-semibold text-green-600 dark:text-green-400">Correto!</span>
-                  </>
-                ) : (
-                  <>
-                    <XCircle className="w-6 h-6 text-red-500" />
-                    <span className="font-semibold text-red-600 dark:text-red-400">Incorreto</span>
-                  </>
-                )}
-              </div>
+              {(() => {
+                const correctDisplayKey = shuffledData[currentIndex]?.correctDisplayKey ?? currentQuestion.correct_answer;
+                const isAnswerCorrect = selectedAnswer === correctDisplayKey;
+                return (
+                  <div className="flex items-center gap-2">
+                    {isAnswerCorrect ? (
+                      <>
+                        <CheckCircle2 className="w-6 h-6 text-green-500" />
+                        <span className="font-semibold text-green-600 dark:text-green-400">Correto!</span>
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="w-6 h-6 text-red-500" />
+                        <span className="font-semibold text-red-600 dark:text-red-400">Incorreto</span>
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
 
               <p className="text-sm text-muted-foreground">{currentQuestion.question_text}</p>
 
               <div className="space-y-2">
-                {getValidOptions(currentQuestion.options).map(([key, value]) => {
-                  const isCorrect = key === currentQuestion.correct_answer;
-                  const isSelected = key === selectedAnswer;
+                {(shuffledData[currentIndex]?.options ?? []).map(({ displayKey, value, explanation }) => {
+                  const correctDisplayKey = shuffledData[currentIndex]?.correctDisplayKey ?? currentQuestion.correct_answer;
+                  const isCorrect = displayKey === correctDisplayKey;
+                  const isSelected = displayKey === selectedAnswer;
                   const showExplanation = isCorrect || isSelected;
 
                   return (
                     <div
-                      key={key}
+                      key={displayKey}
                       className={`px-4 py-3 rounded-lg border text-sm ${
                         isCorrect
                           ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
@@ -275,14 +333,14 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-muted-foreground">{key}.</span>
+                        <span className="font-semibold text-muted-foreground">{displayKey}.</span>
                         <span>{value}</span>
                         {isCorrect && <CheckCircle2 className="w-4 h-4 text-green-500 ml-auto shrink-0" />}
                         {isSelected && !isCorrect && <XCircle className="w-4 h-4 text-red-500 ml-auto shrink-0" />}
                       </div>
-                      {showExplanation && currentQuestion.explanations[key] && (
+                      {showExplanation && explanation && (
                         <p className="text-xs text-muted-foreground mt-2 pl-5 border-l-2 border-muted ml-1">
-                          {currentQuestion.explanations[key]}
+                          {explanation}
                         </p>
                       )}
                     </div>
@@ -302,44 +360,106 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
 
           {/* Results Screen */}
           {!isLoading && quizState === 'results' && (
-            <div className="flex flex-col items-center text-center py-6 gap-4">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                <Trophy className="w-8 h-8 text-primary" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold">Quiz Concluído!</h2>
-                <p className="text-3xl font-bold text-primary mt-2">
-                  {score}/{totalQuestions}
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {Math.round((score / totalQuestions) * 100)}% de acerto
+            <div className="flex flex-col gap-4">
+              {/* Score header */}
+              <div className="flex flex-col items-center text-center py-4 gap-2">
+                <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Trophy className="w-7 h-7 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold">Avaliação Concluída!</h2>
+                  <p className="text-3xl font-bold text-primary mt-1">
+                    {score}/{totalQuestions}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    {Math.round((score / totalQuestions) * 100)}% de acerto
+                  </p>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {score === totalQuestions
+                    ? 'Perfeito! Você dominou o conteúdo!'
+                    : score >= totalQuestions * 0.7
+                    ? 'Ótimo! Você tem um bom entendimento do conteúdo.'
+                    : score >= totalQuestions * 0.5
+                    ? 'Bom esforço! Há alguns pontos para revisar.'
+                    : 'Há pontos importantes para revisar. O tutor pode te ajudar!'}
                 </p>
               </div>
 
-              {/* Score feedback */}
-              <p className="text-sm text-muted-foreground">
-                {score === totalQuestions
-                  ? 'Perfeito! Você dominou o conteúdo!'
-                  : score >= totalQuestions * 0.7
-                  ? 'Ótimo! Você tem um bom entendimento do conteúdo.'
-                  : score >= totalQuestions * 0.5
-                  ? 'Bom esforço! Continue estudando para melhorar.'
-                  : 'Continue praticando! Revise o material e tente novamente.'}
-              </p>
+              {/* Per-question breakdown */}
+              <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                {answers.map((ans, i) => {
+                  const qIdx = ans.question - 1;
+                  const question = questions[qIdx];
+                  const opts = shuffledData[qIdx]?.options ?? [];
+                  const correctOpt = opts.find((o) => o.displayKey === ans.correct);
+                  const selectedOpt = opts.find((o) => o.displayKey === ans.selected);
 
-              <div className="flex gap-2 w-full mt-2">
-                <Button
-                  variant="outline"
-                  onClick={onClose}
-                  className="flex-1"
-                >
+                  return (
+                    <div
+                      key={i}
+                      className={`rounded-lg border p-3 text-sm ${
+                        ans.isCorrect
+                          ? 'border-green-500/30 bg-green-50/50 dark:bg-green-900/10'
+                          : 'border-red-500/30 bg-red-50/50 dark:bg-red-900/10'
+                      }`}
+                    >
+                      <div className="flex items-start gap-2">
+                        {ans.isCorrect ? (
+                          <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                        ) : (
+                          <XCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                        )}
+                        <div className="space-y-1 flex-1 min-w-0">
+                          <p className="font-medium leading-snug">{question?.question_text}</p>
+
+                          {!ans.isCorrect && (
+                            <>
+                              <p className="text-xs text-red-600 dark:text-red-400">
+                                Sua resposta: {ans.selected}. {selectedOpt?.value}
+                              </p>
+                              <p className="text-xs text-green-600 dark:text-green-400">
+                                Resposta correta: {ans.correct}. {correctOpt?.value}
+                              </p>
+                              {correctOpt?.explanation && (
+                                <p className="text-xs text-muted-foreground border-l-2 border-muted pl-2 mt-1">
+                                  {correctOpt.explanation}
+                                </p>
+                              )}
+                            </>
+                          )}
+
+                          {question?.concepts_covered?.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {question.concepts_covered.map((c, ci) => (
+                                <span
+                                  key={ci}
+                                  className="text-xs bg-muted px-1.5 py-0.5 rounded text-muted-foreground"
+                                >
+                                  {c}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex gap-2 pt-1">
+                <Button variant="outline" onClick={onClose} className="flex-1">
                   Fechar
                 </Button>
                 <Button
                   onClick={handleFinishAndShare}
                   className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
                 >
-                  Compartilhar no Chat
+                  {score === totalQuestions
+                    ? 'Continuar estudando'
+                    : 'Enviar para o tutor'}
                 </Button>
               </div>
             </div>
