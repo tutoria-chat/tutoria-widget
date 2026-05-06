@@ -7,5 +7,5 @@ const apiBaseUrl = import.meta.env.PUBLIC_API_BASE_URL || 'https://tutoria-api-d
 ---
 
 <Layout>
-  <ChatForm client:load apiBaseUrl={apiBaseUrl} />
+  <ChatForm client:only="react" apiBaseUrl={apiBaseUrl} />
 </Layout>

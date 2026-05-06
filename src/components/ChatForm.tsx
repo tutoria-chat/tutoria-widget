@@ -7,6 +7,7 @@ import { SendHorizontal, FileText, Download, Brain, ClipboardList } from 'lucide
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
+import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
@@ -392,7 +393,17 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
               console.log('[Streaming] Connected to server');
             } else if (event.type === 'chunk' && event.content) {
               fullResponse += event.content;
-              // Update the assistant message with accumulated content, clear thinking state
+              setMessages((prev) => {
+                const newMessages = [...prev];
+                newMessages[assistantMessageIndex] = {
+                  content: fullResponse,
+                  role: 'assistant',
+                  isThinking: false,
+                };
+                return newMessages;
+              });
+            } else if (event.type === 'formatted' && event.content) {
+              fullResponse = event.content;
               setMessages((prev) => {
                 const newMessages = [...prev];
                 newMessages[assistantMessageIndex] = {
@@ -789,7 +800,7 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
                       </div>
                     ) : (
                       <div className={` ${msg.role === 'user' ? 'whitespace-pre-wrap w-full break-words' : 'prose prose-sm dark:prose-invert max-w-none'}`}>
-                          <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex, rehypeHighlight]}>
+                          <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex, rehypeHighlight]}>
                               {msg.content}
                           </ReactMarkdown>
                       </div>
