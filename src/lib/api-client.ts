@@ -395,6 +395,8 @@ export class WidgetAPIClient {
                     yield { type: 'connected' };
                   } else if (data.chunk) {
                     yield { type: 'chunk', content: data.chunk };
+                  } else if (data.event === 'formatted') {
+                    yield { type: 'formatted', content: data.text };
                   } else if (data.event === 'done') {
                     yield { type: 'done', conversationId: data.conversation_id };
                   } else if (data.event === 'error') {
