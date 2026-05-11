@@ -430,11 +430,29 @@ export class WidgetAPIClient {
   }
 
   /**
+   * Get the courses and modules the professor agent has access to (for module selector)
+   */
+  async getProfessorModules(professorAgentToken: string): Promise<{
+    professor_agent_name: string;
+    courses: Array<{
+      course_id: number;
+      course_name: string;
+      modules: Array<{ id: number; name: string }>;
+    }>;
+  }> {
+    const url = `${this.baseUrl}/api/widget/professor-modules?professor_agent_token=${encodeURIComponent(professorAgentToken)}`;
+    const response = await robustFetch(url, { method: 'GET', timeout: 15000, retries: 2 });
+    if (!response.ok) throw new Error(`Failed to load modules: ${response.status}`);
+    return response.json();
+  }
+
+  /**
    * Send professor chat message
    */
   async sendProfessorChatMessage(params: {
     professorAgentToken: string;
     message: string;
+    moduleId?: number | null;
     conversationId?: string | null;
   }): Promise<any> {
     const url = `${this.baseUrl}/api/widget/professor-chat?professor_agent_token=${encodeURIComponent(params.professorAgentToken)}`;
@@ -447,6 +465,7 @@ export class WidgetAPIClient {
         },
         body: JSON.stringify({
           message: params.message,
+          module_id: params.moduleId ?? null,
           conversation_id: params.conversationId,
         }),
         timeout: 60000,
