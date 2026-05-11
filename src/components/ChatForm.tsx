@@ -94,6 +94,15 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
   // Assignment feedback modal
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
 
+  // Professor agent module selector
+  const [professorAgentName, setProfessorAgentName] = useState('');
+  const [professorCourses, setProfessorCourses] = useState<Array<{
+    course_id: number;
+    course_name: string;
+    modules: Array<{ id: number; name: string }>;
+  }>>([]);
+  const [selectedModuleId, setSelectedModuleId] = useState<number | null>(null);
+
   // Only access window on the client side
   const params = useMemo(() => {
     if (typeof window === 'undefined') return new URLSearchParams();
@@ -306,6 +315,16 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
     }
   }, [moduleInfo]);
 
+  useEffect(() => {
+    if (!isProfessorMode || !professorAgentToken) return;
+    apiClient.getProfessorModules(professorAgentToken)
+      .then((data) => {
+        setProfessorAgentName(data.professor_agent_name);
+        setProfessorCourses(data.courses);
+      })
+      .catch((err) => console.error('Failed to load professor modules:', err));
+  }, [isProfessorMode, professorAgentToken]);
+
   /**
    * Handles the chat form submission with robust error handling and retry logic.
    * Sends the user's message to the backend and displays the assistant's response.
@@ -464,6 +483,7 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
           data = await apiClient.sendProfessorChatMessage({
             professorAgentToken,
             message: currentMessage,
+            moduleId: selectedModuleId,
             conversationId,
           });
         } else {
@@ -675,8 +695,14 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
             </>
           ) : isProfessorMode ? (
             <>
-              <CardTitle className="text-lg">Agente do Professor</CardTitle>
-              <p className="text-sm text-muted-foreground">Modo de teste</p>
+              <CardTitle className="text-lg">{professorAgentName || 'Agente do Professor'}</CardTitle>
+              {selectedModuleId ? (
+                <p className="text-sm text-muted-foreground">
+                  {professorCourses.flatMap(c => c.modules).find(m => m.id === selectedModuleId)?.name ?? ''}
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">Selecione um módulo para contexto</p>
+              )}
             </>
           ) : moduleInfo ? (
             <>
@@ -696,6 +722,27 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
           )}
         </div>
         <div className="flex items-center gap-2">
+          {isProfessorMode && professorCourses.length > 0 && (
+            <select
+              value={selectedModuleId ?? ''}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSelectedModuleId(val ? Number(val) : null);
+                setMessages([]);
+                setConversationId(null);
+              }}
+              className="text-sm border rounded-md px-2 py-1.5 bg-background text-foreground max-w-[200px] truncate"
+            >
+              <option value="">Selecionar módulo...</option>
+              {professorCourses.map((course) => (
+                <optgroup key={course.course_id} label={course.course_name}>
+                  {course.modules.map((mod) => (
+                    <option key={mod.id} value={mod.id}>{mod.name}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          )}
           {!isUpBusinessMode && moduleInfo?.permissions.allow_file_access && files.length > 0 && (
             <Button
               variant="outline"
