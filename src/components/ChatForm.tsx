@@ -36,6 +36,11 @@ interface ModuleInfo {
   semester: number;
   year: number;
   has_assignments?: boolean;
+  appearance?: {
+    primary_color: string | null;
+    secondary_color: string | null;
+    default_theme: string; // "light" | "dark" | "auto"
+  };
   permissions: {
     allow_chat: boolean;
     allow_file_access: boolean;
@@ -177,7 +182,8 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
   const [isDark, setIsDark] = useState(false);
 
   /**
-   * Applies dark/light theme based on preferences or URL params.
+   * Applies dark/light theme based on URL params, university default, or system preference.
+   * Priority: URL ?dark param > university default_theme > system preference.
    */
   useEffect(() => {
     const applyTheme = (dark: boolean) => {
@@ -190,6 +196,8 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
     } else if (darkParam === 'false') {
       applyTheme(false);
     } else {
+      // 'auto' — defer to system preference; university default_theme will override
+      // once moduleInfo is loaded (see effect below)
       const mq = window.matchMedia('(prefers-color-scheme: dark)');
       const updateTheme = () => applyTheme(mq.matches);
 
@@ -198,6 +206,24 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
       return () => mq.removeEventListener('change', updateTheme);
     }
   }, [darkParam]);
+
+  /**
+   * Once module info is loaded, apply the university's default theme if no explicit
+   * URL param override was provided.
+   */
+  useEffect(() => {
+    if (!moduleInfo?.appearance || darkParam !== 'auto') return;
+
+    const uniTheme = moduleInfo.appearance.default_theme;
+    if (uniTheme === 'dark') {
+      setIsDark(true);
+      document.documentElement.classList.add('dark');
+    } else if (uniTheme === 'light') {
+      setIsDark(false);
+      document.documentElement.classList.remove('dark');
+    }
+    // 'auto' → keep current system-preference behaviour
+  }, [moduleInfo, darkParam]);
 
   /**
    * Scrolls the chat to the bottom whenever messages change.
@@ -656,30 +682,47 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
     );
   }
 
+  // ── Effective appearance colors ────────────────────────────────────────────
+  // Priority: URL param > university branding > theme-aware defaults
+  const uniPrimaryColor = moduleInfo?.appearance?.primary_color || null;
+  const uniSecondaryColor = moduleInfo?.appearance?.secondary_color || null;
+
+  // URL params come without '#'; API colors come with '#'
+  const urlBtnColor = buttonColor ? isValidHexColor(buttonColor, '') : '';
+  const urlUserMsgColor = userMessageColor ? isValidHexColor(userMessageColor, '') : '';
+  const urlAgentMsgColor = agentMessageColor ? isValidHexColor(agentMessageColor, '') : '';
+
+  // Send button: URL param > university primary > purple (light) / white (dark)
+  const sendBgColor = urlBtnColor || uniPrimaryColor || (isDark ? '#FFFFFF' : '#7C3AED');
+  // Ensure readable text on the send button background
+  const sendTextColor = sendBgColor.toLowerCase() === '#ffffff' ? '#111827' : '#ffffff';
+
+  // User bubble: URL param > university primary > theme default
+  const userMsgBgColor = urlUserMsgColor || uniPrimaryColor || (isDark ? '#FFFFFF' : '#7C3AED');
+  const userMsgTextColor = userMsgBgColor.toLowerCase() === '#ffffff' ? '#111827' : '#ffffff';
+
+  // Agent bubble: URL param > university secondary > CSS variable (already handles dark/light)
+  const agentMsgBgColor = urlAgentMsgColor || uniSecondaryColor || '';
+
   return (
     <Card className="flex flex-col h-full !rounded-none !border-none">
       <style>
         {`
           .dynamic-button-color {
-            background-color: ${isValidHexColor(buttonColor, 'var(--primary)')};
+            background-color: ${sendBgColor};
+            color: ${sendTextColor};
           }
           .dynamic-button-color:hover {
-            background-color: ${isValidHexColor(buttonColor, 'var(--primary)')};
+            background-color: ${sendBgColor};
+            color: ${sendTextColor};
             opacity: 0.9;
           }
           .dynamic-agent-message-color {
-            background-color: ${isValidHexColor(agentMessageColor, 'var(--accent)')};
-          }
-          .dynamic-agent-message-color:hover {
-            background-color: ${isValidHexColor(agentMessageColor, 'var(--accent)')};
-            opacity: 0.9;
+            background-color: ${agentMsgBgColor || 'var(--accent)'};
           }
           .dynamic-user-message-color {
-            background-color: ${isValidHexColor(userMessageColor, 'var(--border)')};
-          }
-          .dynamic-user-message-color:hover {
-            background-color: ${isValidHexColor(userMessageColor, 'var(--border)')};
-            opacity: 0.9;
+            background-color: ${userMsgBgColor};
+            color: ${userMsgTextColor};
           }
         `}
       </style>
