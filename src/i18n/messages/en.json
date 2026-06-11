@@ -10,6 +10,7 @@
     "download": "Download"
   },
   "gate": {
+    "tagline": "Your AI study companion",
     "title": "Student Verification",
     "subtitle": "Enter your student ID to access {courseName}",
     "matriculaLabel": "Student ID",
@@ -41,8 +42,13 @@
     "inputPlaceholder": "Type your question...",
     "thinking": "Thinking...",
     "newConversationNotice": "You switched modules. This is a new conversation for {moduleName}.",
-    "emptyTitle": "Ask anything about {moduleName}",
-    "emptySubtitle": "The tutor answers based on the course materials.",
+    "emptyTitle": "Ask Erwin anything about {moduleName}",
+    "emptySubtitle": "Erwin answers based on the course materials.",
+    "historyTitle": "Conversations",
+    "newChat": "New chat",
+    "historyEmpty": "You have no past conversations in this module yet.",
+    "historyUntitled": "Untitled conversation",
+    "historyMessages": "{count} messages",
     "errorGeneric": "Could not send your message. Please try again.",
     "errorRateLimit": "Too many questions! Wait a moment and try again.",
     "errorSession": "Your session expired. Reload the page and verify your student ID."

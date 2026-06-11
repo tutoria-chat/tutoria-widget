@@ -312,6 +312,43 @@ export class WidgetAPIClient {
     return response.json();
   }
 
+  /** List the student's past conversations for a module (90-day window). */
+  async getConversations(moduleToken: string, moduleId?: number): Promise<{
+    conversations: Array<{
+      conversation_id: string;
+      preview: string;
+      last_message_at: number;
+      message_count: number;
+    }>;
+  }> {
+    const url = `${this.baseUrl}/api/widget/conversations?module_token=${encodeURIComponent(moduleToken)}${this.moduleParam(moduleId)}`;
+    const response = await robustFetch(url, {
+      method: 'GET',
+      headers: this.sessionHeaders(),
+      timeout: 15000,
+      retries: 1,
+    });
+    if (!response.ok) throw new Error(`Failed to load conversations: ${response.status}`);
+    return response.json();
+  }
+
+  /** Restore a past conversation's messages (ownership enforced server-side). */
+  async getConversationMessages(moduleToken: string, conversationId: string): Promise<{
+    conversation_id: string;
+    module_id: number | null;
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+  }> {
+    const url = `${this.baseUrl}/api/widget/conversations/${encodeURIComponent(conversationId)}/messages?module_token=${encodeURIComponent(moduleToken)}`;
+    const response = await robustFetch(url, {
+      method: 'GET',
+      headers: this.sessionHeaders(),
+      timeout: 15000,
+      retries: 1,
+    });
+    if (!response.ok) throw new Error(`Failed to load conversation: ${response.status}`);
+    return response.json();
+  }
+
   /**
    * Fetch module information
    */

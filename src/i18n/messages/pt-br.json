@@ -10,6 +10,7 @@
     "download": "Baixar"
   },
   "gate": {
+    "tagline": "Seu companheiro de estudos com IA",
     "title": "Verificação de Matrícula",
     "subtitle": "Digite sua matrícula para acessar {courseName}",
     "matriculaLabel": "Matrícula",
@@ -41,8 +42,13 @@
     "inputPlaceholder": "Digite sua pergunta...",
     "thinking": "Pensando...",
     "newConversationNotice": "Você trocou de módulo. Esta é uma nova conversa para {moduleName}.",
-    "emptyTitle": "Tire suas dúvidas sobre {moduleName}",
-    "emptySubtitle": "O tutor responde com base nos materiais da disciplina.",
+    "emptyTitle": "Pergunte ao Erwin sobre {moduleName}",
+    "emptySubtitle": "O Erwin responde com base nos materiais da disciplina.",
+    "historyTitle": "Conversas",
+    "newChat": "Nova conversa",
+    "historyEmpty": "Você ainda não tem conversas anteriores neste módulo.",
+    "historyUntitled": "Conversa sem título",
+    "historyMessages": "{count} mensagens",
     "errorGeneric": "Não foi possível enviar sua mensagem. Tente novamente.",
     "errorRateLimit": "Muitas perguntas! Aguarde um momento e tente novamente.",
     "errorSession": "Sua sessão expirou. Recarregue a página e verifique sua matrícula."

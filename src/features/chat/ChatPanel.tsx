@@ -10,12 +10,19 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import rehypeHighlight from 'rehype-highlight';
-import { SendHorizontal } from 'lucide-react';
+import { History, Loader2, SendHorizontal, SquarePen, X } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Textarea } from '../../components/ui/textarea';
 import { apiClient } from '../../lib/api-client';
 import { useApp } from '../../app/AppContext';
-import { useTranslations } from '../../i18n';
+import { useI18n, useTranslations } from '../../i18n';
+
+interface ConversationSummary {
+  conversation_id: string;
+  preview: string;
+  last_message_at: number;
+  message_count: number;
+}
 
 interface ChatPanelProps {
   streaming: boolean;
@@ -37,10 +44,17 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
     endSession,
   } = useApp();
 
+  const { locale } = useI18n();
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   // Flipped when the server can't stream (e.g. 501) — we fall back permanently
   const [streamingDisabled, setStreamingDisabled] = useState(false);
+
+  // Past conversations (90-day window)
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [history, setHistory] = useState<ConversationSummary[]>([]);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -177,6 +191,56 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
     }
   };
 
+  const openHistory = async () => {
+    setShowHistory(true);
+    setHistoryLoading(true);
+    try {
+      const data = await apiClient.getConversations(
+        moduleToken,
+        isDefaultModule ? undefined : activeModuleId
+      );
+      setHistory(data.conversations);
+    } catch {
+      setHistory([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const restoreConversation = async (conversationId: string) => {
+    setRestoringId(conversationId);
+    try {
+      const data = await apiClient.getConversationMessages(moduleToken, conversationId);
+      updateThread(activeModuleId, { conversationId });
+      setMessages(activeModuleId, () => data.messages);
+      setShowHistory(false);
+    } catch {
+      /* keep the panel open; the row simply stops spinning */
+    } finally {
+      setRestoringId(null);
+    }
+  };
+
+  const startNewChat = () => {
+    updateThread(activeModuleId, { conversationId: null });
+    setMessages(activeModuleId, () => []);
+    setShowHistory(false);
+  };
+
+  const formatHistoryDate = (ms: number) => {
+    try {
+      const localeMap = { 'pt-br': 'pt-BR', en: 'en-US', es: 'es-ES' } as const;
+      return new Date(ms).toLocaleString(localeMap[locale] ?? 'pt-BR', {
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return '';
+    }
+  };
+
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
     e.target.style.height = 'auto';
@@ -193,7 +257,90 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
   const moduleName = activeModule?.name ?? '';
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden relative">
+      {/* Chat toolbar: history + new chat */}
+      <div className="flex items-center justify-end gap-1 px-3 pt-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={openHistory}
+          title={t('historyTitle')}
+          className="text-muted-foreground hover:text-foreground"
+        >
+          <History className="w-4 h-4 mr-1" />
+          <span className="text-xs">{t('historyTitle')}</span>
+        </Button>
+        {(thread.messages.length > 0 || thread.conversationId) && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={startNewChat}
+            title={t('newChat')}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <SquarePen className="w-4 h-4 mr-1" />
+            <span className="text-xs">{t('newChat')}</span>
+          </Button>
+        )}
+      </div>
+
+      {/* History overlay */}
+      {showHistory && (
+        <div className="absolute inset-0 z-20 bg-background/95 backdrop-blur-sm flex flex-col">
+          <div className="flex items-center justify-between border-b px-4 py-3">
+            <p className="text-sm font-semibold flex items-center gap-2">
+              <History className="w-4 h-4" />
+              {t('historyTitle')}
+            </p>
+            <button
+              onClick={() => setShowHistory(false)}
+              className="p-1 rounded-md hover:bg-muted transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-3">
+            {historyLoading ? (
+              <div className="flex justify-center py-10">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : history.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-10">
+                {t('historyEmpty')}
+              </p>
+            ) : (
+              <div className="space-y-2">
+                <button
+                  onClick={startNewChat}
+                  className="w-full text-left p-3 rounded-lg border border-dashed text-sm text-primary hover:bg-primary/5 transition-colors flex items-center gap-2"
+                >
+                  <SquarePen className="w-4 h-4" />
+                  {t('newChat')}
+                </button>
+                {history.map((conv) => (
+                  <button
+                    key={conv.conversation_id}
+                    onClick={() => restoreConversation(conv.conversation_id)}
+                    disabled={restoringId !== null}
+                    className={`w-full text-left p-3 rounded-lg border text-sm transition-colors hover:border-primary hover:bg-muted/50 ${
+                      conv.conversation_id === thread.conversationId ? 'border-primary bg-primary/5' : ''
+                    }`}
+                  >
+                    <p className="font-medium line-clamp-2">{conv.preview || t('historyUntitled')}</p>
+                    <p className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+                      {restoringId === conv.conversation_id && (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      )}
+                      {formatHistoryDate(conv.last_message_at)} · {t('historyMessages', { count: conv.message_count })}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {thread.messages.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
           <h2 className="text-2xl font-semibold text-foreground">

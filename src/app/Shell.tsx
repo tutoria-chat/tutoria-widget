@@ -106,9 +106,10 @@ export default function Shell({
   const agentMsgColor =
     (urlColors.agentMessage ? isValidHexColor(urlColors.agentMessage) : '') || branding.secondary || '';
 
-  const sendBgColor = btnColor || branding.primary || (isDark ? '#FFFFFF' : '#7C3AED');
+  // Brand purple (#5e17eb) as the default, matching tutoria-ui
+  const sendBgColor = btnColor || branding.primary || '#5E17EB';
   const sendTextColor = sendBgColor.toLowerCase() === '#ffffff' ? '#111827' : '#ffffff';
-  const userMsgBgColor = userMsgColor || branding.primary || (isDark ? '#FFFFFF' : '#7C3AED');
+  const userMsgBgColor = userMsgColor || branding.primary || '#5E17EB';
   const userMsgTextColor = userMsgBgColor.toLowerCase() === '#ffffff' ? '#111827' : '#ffffff';
 
   return (
@@ -117,7 +118,7 @@ export default function Shell({
         {`
           .dynamic-button-color { background-color: ${sendBgColor}; color: ${sendTextColor}; }
           .dynamic-button-color:hover { background-color: ${sendBgColor}; color: ${sendTextColor}; opacity: 0.9; }
-          .dynamic-agent-message-color { background-color: ${agentMsgColor || 'var(--accent)'}; }
+          .dynamic-agent-message-color { background-color: ${agentMsgColor || 'var(--muted)'}; }
           .dynamic-user-message-color { background-color: ${userMsgBgColor}; color: ${userMsgTextColor}; }
         `}
       </style>
@@ -126,11 +127,12 @@ export default function Shell({
       <header className="flex items-center justify-between gap-3 border-b px-4 py-3">
         <div className="min-w-0">
           <p className="text-base font-semibold truncate">{greeting}</p>
-          {activeCourse && (
-            <p className="text-xs text-muted-foreground truncate">
-              {activeCourse.name} · {session.university_name}
-            </p>
-          )}
+          <p className="text-xs text-muted-foreground truncate">
+            <span className="font-bold bg-gradient-to-r from-[#5e17eb] to-[#5ce1e6] bg-clip-text text-transparent dark:from-[#a78bfa] dark:to-[#5ce1e6]">
+              Erwin
+            </span>
+            {activeCourse && <> · {activeCourse.name} · {session.university_name}</>}
+          </p>
         </div>
 
         <select
@@ -163,8 +165,8 @@ export default function Shell({
               onClick={() => setActivePanel(item.key)}
               className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors max-sm:flex-col max-sm:gap-0.5 max-sm:px-2 max-sm:py-1.5 max-sm:text-xs ${
                 activePanel === item.key
-                  ? 'bg-accent text-foreground font-medium'
-                  : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground'
+                  ? 'bg-primary/10 text-primary font-semibold dark:bg-primary/25 dark:text-[#c4b5fd]'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               }`}
             >
               {item.icon}

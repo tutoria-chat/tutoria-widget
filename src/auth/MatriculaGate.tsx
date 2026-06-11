@@ -47,6 +47,12 @@ export default function MatriculaGate({ moduleToken, courseName, onSession }: Ma
   return (
     <CardContent className="flex-1 flex flex-col items-center justify-center text-center gap-4 p-8">
       <div className="max-w-sm w-full space-y-4">
+        <div>
+          <p className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-[#5e17eb] to-[#5ce1e6] bg-clip-text text-transparent dark:from-[#a78bfa] dark:to-[#5ce1e6]">
+            Erwin
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">{t('tagline')}</p>
+        </div>
         <CardTitle className="text-2xl text-foreground">{t('title')}</CardTitle>
         {courseName && (
           <p className="text-sm text-muted-foreground">{t('subtitle', { courseName })}</p>
