@@ -177,7 +177,9 @@ export default function Shell({
           {/* key={activeModuleId} forces panels to reload when the module changes —
               the visible cue that the context switched (WhatsApp model) */}
           {activePanel === 'chat' && <ChatPanel key={`chat-${activeModuleId}`} streaming={streaming} />}
-          {activePanel === 'quizzes' && <QuizzesPanel key={`quiz-${activeModuleId}`} />}
+          {activePanel === 'quizzes' && (
+            <QuizzesPanel key={`quiz-${activeModuleId}`} onOpenChat={() => setActivePanel('chat')} />
+          )}
           {activePanel === 'assignments' && (
             <AssignmentsPanel key={`asg-${activeModuleId}`} onOpenChat={() => setActivePanel('chat')} />
           )}

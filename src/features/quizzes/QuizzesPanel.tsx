@@ -11,9 +11,9 @@ import { useTranslations } from '../../i18n';
 
 type Difficulty = 'easy' | 'medium' | 'hard';
 
-export default function QuizzesPanel() {
+export default function QuizzesPanel({ onOpenChat }: { onOpenChat: () => void }) {
   const t = useTranslations('quizzes');
-  const { moduleToken, session, activeModuleId, activeModule } = useApp();
+  const { moduleToken, session, activeModuleId, activeModule, setChatDraft } = useApp();
 
   const [availableDifficulties, setAvailableDifficulties] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -118,6 +118,12 @@ export default function QuizzesPanel() {
         questions={quizQuestions}
         moduleName={activeModule?.name ?? 'Quiz'}
         isLoading={quizLoading}
+        onSendResult={(summary) => {
+          // Stage the result as a ready-to-send chat draft and jump to chat
+          setChatDraft(activeModuleId, summary);
+          setShowModal(false);
+          onOpenChat();
+        }}
       />
     </div>
   );

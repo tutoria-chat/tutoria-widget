@@ -6,7 +6,7 @@
  * The backend additionally rejects any conversation_id used under a different
  * module, so context can never bleed across courses.
  */
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   apiClient,
   type SessionContext,
@@ -49,6 +49,10 @@ interface AppContextValue {
   setMessages: (moduleId: number, updater: (prev: ChatMessage[]) => ChatMessage[]) => void;
   feedbackJobs: Record<number, FeedbackJob>;
   setFeedbackJob: (moduleId: number, job: FeedbackJob | null) => void;
+  /** Stage text for the module's chat input (e.g. quiz result summary). */
+  setChatDraft: (moduleId: number, text: string | null) => void;
+  /** Read-and-clear the staged chat draft for a module. */
+  consumeChatDraft: (moduleId: number) => string | null;
   refreshContext: () => Promise<void>;
   endSession: () => void;
 }
@@ -200,6 +204,22 @@ export function AppProvider({
     return () => clearInterval(interval);
   }, [feedbackJobs, moduleToken, setFeedbackJob]);
 
+  // ── Staged chat drafts (filled by other panels, consumed by ChatPanel) ─────
+  // A ref is enough: the draft is written right before switching to the chat
+  // panel, which remounts and consumes it on mount.
+  const chatDraftsRef = useRef<Record<number, string>>({});
+
+  const setChatDraft = useCallback((moduleId: number, text: string | null) => {
+    if (text) chatDraftsRef.current[moduleId] = text;
+    else delete chatDraftsRef.current[moduleId];
+  }, []);
+
+  const consumeChatDraft = useCallback((moduleId: number) => {
+    const draft = chatDraftsRef.current[moduleId] ?? null;
+    delete chatDraftsRef.current[moduleId];
+    return draft;
+  }, []);
+
   const refreshContext = useCallback(async () => {
     const fresh = await apiClient.getSessionContext(moduleToken);
     setContext(fresh);
@@ -220,6 +240,8 @@ export function AppProvider({
       setMessages,
       feedbackJobs,
       setFeedbackJob,
+      setChatDraft,
+      consumeChatDraft,
       refreshContext,
       endSession: onSessionEnded,
     }),
@@ -236,6 +258,8 @@ export function AppProvider({
       setMessages,
       feedbackJobs,
       setFeedbackJob,
+      setChatDraft,
+      consumeChatDraft,
       refreshContext,
       onSessionEnded,
     ]

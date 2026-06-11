@@ -33,6 +33,7 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
     updateThread,
     appendMessages,
     setMessages,
+    consumeChatDraft,
     endSession,
   } = useApp();
 
@@ -47,6 +48,23 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [thread.messages.length, activeModuleId]);
+
+  // Drafts staged by other panels (e.g. quiz result summaries) land in the
+  // input ready to send — the student just hits Enter.
+  useEffect(() => {
+    const draft = consumeChatDraft(activeModuleId);
+    if (draft) {
+      setInput(draft);
+      requestAnimationFrame(() => {
+        const el = textareaRef.current;
+        if (el) {
+          el.style.height = 'auto';
+          el.style.height = `${el.scrollHeight}px`;
+          el.focus();
+        }
+      });
+    }
+  }, [activeModuleId, consumeChatDraft]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
