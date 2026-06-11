@@ -104,10 +104,22 @@ export function I18nProvider({
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }
 
+/**
+ * Fallback used when a component renders outside I18nProvider (the legacy
+ * ChatForm path reuses i18n-ized components like QuizModal/ConsentGate).
+ * Translates with the default locale; setLocale is a no-op.
+ */
+const FALLBACK_CONTEXT: I18nContextValue = {
+  locale: DEFAULT_LOCALE,
+  setLocale: () => {},
+  t: (key, vars) => {
+    const message = lookup(MESSAGES[DEFAULT_LOCALE], key);
+    return message === undefined ? key : interpolate(message, vars);
+  },
+};
+
 export function useI18n(): I18nContextValue {
-  const ctx = useContext(I18nContext);
-  if (!ctx) throw new Error('useI18n must be used within I18nProvider');
-  return ctx;
+  return useContext(I18nContext) ?? FALLBACK_CONTEXT;
 }
 
 /** Namespaced translator, mirroring next-intl's useTranslations(namespace). */

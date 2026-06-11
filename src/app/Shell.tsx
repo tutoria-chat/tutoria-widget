@@ -3,7 +3,7 @@
  * and the active feature panel. Only features the university paid for (and the
  * token allows) are rendered.
  */
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Brain,
   ClipboardList,
@@ -12,6 +12,7 @@ import {
   Settings as SettingsIcon,
 } from 'lucide-react';
 import { useApp } from './AppContext';
+import { apiClient } from '../lib/api-client';
 import { useTranslations } from '../i18n';
 import ChatPanel from '../features/chat/ChatPanel';
 import QuizzesPanel from '../features/quizzes/QuizzesPanel';
@@ -47,7 +48,30 @@ export default function Shell({
   urlColors,
 }: ShellProps) {
   const t = useTranslations('shell');
-  const { session, context, activeModuleId, activeCourse, switchModule } = useApp();
+  const { moduleToken, session, context, activeModuleId, activeCourse, switchModule } = useApp();
+
+  // University branding from the module info (primary/secondary colors)
+  const [branding, setBranding] = useState<{ primary?: string | null; secondary?: string | null }>({});
+  useEffect(() => {
+    let cancelled = false;
+    const isDefault = activeModuleId === session.default_module_id;
+    apiClient
+      .getModuleInfo(moduleToken, isDefault ? undefined : activeModuleId)
+      .then((info) => {
+        if (!cancelled) {
+          setBranding({
+            primary: info?.appearance?.primary_color ?? null,
+            secondary: info?.appearance?.secondary_color ?? null,
+          });
+        }
+      })
+      .catch(() => {
+        /* branding is cosmetic — fall back to defaults */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [moduleToken, activeModuleId, session.default_module_id]);
 
   const navItems = useMemo(() => {
     const items: { key: PanelKey; label: string; icon: React.ReactNode }[] = [];
@@ -76,14 +100,15 @@ export default function Shell({
   const firstName = session.student.first_name?.trim();
   const greeting = firstName ? t('greeting', { name: firstName }) : t('greetingAnonymous');
 
-  // Dynamic colors: URL param > theme defaults (university branding can override later)
+  // Dynamic colors: URL param > university branding > theme defaults
   const btnColor = urlColors.button ? isValidHexColor(urlColors.button) : '';
   const userMsgColor = urlColors.userMessage ? isValidHexColor(urlColors.userMessage) : '';
-  const agentMsgColor = urlColors.agentMessage ? isValidHexColor(urlColors.agentMessage) : '';
+  const agentMsgColor =
+    (urlColors.agentMessage ? isValidHexColor(urlColors.agentMessage) : '') || branding.secondary || '';
 
-  const sendBgColor = btnColor || (isDark ? '#FFFFFF' : '#7C3AED');
+  const sendBgColor = btnColor || branding.primary || (isDark ? '#FFFFFF' : '#7C3AED');
   const sendTextColor = sendBgColor.toLowerCase() === '#ffffff' ? '#111827' : '#ffffff';
-  const userMsgBgColor = userMsgColor || (isDark ? '#FFFFFF' : '#7C3AED');
+  const userMsgBgColor = userMsgColor || branding.primary || (isDark ? '#FFFFFF' : '#7C3AED');
   const userMsgTextColor = userMsgBgColor.toLowerCase() === '#ffffff' ? '#111827' : '#ffffff';
 
   return (
