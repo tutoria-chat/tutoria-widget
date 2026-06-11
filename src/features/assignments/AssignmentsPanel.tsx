@@ -1,9 +1,18 @@
 /**
  * Assignments panel: list the course's published assignments, download the
  * statement, and request AI feedback on submitted work (no grading).
+ *
+ * Feedback is generated in the BACKGROUND: the panel shows a processing card
+ * (polled by AppContext), the student keeps using the app, and the result is
+ * displayed here — with an optional "discuss in chat" handoff.
  */
 import React, { useEffect, useState } from 'react';
-import { ClipboardList, Download, Loader2, MessageSquareText } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import rehypeHighlight from 'rehype-highlight';
+import { ClipboardList, Download, Loader2, MessageCircle, MessageSquareText, X, XCircle } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import AssignmentFeedbackModal from '../../components/AssignmentFeedbackModal';
 import { apiClient } from '../../lib/api-client';
@@ -21,7 +30,7 @@ interface Assignment {
   original_file_name: string;
 }
 
-export default function AssignmentsPanel() {
+export default function AssignmentsPanel({ onOpenChat }: { onOpenChat: () => void }) {
   const t = useTranslations('assignments');
   const { locale } = useI18n();
   const {
@@ -31,6 +40,8 @@ export default function AssignmentsPanel() {
     getThread,
     updateThread,
     appendMessages,
+    feedbackJobs,
+    setFeedbackJob,
   } = useApp();
 
   const [assignments, setAssignments] = useState<Assignment[]>([]);
@@ -86,6 +97,20 @@ export default function AssignmentsPanel() {
     }
   };
 
+  const job = feedbackJobs[activeModuleId];
+
+  const handleDiscussInChat = () => {
+    if (!job?.feedback) return;
+    appendMessages(activeModuleId, [{ role: 'assistant', content: job.feedback }]);
+    // Adopt the feedback's conversation so chat follow-ups have its context,
+    // unless the student already has an ongoing conversation in this module.
+    if (!getThread(activeModuleId).conversationId && job.conversationId) {
+      updateThread(activeModuleId, { conversationId: job.conversationId });
+    }
+    setFeedbackJob(activeModuleId, null);
+    onOpenChat();
+  };
+
   return (
     <div className="h-full overflow-y-auto p-6">
       <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
@@ -93,6 +118,58 @@ export default function AssignmentsPanel() {
         {t('title')}
       </h2>
       <p className="text-sm text-muted-foreground mt-1 mb-4">{t('subtitle')}</p>
+
+      {/* Async feedback job card */}
+      {job && (
+        <div className="mb-4 rounded-lg border bg-background">
+          {job.status === 'processing' ? (
+            <div className="flex items-center gap-3 p-4">
+              <Loader2 className="w-5 h-5 animate-spin text-primary shrink-0" />
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate">
+                  {t('feedbackProcessing', { title: job.assignmentTitle })}
+                </p>
+                <p className="text-xs text-muted-foreground">{t('feedbackProcessingHint')}</p>
+              </div>
+            </div>
+          ) : job.status === 'failed' ? (
+            <div className="flex items-center justify-between gap-3 p-4">
+              <div className="flex items-center gap-2 min-w-0">
+                <XCircle className="w-5 h-5 text-destructive shrink-0" />
+                <p className="text-sm text-destructive truncate">
+                  {t('feedbackFailed', { title: job.assignmentTitle })}
+                </p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setFeedbackJob(activeModuleId, null)}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          ) : (
+            <div className="p-4 space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-sm font-semibold">
+                  {t('feedbackReady', { title: job.assignmentTitle })}
+                </p>
+                <Button variant="ghost" size="sm" onClick={() => setFeedbackJob(activeModuleId, null)}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+              <div className="prose prose-sm dark:prose-invert max-w-none max-h-96 overflow-y-auto rounded-md bg-muted/30 p-3">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm, remarkMath]}
+                  rehypePlugins={[rehypeKatex, rehypeHighlight]}
+                >
+                  {job.feedback ?? ''}
+                </ReactMarkdown>
+              </div>
+              <Button size="sm" onClick={handleDiscussInChat}>
+                <MessageCircle className="w-4 h-4 mr-1" />
+                {t('discussInChat')}
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-12">
@@ -129,7 +206,11 @@ export default function AssignmentsPanel() {
                   <Download className="w-4 h-4 mr-1" />
                   {t('downloadStatement')}
                 </Button>
-                <Button size="sm" onClick={() => setShowFeedbackModal(true)}>
+                <Button
+                  size="sm"
+                  onClick={() => setShowFeedbackModal(true)}
+                  disabled={job?.status === 'processing'}
+                >
                   <MessageSquareText className="w-4 h-4 mr-1" />
                   {t('requestFeedback')}
                 </Button>
@@ -146,12 +227,16 @@ export default function AssignmentsPanel() {
           conversationId={getThread(activeModuleId).conversationId ?? undefined}
           moduleId={moduleIdParam}
           onClose={() => setShowFeedbackModal(false)}
-          onFeedbackReceived={(response, newConversationId) => {
-            // Feedback lands in the active module's chat thread for follow-ups
-            appendMessages(activeModuleId, [{ role: 'assistant', content: response }]);
-            if (newConversationId) {
-              updateThread(activeModuleId, { conversationId: newConversationId });
-            }
+          onFeedbackReceived={() => {
+            /* unused in background mode */
+          }}
+          onJobStarted={({ submissionId, conversationId: jobConversationId, assignmentTitle }) => {
+            setFeedbackJob(activeModuleId, {
+              submissionId,
+              assignmentTitle,
+              status: 'processing',
+              conversationId: jobConversationId,
+            });
           }}
         />
       )}

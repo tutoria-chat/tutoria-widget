@@ -6,7 +6,7 @@
  * The backend additionally rejects any conversation_id used under a different
  * module, so context can never bleed across courses.
  */
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
   apiClient,
   type SessionContext,
@@ -26,6 +26,15 @@ interface ModuleThread {
   messages: ChatMessage[];
 }
 
+/** Async assignment-feedback request, one per module at a time. */
+export interface FeedbackJob {
+  submissionId: number;
+  assignmentTitle: string;
+  status: 'processing' | 'completed' | 'failed';
+  feedback?: string;
+  conversationId?: string;
+}
+
 interface AppContextValue {
   moduleToken: string;
   session: WidgetSession;
@@ -38,6 +47,8 @@ interface AppContextValue {
   updateThread: (moduleId: number, update: Partial<ModuleThread>) => void;
   appendMessages: (moduleId: number, messages: ChatMessage[]) => void;
   setMessages: (moduleId: number, updater: (prev: ChatMessage[]) => ChatMessage[]) => void;
+  feedbackJobs: Record<number, FeedbackJob>;
+  setFeedbackJob: (moduleId: number, job: FeedbackJob | null) => void;
   refreshContext: () => Promise<void>;
   endSession: () => void;
 }
@@ -149,6 +160,46 @@ export function AppProvider({
     []
   );
 
+  // ── Async assignment feedback jobs ─────────────────────────────────────────
+  const [feedbackJobs, setFeedbackJobs] = useState<Record<number, FeedbackJob>>({});
+
+  const setFeedbackJob = useCallback((moduleId: number, job: FeedbackJob | null) => {
+    setFeedbackJobs((prev) => {
+      const next = { ...prev };
+      if (job) next[moduleId] = job;
+      else delete next[moduleId];
+      return next;
+    });
+  }, []);
+
+  // Poll processing jobs at context level so generation continues to be tracked
+  // while the student switches panels or modules.
+  useEffect(() => {
+    const processing = Object.entries(feedbackJobs).filter(([, j]) => j.status === 'processing');
+    if (processing.length === 0) return;
+
+    const interval = setInterval(async () => {
+      for (const [moduleIdStr, job] of processing) {
+        try {
+          const result = await apiClient.getSubmissionFeedback(moduleToken, job.submissionId);
+          if (result.status === 'completed') {
+            setFeedbackJob(Number(moduleIdStr), {
+              ...job,
+              status: 'completed',
+              feedback: result.feedback ?? '',
+            });
+          } else if (result.status === 'failed') {
+            setFeedbackJob(Number(moduleIdStr), { ...job, status: 'failed' });
+          }
+        } catch {
+          /* transient polling error — keep trying on the next tick */
+        }
+      }
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [feedbackJobs, moduleToken, setFeedbackJob]);
+
   const refreshContext = useCallback(async () => {
     const fresh = await apiClient.getSessionContext(moduleToken);
     setContext(fresh);
@@ -167,6 +218,8 @@ export function AppProvider({
       updateThread,
       appendMessages,
       setMessages,
+      feedbackJobs,
+      setFeedbackJob,
       refreshContext,
       endSession: onSessionEnded,
     }),
@@ -181,6 +234,8 @@ export function AppProvider({
       updateThread,
       appendMessages,
       setMessages,
+      feedbackJobs,
+      setFeedbackJob,
       refreshContext,
       onSessionEnded,
     ]

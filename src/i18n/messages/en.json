@@ -68,7 +68,12 @@
     "requestFeedback": "Request feedback",
     "empty": "No published assignments for this course.",
     "loadError": "Could not load assignments.",
-    "otherModule": "Module: {moduleName}"
+    "otherModule": "Module: {moduleName}",
+    "feedbackProcessing": "Analyzing your work for \"{title}\"...",
+    "feedbackProcessingHint": "You can keep using the tutor — we'll let you know here when the feedback is ready.",
+    "feedbackReady": "Feedback: {title}",
+    "feedbackFailed": "Could not generate feedback for \"{title}\". Please try again.",
+    "discussInChat": "Discuss in chat"
   },
   "files": {
     "title": "Course Materials",

@@ -927,6 +927,56 @@ export class WidgetAPIClient {
     return data.download_url;
   }
 
+  /**
+   * Submit work for async AI feedback (companion widget). Returns immediately;
+   * poll getSubmissionFeedback() for the result.
+   */
+  async submitAssignmentFeedbackAsync(params: {
+    moduleToken: string;
+    assignmentId: number;
+    file: File;
+    conversationId?: string;
+    moduleId?: number;
+  }): Promise<{ submission_id: number; conversation_id: string; status: string }> {
+    const formData = new FormData();
+    formData.append('assignment_id', String(params.assignmentId));
+    formData.append('file', params.file);
+    formData.append('background', 'true');
+    if (params.conversationId) formData.append('conversation_id', params.conversationId);
+    if (params.moduleId) formData.append('module_id', String(params.moduleId));
+
+    const url = `${this.baseUrl}/api/widget/assignments/get-feedback?module_token=${encodeURIComponent(params.moduleToken)}`;
+    const response = await robustFetch(url, {
+      method: 'POST',
+      headers: this.sessionHeaders(),
+      body: formData,
+      timeout: 60000,
+      retries: 0,
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ detail: 'Failed to submit work' }));
+      throw new Error(err.detail || 'Failed to submit work');
+    }
+    return response.json();
+  }
+
+  /** Poll the status/result of an async feedback submission. */
+  async getSubmissionFeedback(moduleToken: string, submissionId: number): Promise<{
+    submission_id: number;
+    status: 'processing' | 'completed' | 'failed' | string;
+    feedback: string | null;
+  }> {
+    const url = `${this.baseUrl}/api/widget/assignments/submissions/${submissionId}?module_token=${encodeURIComponent(moduleToken)}`;
+    const response = await robustFetch(url, {
+      method: 'GET',
+      headers: this.sessionHeaders(),
+      timeout: 15000,
+      retries: 1,
+    });
+    if (!response.ok) throw new Error(`Failed to poll feedback: ${response.status}`);
+    return response.json();
+  }
+
   async submitAssignmentFeedback(params: {
     moduleToken: string;
     assignmentId: number;

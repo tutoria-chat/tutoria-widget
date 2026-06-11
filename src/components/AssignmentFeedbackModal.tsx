@@ -25,6 +25,16 @@ interface AssignmentFeedbackModalProps {
   apiBaseUrl?: string;
   onClose: () => void;
   onFeedbackReceived: (response: string, conversationId: string) => void;
+  /**
+   * Companion-widget background mode: submit asynchronously and return
+   * immediately with the job info instead of waiting for the AI response.
+   * When set, onFeedbackReceived is NOT called.
+   */
+  onJobStarted?: (job: {
+    submissionId: number;
+    conversationId: string;
+    assignmentTitle: string;
+  }) => void;
 }
 
 type Step = 'select' | 'upload' | 'loading';
@@ -37,6 +47,7 @@ export default function AssignmentFeedbackModal({
   moduleId,
   onClose,
   onFeedbackReceived,
+  onJobStarted,
 }: AssignmentFeedbackModalProps) {
   const t = useTranslations('feedbackModal');
   const [step, setStep] = useState<Step>('select');
@@ -82,6 +93,24 @@ export default function AssignmentFeedbackModal({
     setStep('loading');
     setErrorMsg(null);
     try {
+      if (onJobStarted) {
+        // Background mode: enqueue and hand the job back immediately
+        const job = await apiClient.submitAssignmentFeedbackAsync({
+          moduleToken,
+          assignmentId: selectedAssignment.id,
+          file: selectedFile,
+          conversationId,
+          moduleId,
+        });
+        onJobStarted({
+          submissionId: job.submission_id,
+          conversationId: job.conversation_id,
+          assignmentTitle: selectedAssignment.title,
+        });
+        onClose();
+        return;
+      }
+
       const result = await apiClient.submitAssignmentFeedback({
         moduleToken,
         assignmentId: selectedAssignment.id,

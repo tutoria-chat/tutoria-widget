@@ -178,7 +178,9 @@ export default function Shell({
               the visible cue that the context switched (WhatsApp model) */}
           {activePanel === 'chat' && <ChatPanel key={`chat-${activeModuleId}`} streaming={streaming} />}
           {activePanel === 'quizzes' && <QuizzesPanel key={`quiz-${activeModuleId}`} />}
-          {activePanel === 'assignments' && <AssignmentsPanel key={`asg-${activeModuleId}`} />}
+          {activePanel === 'assignments' && (
+            <AssignmentsPanel key={`asg-${activeModuleId}`} onOpenChat={() => setActivePanel('chat')} />
+          )}
           {activePanel === 'files' && <FilesPanel key={`files-${activeModuleId}`} apiBaseUrl={apiBaseUrl} />}
           {activePanel === 'settings' && <SettingsPanel theme={theme} onThemeChange={onThemeChange} />}
         </main>
