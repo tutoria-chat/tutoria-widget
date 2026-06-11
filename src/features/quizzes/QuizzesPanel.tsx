@@ -74,15 +74,21 @@ export default function QuizzesPanel({ onOpenChat }: { onOpenChat: () => void })
     hard: t('difficultyHard'),
   };
 
+  const difficultyEmoji: Record<string, string> = { easy: '🌱', medium: '⚡', hard: '🔥' };
+
   return (
     <div className="h-full overflow-y-auto p-6">
-      <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
-        <Brain className="w-5 h-5" />
-        {t('title')}
-      </h2>
-      <p className="text-sm text-muted-foreground mt-1 mb-6">
-        {t('subtitle', { moduleName: activeModule?.name ?? '' })}
-      </p>
+      <div className="mb-6 flex items-center gap-3">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#5e17eb] to-[#5ce1e6] text-white shadow-lg shadow-[#5e17eb]/25">
+          <Brain className="h-5 w-5" />
+        </div>
+        <div>
+          <h2 className="text-xl font-bold text-foreground">{t('title')}</h2>
+          <p className="text-sm text-muted-foreground">
+            {t('subtitle', { moduleName: activeModule?.name ?? '' })}
+          </p>
+        </div>
+      </div>
 
       {loading ? (
         <div className="flex justify-center py-12">
@@ -93,22 +99,28 @@ export default function QuizzesPanel({ onOpenChat }: { onOpenChat: () => void })
       ) : availableDifficulties.length === 0 ? (
         <p className="text-sm text-muted-foreground py-8 text-center">{t('empty')}</p>
       ) : (
-        <div className="space-y-4 max-w-md">
-          <p className="text-sm font-medium">{t('difficulty')}</p>
-          <div className="flex flex-wrap gap-2">
+        <div className="max-w-2xl space-y-4">
+          <p className="text-sm font-medium text-muted-foreground">{t('difficulty')}</p>
+          <div className="grid gap-3 sm:grid-cols-3">
             {availableDifficulties.map((d) => (
-              <Button
+              <button
                 key={d}
-                variant="outline"
                 onClick={() => startQuiz(d as Difficulty)}
+                className="group rounded-2xl border bg-card p-5 text-center shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg"
               >
-                {difficultyLabel[d] ?? d}
-              </Button>
+                <span className="text-3xl">{difficultyEmoji[d] ?? '🎯'}</span>
+                <p className="mt-2 text-base font-semibold transition-colors group-hover:text-primary">
+                  {difficultyLabel[d] ?? d}
+                </p>
+              </button>
             ))}
-            {availableDifficulties.length > 1 && (
-              <Button onClick={() => startQuiz()}>{t('start')}</Button>
-            )}
           </div>
+          {availableDifficulties.length > 1 && (
+            <Button size="lg" className="w-full sm:w-auto" onClick={() => startQuiz()}>
+              <Brain className="mr-2 h-4 w-4" />
+              {t('start')}
+            </Button>
+          )}
         </div>
       )}
 

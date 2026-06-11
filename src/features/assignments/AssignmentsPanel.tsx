@@ -54,6 +54,7 @@ export default function AssignmentsPanel({ onOpenChat }: { onOpenChat: () => voi
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [feedbackTarget, setFeedbackTarget] = useState<Assignment | null>(null);
+  const [detailTarget, setDetailTarget] = useState<Assignment | null>(null);
   const [quotaRefresh, setQuotaRefresh] = useState(0);
 
   const isDefaultModule = activeModuleId === session.default_module_id;
@@ -118,17 +119,23 @@ export default function AssignmentsPanel({ onOpenChat }: { onOpenChat: () => voi
     onOpenChat();
   };
 
+  const isPastDue = (iso: string) => new Date(iso).getTime() < Date.now();
+
   return (
     <div className="h-full overflow-y-auto p-6">
-      <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
-        <ClipboardList className="w-5 h-5" />
-        {t('title')}
-      </h2>
-      <p className="text-sm text-muted-foreground mt-1 mb-4">{t('subtitle')}</p>
+      <div className="mb-6 flex items-center gap-3">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#5e17eb] to-[#5ce1e6] text-white shadow-lg shadow-[#5e17eb]/25">
+          <ClipboardList className="h-5 w-5" />
+        </div>
+        <div>
+          <h2 className="text-xl font-bold text-foreground">{t('title')}</h2>
+          <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
+        </div>
+      </div>
 
       {/* Async feedback job card */}
       {job && (
-        <div className="mb-4 rounded-lg border bg-background">
+        <div className="mb-4 rounded-xl border bg-card shadow-sm">
           {job.status === 'processing' ? (
             <div className="flex items-center gap-3 p-4">
               <Loader2 className="w-5 h-5 animate-spin text-primary shrink-0" />
@@ -187,60 +194,146 @@ export default function AssignmentsPanel({ onOpenChat }: { onOpenChat: () => voi
       ) : assignments.length === 0 ? (
         <p className="text-sm text-muted-foreground py-8 text-center">{t('empty')}</p>
       ) : (
-        <div className="grid gap-3">
-          {assignments.map((a) => (
-            <div key={a.id} className="p-4 rounded-md bg-background border space-y-2">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium">{a.title}</p>
-                  {a.description && (
-                    <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
-                      {a.description}
+        <div className="grid gap-4 lg:grid-cols-2">
+          {assignments.map((a) => {
+            const pastDue = isPastDue(a.due_date);
+            const remaining = a.feedback_remaining_today;
+            return (
+              <button
+                key={a.id}
+                onClick={() => setDetailTarget(a)}
+                className="group rounded-2xl border bg-card p-5 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-white">
+                    <ClipboardList className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-base font-semibold transition-colors group-hover:text-primary">
+                      {a.title}
                     </p>
+                    {a.module_name && (
+                      <p className="truncate text-xs text-muted-foreground">{a.module_name}</p>
+                    )}
+                  </div>
+                  <span
+                    className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
+                      pastDue
+                        ? 'bg-destructive/10 text-destructive'
+                        : 'bg-green-500/10 text-green-700 dark:text-green-400'
+                    }`}
+                  >
+                    {pastDue ? t('pastDue') : formatDate(a.due_date)}
+                  </span>
+                </div>
+
+                {a.description && (
+                  <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">{a.description}</p>
+                )}
+
+                <div className="mt-4 flex items-center justify-between border-t border-border/60 pt-3 text-xs">
+                  {remaining === 0 ? (
+                    <span className="font-medium text-amber-600 dark:text-amber-400">
+                      {t('quotaExhausted', { limit: a.feedback_daily_limit ?? 0 })}
+                    </span>
+                  ) : remaining !== undefined && a.feedback_daily_limit !== undefined ? (
+                    <span className="text-muted-foreground">
+                      {t('quotaRemaining', { remaining, limit: a.feedback_daily_limit })}
+                    </span>
+                  ) : (
+                    <span />
+                  )}
+                  <span className="font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
+                    {t('viewDetails')} →
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Assignment detail modal */}
+      {detailTarget && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center">
+          <div className="erwin-fade-up flex max-h-[90vh] w-full flex-col overflow-hidden rounded-t-2xl bg-background shadow-2xl sm:max-w-lg sm:rounded-2xl">
+            <div className="flex items-start justify-between gap-3 border-b p-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#5e17eb] to-[#5ce1e6] text-white">
+                  <ClipboardList className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold leading-tight">{detailTarget.title}</h3>
+                  {detailTarget.module_name && (
+                    <p className="text-xs text-muted-foreground">{detailTarget.module_name}</p>
                   )}
                 </div>
-                <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
-                  {formatDate(a.due_date)}
+              </div>
+              <button
+                onClick={() => setDetailTarget(null)}
+                className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 space-y-4 overflow-y-auto p-5">
+              <div className="flex flex-wrap gap-2">
+                <span
+                  className={`rounded-full px-3 py-1 text-xs font-medium ${
+                    isPastDue(detailTarget.due_date)
+                      ? 'bg-destructive/10 text-destructive'
+                      : 'bg-green-500/10 text-green-700 dark:text-green-400'
+                  }`}
+                >
+                  {isPastDue(detailTarget.due_date) ? t('pastDue') : formatDate(detailTarget.due_date)}
+                </span>
+                <span className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
+                  📎 {detailTarget.original_file_name}
                 </span>
               </div>
-              {!a.is_own_module && a.module_name && (
-                <p className="text-xs text-muted-foreground">
-                  {t('otherModule', { moduleName: a.module_name })}
+
+              {detailTarget.description ? (
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
+                  {detailTarget.description}
                 </p>
+              ) : (
+                <p className="text-sm italic text-muted-foreground">{t('noDescription')}</p>
               )}
-              {(() => {
-                const remaining = a.feedback_remaining_today;
-                const quotaExhausted = remaining === 0;
-                return (
-                  <div className="space-y-1.5 pt-1">
-                    <div className="flex gap-2 items-center">
-                      <Button variant="outline" size="sm" onClick={() => handleDownload(a)}>
-                        <Download className="w-4 h-4 mr-1" />
-                        {t('downloadStatement')}
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => setFeedbackTarget(a)}
-                        disabled={job?.status === 'processing' || quotaExhausted}
-                      >
-                        <MessageSquareText className="w-4 h-4 mr-1" />
-                        {t('requestFeedback')}
-                      </Button>
-                    </div>
-                    {quotaExhausted ? (
-                      <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                        {t('quotaExhausted', { limit: a.feedback_daily_limit ?? 0 })}
-                      </p>
-                    ) : remaining !== undefined && a.feedback_daily_limit !== undefined ? (
-                      <p className="text-xs text-muted-foreground">
-                        {t('quotaRemaining', { remaining, limit: a.feedback_daily_limit })}
-                      </p>
-                    ) : null}
-                  </div>
-                );
-              })()}
+
+              {detailTarget.feedback_remaining_today === 0 ? (
+                <p className="rounded-lg bg-amber-500/10 p-3 text-xs font-medium text-amber-600 dark:text-amber-400">
+                  {t('quotaExhausted', { limit: detailTarget.feedback_daily_limit ?? 0 })}
+                </p>
+              ) : detailTarget.feedback_remaining_today !== undefined &&
+                detailTarget.feedback_daily_limit !== undefined ? (
+                <p className="text-xs text-muted-foreground">
+                  {t('quotaRemaining', {
+                    remaining: detailTarget.feedback_remaining_today,
+                    limit: detailTarget.feedback_daily_limit,
+                  })}
+                </p>
+              ) : null}
             </div>
-          ))}
+
+            <div className="flex gap-2 border-t p-5">
+              <Button variant="outline" className="flex-1" onClick={() => handleDownload(detailTarget)}>
+                <Download className="mr-2 h-4 w-4" />
+                {t('downloadStatement')}
+              </Button>
+              <Button
+                className="flex-1"
+                disabled={job?.status === 'processing' || detailTarget.feedback_remaining_today === 0}
+                onClick={() => {
+                  setFeedbackTarget(detailTarget);
+                  setDetailTarget(null);
+                }}
+              >
+                <MessageSquareText className="mr-2 h-4 w-4" />
+                {t('requestFeedback')}
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 

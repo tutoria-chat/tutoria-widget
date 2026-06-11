@@ -150,7 +150,23 @@
   * {
     @apply border-border outline-ring/50;
   }
+  /* Match tutoria-ui's larger type scale */
+  html {
+    font-size: 17px;
+  }
   body {
     @apply bg-background text-foreground;
   }
+  button, input, textarea, select {
+    font-size: 1rem;
+  }
+}
+
+/* Subtle entrance for panel content */
+@keyframes erwin-fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.erwin-fade-up {
+  animation: erwin-fade-up 0.25s ease-out;
 }

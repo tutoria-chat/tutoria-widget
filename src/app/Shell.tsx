@@ -123,23 +123,27 @@ export default function Shell({
         `}
       </style>
 
-      {/* Top bar: greeting + module selector */}
-      <header className="flex items-center justify-between gap-3 border-b px-4 py-3">
-        <div className="min-w-0">
-          <p className="text-base font-semibold truncate">{greeting}</p>
-          <p className="text-xs text-muted-foreground truncate">
-            <span className="font-bold bg-gradient-to-r from-[#5e17eb] to-[#5ce1e6] bg-clip-text text-transparent dark:from-[#a78bfa] dark:to-[#5ce1e6]">
-              Erwin
-            </span>
-            {activeCourse && <> · {activeCourse.name} · {session.university_name}</>}
-          </p>
+      {/* Top bar: avatar + greeting + module selector */}
+      <header className="flex items-center justify-between gap-3 border-b border-border/60 px-5 py-3.5">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#5e17eb] to-[#5ce1e6] text-base font-bold text-white shadow-lg shadow-[#5e17eb]/25">
+            {(session.student.first_name?.[0] || 'E').toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-lg font-semibold leading-tight">{greeting}</p>
+            {activeCourse && (
+              <p className="truncate text-xs text-muted-foreground">
+                {activeCourse.name} · {session.university_name}
+              </p>
+            )}
+          </div>
         </div>
 
         <select
           value={activeModuleId}
           onChange={(e) => switchModule(Number(e.target.value))}
           aria-label={t('moduleSelector')}
-          className="text-sm border rounded-md px-2 py-1.5 bg-background text-foreground max-w-[220px] truncate"
+          className="max-w-[240px] truncate rounded-lg border border-border bg-card px-3 py-2 text-sm shadow-sm transition-colors hover:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/40"
         >
           {context.courses.map((course) => (
             <optgroup key={course.id} label={course.name}>
@@ -156,37 +160,52 @@ export default function Shell({
       {/* Body: side nav + active panel */}
       <div className="flex flex-1 overflow-hidden max-sm:flex-col-reverse">
         <nav
-          className="flex sm:flex-col gap-1 border-t sm:border-t-0 sm:border-r p-2 sm:w-44 shrink-0 max-sm:justify-around"
+          className="flex shrink-0 gap-1.5 border-t border-border/60 p-3 max-sm:justify-around sm:w-56 sm:flex-col sm:border-r sm:border-t-0 sm:bg-sidebar"
           aria-label="Features"
         >
+          {/* Wordmark (desktop sidebar) */}
+          <div className="mb-2 hidden border-b border-border/60 px-2 pb-3 sm:block">
+            <span className="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-[#5e17eb] to-[#5ce1e6] bg-clip-text text-transparent dark:from-[#a78bfa] dark:to-[#5ce1e6]">
+              Erwin
+            </span>
+            <p className="mt-0.5 text-[10px] uppercase tracking-widest text-muted-foreground">TutorIA</p>
+          </div>
+
           {navItems.map((item) => (
             <button
               key={item.key}
               onClick={() => setActivePanel(item.key)}
-              className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors max-sm:flex-col max-sm:gap-0.5 max-sm:px-2 max-sm:py-1.5 max-sm:text-xs ${
+              className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[15px] transition-all duration-200 max-sm:flex-col max-sm:gap-0.5 max-sm:px-2 max-sm:py-1.5 max-sm:text-xs ${
                 activePanel === item.key
-                  ? 'bg-primary/10 text-primary font-semibold dark:bg-primary/25 dark:text-[#c4b5fd]'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  ? 'bg-gradient-to-r from-primary/20 to-primary/5 font-semibold text-primary shadow-sm ring-1 ring-primary/25 dark:text-[#c4b5fd]'
+                  : 'text-muted-foreground hover:translate-x-0.5 hover:bg-muted hover:text-foreground max-sm:hover:translate-x-0'
               }`}
             >
               {item.icon}
               <span>{item.label}</span>
             </button>
           ))}
+
+          {/* University footer (desktop) */}
+          <div className="mt-auto hidden px-2 pt-3 sm:block">
+            <p className="truncate text-[10px] text-muted-foreground/70">{session.university_name}</p>
+          </div>
         </nav>
 
         <main className="flex-1 overflow-hidden">
           {/* key={activeModuleId} forces panels to reload when the module changes —
               the visible cue that the context switched (WhatsApp model) */}
-          {activePanel === 'chat' && <ChatPanel key={`chat-${activeModuleId}`} streaming={streaming} />}
-          {activePanel === 'quizzes' && (
-            <QuizzesPanel key={`quiz-${activeModuleId}`} onOpenChat={() => setActivePanel('chat')} />
-          )}
-          {activePanel === 'assignments' && (
-            <AssignmentsPanel key={`asg-${activeModuleId}`} onOpenChat={() => setActivePanel('chat')} />
-          )}
-          {activePanel === 'files' && <FilesPanel key={`files-${activeModuleId}`} apiBaseUrl={apiBaseUrl} />}
-          {activePanel === 'settings' && <SettingsPanel theme={theme} onThemeChange={onThemeChange} />}
+          <div key={`${activePanel}-${activeModuleId}`} className="erwin-fade-up h-full">
+            {activePanel === 'chat' && <ChatPanel key={`chat-${activeModuleId}`} streaming={streaming} />}
+            {activePanel === 'quizzes' && (
+              <QuizzesPanel key={`quiz-${activeModuleId}`} onOpenChat={() => setActivePanel('chat')} />
+            )}
+            {activePanel === 'assignments' && (
+              <AssignmentsPanel key={`asg-${activeModuleId}`} onOpenChat={() => setActivePanel('chat')} />
+            )}
+            {activePanel === 'files' && <FilesPanel key={`files-${activeModuleId}`} apiBaseUrl={apiBaseUrl} />}
+            {activePanel === 'settings' && <SettingsPanel theme={theme} onThemeChange={onThemeChange} />}
+          </div>
         </main>
       </div>
     </div>

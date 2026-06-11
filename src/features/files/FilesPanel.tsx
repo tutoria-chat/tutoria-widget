@@ -80,8 +80,15 @@ export default function FilesPanel({ apiBaseUrl }: { apiBaseUrl: string }) {
 
   return (
     <div className="h-full overflow-y-auto p-6">
-      <h2 className="text-xl font-semibold text-foreground">{t('title')}</h2>
-      <p className="text-sm text-muted-foreground mt-1 mb-4">{t('subtitle')}</p>
+      <div className="mb-6 flex items-center gap-3">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#5e17eb] to-[#5ce1e6] text-white shadow-lg shadow-[#5e17eb]/25">
+          <FileText className="h-5 w-5" />
+        </div>
+        <div>
+          <h2 className="text-xl font-bold text-foreground">{t('title')}</h2>
+          <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
+        </div>
+      </div>
 
       {loading ? (
         <div className="flex justify-center py-12">
@@ -92,33 +99,31 @@ export default function FilesPanel({ apiBaseUrl }: { apiBaseUrl: string }) {
       ) : files.length === 0 ? (
         <p className="text-sm text-muted-foreground py-8 text-center">{t('empty')}</p>
       ) : (
-        <div className="grid gap-2">
+        <div className="grid gap-3 lg:grid-cols-2">
           {files.map((file) => (
-            <div
+            <button
               key={file.id}
-              className="flex items-center justify-between p-3 rounded-md bg-background border"
+              disabled={downloadingId === file.id}
+              onClick={() => handleDownload(file)}
+              className="group flex items-center justify-between gap-3 rounded-2xl border bg-card p-4 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg"
             >
-              <div className="flex items-center gap-3 min-w-0">
-                <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-white">
+                  <FileText className="h-5 w-5" />
+                </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{file.name}</p>
-                  <p className="text-xs text-muted-foreground uppercase">{file.file_type}</p>
+                  <p className="truncate text-[15px] font-semibold transition-colors group-hover:text-primary">
+                    {file.name}
+                  </p>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">{file.file_type}</p>
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 shrink-0"
-                disabled={downloadingId === file.id}
-                onClick={() => handleDownload(file)}
-              >
-                {downloadingId === file.id ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Download className="w-4 h-4" />
-                )}
-              </Button>
-            </div>
+              {downloadingId === file.id ? (
+                <Loader2 className="h-5 w-5 shrink-0 animate-spin text-primary" />
+              ) : (
+                <Download className="h-5 w-5 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
+              )}
+            </button>
           ))}
         </div>
       )}

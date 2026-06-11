@@ -10,7 +10,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import rehypeHighlight from 'rehype-highlight';
-import { History, Loader2, SendHorizontal, SquarePen, X } from 'lucide-react';
+import { History, Loader2, SendHorizontal, Sparkles, SquarePen, X } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Textarea } from '../../components/ui/textarea';
 import { apiClient } from '../../lib/api-client';
@@ -343,10 +343,13 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
 
       {thread.messages.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
-          <h2 className="text-2xl font-semibold text-foreground">
+          <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#5e17eb] to-[#5ce1e6] shadow-xl shadow-[#5e17eb]/30">
+            <Sparkles className="h-8 w-8 text-white" />
+          </div>
+          <h2 className="text-2xl font-bold text-foreground">
             {t('emptyTitle', { moduleName })}
           </h2>
-          <p className="text-sm text-muted-foreground mt-2 max-w-md">{t('emptySubtitle')}</p>
+          <p className="text-[15px] text-muted-foreground mt-2 max-w-md">{t('emptySubtitle')}</p>
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto space-y-4 w-full px-4 py-4 scrollbar scrollbar-w-2 scrollbar-thumb-rounded-full scrollbar-track-rounded-full scrollbar-thumb-border">

@@ -67,10 +67,12 @@ export default function SettingsPanel({ theme, onThemeChange }: SettingsPanelPro
 
   return (
     <div className="h-full overflow-y-auto p-6">
-      <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
-        <SettingsIcon className="w-5 h-5" />
-        {t('title')}
-      </h2>
+      <div className="flex items-center gap-3">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#5e17eb] to-[#5ce1e6] text-white shadow-lg shadow-[#5e17eb]/25">
+          <SettingsIcon className="h-5 w-5" />
+        </div>
+        <h2 className="text-xl font-bold text-foreground">{t('title')}</h2>
+      </div>
 
       <div className="mt-6 max-w-sm space-y-6">
         <div className="space-y-2">

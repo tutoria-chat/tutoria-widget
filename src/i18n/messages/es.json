@@ -80,6 +80,9 @@
     "feedbackReady": "Retroalimentación: {title}",
     "feedbackFailed": "No se pudo generar la retroalimentación de \"{title}\". Inténtalo de nuevo.",
     "discussInChat": "Discutir en el chat",
+    "pastDue": "Plazo vencido",
+    "viewDetails": "Ver detalles",
+    "noDescription": "Sin instrucciones adicionales — descarga el enunciado para ver los detalles.",
     "quotaRemaining": "{remaining} de {limit} solicitudes de retroalimentación restantes hoy",
     "quotaExhausted": "Límite diario de retroalimentación alcanzado ({limit}/día). ¡Vuelve mañana!"
   },

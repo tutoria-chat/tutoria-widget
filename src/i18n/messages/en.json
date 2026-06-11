@@ -80,6 +80,9 @@
     "feedbackReady": "Feedback: {title}",
     "feedbackFailed": "Could not generate feedback for \"{title}\". Please try again.",
     "discussInChat": "Discuss in chat",
+    "pastDue": "Past due",
+    "viewDetails": "View details",
+    "noDescription": "No extra instructions — download the statement for the details.",
     "quotaRemaining": "{remaining} of {limit} feedback requests left today",
     "quotaExhausted": "Daily feedback limit reached ({limit}/day). Come back tomorrow!"
   },
