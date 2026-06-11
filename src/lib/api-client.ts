@@ -815,7 +815,7 @@ export class WidgetAPIClient {
   /**
    * Check if the module requires student verification (matricula)
    */
-  async requiresVerification(moduleToken: string): Promise<{ requires_verification: boolean; course_name: string }> {
+  async requiresVerification(moduleToken: string): Promise<{ requires_verification: boolean; course_name: string; tutor_language?: string }> {
     const url = `${this.baseUrl}/api/widget/requires-verification?module_token=${encodeURIComponent(moduleToken)}`;
 
     try {

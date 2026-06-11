@@ -113,7 +113,17 @@ function CompanionAppInner({ apiBaseUrl }: { apiBaseUrl: string }) {
       // Course name for the gate (also confirms the token is valid)
       try {
         const info = await apiClient.requiresVerification(moduleToken);
-        if (!cancelled) setCourseName(info.course_name);
+        if (!cancelled) {
+          setCourseName(info.course_name);
+          // Pre-session locale: ?lang= wins, otherwise the module's tutor
+          // language drives the gate (a Brazilian course gates in Portuguese
+          // even on an English OS). Student preference takes over post-login.
+          const langParam = normalizeLocale(params.get('lang'));
+          if (!langParam) {
+            const moduleLocale = normalizeLocale(info.tutor_language);
+            if (moduleLocale) setLocale(moduleLocale);
+          }
+        }
       } catch {
         if (!cancelled) {
           setBootState('error');
