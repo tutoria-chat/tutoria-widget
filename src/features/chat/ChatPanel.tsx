@@ -39,6 +39,8 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
 
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  // Flipped when the server can't stream (e.g. 501) — we fall back permanently
+  const [streamingDisabled, setStreamingDisabled] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -87,34 +89,55 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
     };
 
     try {
-      if (streaming) {
+      if (streaming && !streamingDisabled) {
         appendMessages(moduleId, [{ role: 'assistant', content: '', isThinking: true }]);
         let accumulated = '';
 
-        for await (const event of apiClient.sendChatMessageStream(params)) {
-          if (event.type === 'chunk' && event.content) {
-            accumulated += event.content;
-            const text = accumulated;
-            setMessages(moduleId, (prev) => {
-              const next = [...prev];
-              next[next.length - 1] = { role: 'assistant', content: text };
-              return next;
-            });
-          } else if (event.type === 'formatted' && event.content) {
-            accumulated = event.content;
-            const text = accumulated;
-            setMessages(moduleId, (prev) => {
-              const next = [...prev];
-              next[next.length - 1] = { role: 'assistant', content: text };
-              return next;
-            });
-          } else if (event.type === 'done') {
-            if (event.conversationId) {
-              updateThread(moduleId, { conversationId: event.conversationId });
+        try {
+          for await (const event of apiClient.sendChatMessageStream(params)) {
+            if (event.type === 'chunk' && event.content) {
+              accumulated += event.content;
+              const text = accumulated;
+              setMessages(moduleId, (prev) => {
+                const next = [...prev];
+                next[next.length - 1] = { role: 'assistant', content: text };
+                return next;
+              });
+            } else if (event.type === 'formatted' && event.content) {
+              accumulated = event.content;
+              const text = accumulated;
+              setMessages(moduleId, (prev) => {
+                const next = [...prev];
+                next[next.length - 1] = { role: 'assistant', content: text };
+                return next;
+              });
+            } else if (event.type === 'done') {
+              if (event.conversationId) {
+                updateThread(moduleId, { conversationId: event.conversationId });
+              }
+            } else if (event.type === 'error') {
+              throw new Error(event.error || 'stream error');
             }
-          } else if (event.type === 'error') {
-            throw new Error(event.error || 'stream error');
           }
+        } catch (streamErr: any) {
+          // Streaming unavailable (e.g. disabled server-side) and nothing
+          // rendered yet: fall back to the non-streaming endpoint transparently.
+          const msg: string = streamErr?.message || '';
+          const streamingUnavailable = msg.includes('501') || msg.toLowerCase().includes('streaming is not enabled');
+          if (!accumulated && streamingUnavailable) {
+            setStreamingDisabled(true);
+            const data = await apiClient.sendChatMessage(params);
+            setMessages(moduleId, (prev) => {
+              const next = [...prev];
+              next[next.length - 1] = { role: 'assistant', content: data.response };
+              return next;
+            });
+            if (data.conversation_id) {
+              updateThread(moduleId, { conversationId: data.conversation_id });
+            }
+            return;
+          }
+          throw streamErr;
         }
 
         // If nothing streamed, surface a generic error instead of an empty bubble

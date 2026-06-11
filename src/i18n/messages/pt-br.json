@@ -139,6 +139,7 @@
     "dataItem1": "Suas perguntas e interações são registradas para fins educacionais",
     "dataItem2": "Seus dados podem ser visualizados pelo professor da disciplina",
     "dataItem3": "Os dados são processados pela OpenAI (servidores nos EUA)",
+    "dataItem4": "As conversas são retidas por 90 dias e excluídas automaticamente",
     "rightsTitle": "Seus direitos (LGPD)",
     "rightsItem1": "Você pode solicitar a exportação dos seus dados a qualquer momento",
     "rightsItem2": "Você pode solicitar a exclusão dos seus dados",

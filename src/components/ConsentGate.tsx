@@ -175,6 +175,7 @@ export default function ConsentGate({ moduleToken, apiBaseUrl, studentId, onCons
               <li>• {t('dataItem1')}</li>
               <li>• {t('dataItem2')}</li>
               <li>• {t('dataItem3')}</li>
+              <li>• {t('dataItem4')}</li>
             </ul>
           </div>
 

@@ -64,7 +64,8 @@ function CompanionAppInner({ apiBaseUrl }: { apiBaseUrl: string }) {
     []
   );
   const moduleToken = params.get('module_token') || '';
-  const streaming = params.get('streaming') === 'true';
+  // Streaming is the default; ?streaming=false opts out
+  const streaming = params.get('streaming') !== 'false';
   const darkParam = params.get('dark') ?? 'auto';
   const initialPanel = (params.get('panel') as PanelKey | null) ?? undefined;
   const urlColors = {
