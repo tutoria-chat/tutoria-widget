@@ -888,8 +888,12 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
                         </div>
                         <span className="text-sm">Pensando...</span>
                       </div>
+                    ) : msg.role === 'user' ? (
+                      <div className="whitespace-pre-wrap w-full break-words text-sm">
+                        {msg.content}
+                      </div>
                     ) : (
-                      <div className={` ${msg.role === 'user' ? 'whitespace-pre-wrap w-full break-words' : 'prose prose-sm dark:prose-invert max-w-none'}`}>
+                      <div className="prose prose-sm dark:prose-invert max-w-none">
                           <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex, rehypeHighlight]}>
                               {msg.content}
                           </ReactMarkdown>

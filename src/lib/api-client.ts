@@ -157,8 +157,53 @@ export async function robustFetch(
 /**
  * API client for widget endpoints
  */
+export interface SessionStudent {
+  id: number;
+  name: string;
+  first_name: string;
+  language_preference: string;
+  theme_preference: string;
+}
+
+export interface WidgetSession {
+  session_token: string;
+  student: SessionStudent;
+  default_module_id: number;
+  university_id: number;
+  university_name: string;
+}
+
+export interface SessionModule {
+  id: number;
+  name: string;
+  description?: string | null;
+  semester?: number | null;
+  year?: number | null;
+  tutor_language: string;
+}
+
+export interface SessionCourse {
+  id: number;
+  name: string;
+  code: string;
+  modules: SessionModule[];
+}
+
+export interface SessionContext {
+  student: SessionStudent;
+  default_module_id: number;
+  courses: SessionCourse[];
+  features: {
+    chat: boolean;
+    files: boolean;
+    quizzes: boolean;
+    assignments: boolean;
+  };
+}
+
 export class WidgetAPIClient {
   private baseUrl: string;
+  private sessionToken: string | null = null;
 
   constructor(baseUrl?: string) {
     // Fallback chain for API URL
@@ -171,15 +216,110 @@ export class WidgetAPIClient {
     console.log('[API Client] Initialized with base URL:', this.baseUrl);
   }
 
+  /** Attach the widget session JWT to subsequent requests (companion mode). */
+  setSessionToken(token: string | null) {
+    this.sessionToken = token;
+  }
+
+  /** Authorization header for the widget session, when one is active. */
+  private sessionHeaders(): Record<string, string> {
+    return this.sessionToken ? { Authorization: `Bearer ${this.sessionToken}` } : {};
+  }
+
+  /** Append &module_id= when targeting a non-default module. */
+  private moduleParam(moduleId?: number | null): string {
+    return moduleId ? `&module_id=${moduleId}` : '';
+  }
+
+  /**
+   * Open a widget session: verify matricula against the module token's course.
+   * On success the session token is stored on the client for subsequent calls.
+   */
+  async createSession(moduleToken: string, matricula: string): Promise<WidgetSession> {
+    const url = `${this.baseUrl}/api/widget/session?module_token=${encodeURIComponent(moduleToken)}`;
+    const response = await robustFetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ matricula }),
+      timeout: 15000,
+      retries: 2,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      let detail = '';
+      try { detail = JSON.parse(errorText).detail || ''; } catch { /* ignore */ }
+      if (response.status === 401) {
+        throw new Error(detail || 'MATRICULA_NOT_FOUND');
+      }
+      throw new Error(detail || `Session failed: ${response.status}`);
+    }
+
+    const session: WidgetSession = await response.json();
+    this.setSessionToken(session.session_token);
+    return session;
+  }
+
+  /**
+   * Fetch the student's enrolled courses/modules and the side-panel feature flags.
+   */
+  async getSessionContext(moduleToken: string): Promise<SessionContext> {
+    const url = `${this.baseUrl}/api/widget/session/context?module_token=${encodeURIComponent(moduleToken)}`;
+    const response = await robustFetch(url, {
+      method: 'GET',
+      headers: this.sessionHeaders(),
+      timeout: 15000,
+      retries: 2,
+    });
+    if (!response.ok) {
+      if (response.status === 401) throw new Error('SESSION_EXPIRED');
+      throw new Error(`Failed to load session context: ${response.status}`);
+    }
+    return response.json();
+  }
+
+  /** Sliding session renewal. Returns the refreshed session payload. */
+  async refreshSession(): Promise<WidgetSession> {
+    const url = `${this.baseUrl}/api/widget/session/refresh`;
+    const response = await robustFetch(url, {
+      method: 'POST',
+      headers: this.sessionHeaders(),
+      timeout: 15000,
+      retries: 1,
+    });
+    if (!response.ok) throw new Error('SESSION_EXPIRED');
+    const session: WidgetSession = await response.json();
+    this.setSessionToken(session.session_token);
+    return session;
+  }
+
+  /** Update the verified student's UI preferences. */
+  async updatePreferences(prefs: { language?: string; theme?: string }): Promise<SessionStudent> {
+    const url = `${this.baseUrl}/api/widget/me/preferences`;
+    const response = await robustFetch(url, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...this.sessionHeaders() },
+      body: JSON.stringify(prefs),
+      timeout: 15000,
+      retries: 1,
+    });
+    if (!response.ok) {
+      if (response.status === 401) throw new Error('SESSION_EXPIRED');
+      throw new Error(`Failed to update preferences: ${response.status}`);
+    }
+    return response.json();
+  }
+
   /**
    * Fetch module information
    */
-  async getModuleInfo(moduleToken: string): Promise<any> {
-    const url = `${this.baseUrl}/api/widget/info?module_token=${encodeURIComponent(moduleToken)}`;
+  async getModuleInfo(moduleToken: string, moduleId?: number): Promise<any> {
+    const url = `${this.baseUrl}/api/widget/info?module_token=${encodeURIComponent(moduleToken)}${this.moduleParam(moduleId)}`;
 
     try {
       const response = await robustFetch(url, {
         method: 'GET',
+        headers: this.sessionHeaders(),
         timeout: 15000, // 15 seconds for info requests
         retries: 2, // 2 retries for metadata
       });
@@ -203,12 +343,13 @@ export class WidgetAPIClient {
   /**
    * Fetch module files
    */
-  async getModuleFiles(moduleToken: string): Promise<any[]> {
-    const url = `${this.baseUrl}/api/widget/files?module_token=${encodeURIComponent(moduleToken)}`;
+  async getModuleFiles(moduleToken: string, moduleId?: number): Promise<any[]> {
+    const url = `${this.baseUrl}/api/widget/files?module_token=${encodeURIComponent(moduleToken)}${this.moduleParam(moduleId)}`;
 
     try {
       const response = await robustFetch(url, {
         method: 'GET',
+        headers: this.sessionHeaders(),
         timeout: 15000,
         retries: 2,
       });
@@ -233,6 +374,7 @@ export class WidgetAPIClient {
     message: string;
     studentId?: string;
     conversationId?: string | null;
+    moduleId?: number | null;
     verificationToken?: string;
     authToken?: string;
   }): Promise<any> {
@@ -240,6 +382,7 @@ export class WidgetAPIClient {
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      ...this.sessionHeaders(),
     };
     if (params.authToken) {
       headers['Authorization'] = `Bearer ${params.authToken}`;
@@ -253,6 +396,7 @@ export class WidgetAPIClient {
           message: params.message,
           student_id: params.studentId,
           conversation_id: params.conversationId,
+          module_id: params.moduleId ?? null,
           verification_token: params.verificationToken,
         }),
         timeout: 60000, // 60 seconds for AI responses
@@ -308,9 +452,10 @@ export class WidgetAPIClient {
     message: string;
     studentId?: string;
     conversationId?: string | null;
+    moduleId?: number | null;
     verificationToken?: string;
     authToken?: string;
-  }): AsyncGenerator<{ type: 'chunk' | 'done' | 'error' | 'connected'; content?: string; conversationId?: string; error?: string }, void, unknown> {
+  }): AsyncGenerator<{ type: 'chunk' | 'done' | 'error' | 'connected' | 'formatted'; content?: string; conversationId?: string; error?: string }, void, unknown> {
     const url = `${this.baseUrl}/api/widget/chat/stream?module_token=${encodeURIComponent(params.moduleToken)}`;
 
     // Use AbortController with 120s timeout for streaming requests
@@ -319,6 +464,7 @@ export class WidgetAPIClient {
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      ...this.sessionHeaders(),
     };
     if (params.authToken) {
       headers['Authorization'] = `Bearer ${params.authToken}`;
@@ -332,6 +478,7 @@ export class WidgetAPIClient {
           message: params.message,
           student_id: params.studentId,
           conversation_id: params.conversationId,
+          module_id: params.moduleId ?? null,
           verification_token: params.verificationToken,
         }),
         signal: controller.signal,
@@ -598,9 +745,10 @@ export class WidgetAPIClient {
     moduleToken: string;
     difficulty?: 'easy' | 'medium' | 'hard';
     count?: number;
+    moduleId?: number;
   }): Promise<{ quizzes: any[]; total_available: number; count: number; module_name: string; available_difficulties: string[] }> {
     const count = params.count ?? 5;
-    let url = `${this.baseUrl}/api/widget/quizzes?module_token=${encodeURIComponent(params.moduleToken)}&count=${count}`;
+    let url = `${this.baseUrl}/api/widget/quizzes?module_token=${encodeURIComponent(params.moduleToken)}&count=${count}${this.moduleParam(params.moduleId)}`;
     if (params.difficulty) {
       url += `&difficulty=${params.difficulty}`;
     }
@@ -608,6 +756,7 @@ export class WidgetAPIClient {
     try {
       const response = await robustFetch(url, {
         method: 'GET',
+        headers: this.sessionHeaders(),
         timeout: 15000,
         retries: 2,
       });
@@ -763,16 +912,16 @@ export class WidgetAPIClient {
   /**
    * Health check - verify API is reachable
    */
-  async getAssignments(moduleToken: string): Promise<any[]> {
-    const url = `${this.baseUrl}/api/widget/assignments?module_token=${encodeURIComponent(moduleToken)}`;
-    const response = await robustFetch(url, { method: 'GET', timeout: 10000, retries: 1 });
+  async getAssignments(moduleToken: string, moduleId?: number): Promise<any[]> {
+    const url = `${this.baseUrl}/api/widget/assignments?module_token=${encodeURIComponent(moduleToken)}${this.moduleParam(moduleId)}`;
+    const response = await robustFetch(url, { method: 'GET', headers: this.sessionHeaders(), timeout: 10000, retries: 1 });
     if (!response.ok) throw new Error(`Failed to fetch assignments: ${response.status}`);
     return response.json();
   }
 
-  async getAssignmentDownloadUrl(moduleToken: string, assignmentId: number): Promise<string> {
-    const url = `${this.baseUrl}/api/widget/assignments/${assignmentId}/download?module_token=${encodeURIComponent(moduleToken)}`;
-    const response = await robustFetch(url, { method: 'GET', timeout: 10000, retries: 1 });
+  async getAssignmentDownloadUrl(moduleToken: string, assignmentId: number, moduleId?: number): Promise<string> {
+    const url = `${this.baseUrl}/api/widget/assignments/${assignmentId}/download?module_token=${encodeURIComponent(moduleToken)}${this.moduleParam(moduleId)}`;
+    const response = await robustFetch(url, { method: 'GET', headers: this.sessionHeaders(), timeout: 10000, retries: 1 });
     if (!response.ok) throw new Error(`Failed to get download URL: ${response.status}`);
     const data = await response.json();
     return data.download_url;
@@ -784,6 +933,7 @@ export class WidgetAPIClient {
     file: File;
     studentId?: string;
     conversationId?: string;
+    moduleId?: number;
     verificationToken?: string;
   }): Promise<{ response: string; conversation_id: string; message_id?: string }> {
     const formData = new FormData();
@@ -791,11 +941,13 @@ export class WidgetAPIClient {
     formData.append('file', params.file);
     if (params.studentId) formData.append('student_id', params.studentId);
     if (params.conversationId) formData.append('conversation_id', params.conversationId);
+    if (params.moduleId) formData.append('module_id', String(params.moduleId));
     if (params.verificationToken) formData.append('verification_token', params.verificationToken);
 
     const url = `${this.baseUrl}/api/widget/assignments/get-feedback?module_token=${encodeURIComponent(params.moduleToken)}`;
     const response = await robustFetch(url, {
       method: 'POST',
+      headers: this.sessionHeaders(),
       body: formData,
       timeout: 120000,
       retries: 0,

@@ -1,0 +1,89 @@
+{
+  "common": {
+    "loading": "Carregando...",
+    "error": "Algo deu errado. Tente novamente.",
+    "retry": "Tentar novamente",
+    "close": "Fechar",
+    "cancel": "Cancelar",
+    "send": "Enviar",
+    "back": "Voltar",
+    "download": "Baixar"
+  },
+  "gate": {
+    "title": "Verificação de Matrícula",
+    "subtitle": "Digite sua matrícula para acessar {courseName}",
+    "matriculaLabel": "Matrícula",
+    "matriculaPlaceholder": "Digite sua matrícula",
+    "verify": "Verificar",
+    "verifying": "Verificando...",
+    "notFound": "Matrícula não encontrada. Verifique e tente novamente.",
+    "notEnrolled": "Matrícula não encontrada para este curso.",
+    "genericError": "Não foi possível verificar sua matrícula. Tente novamente.",
+    "helpText": "Sua matrícula é fornecida pela sua instituição. Em caso de dúvida, fale com seu professor."
+  },
+  "shell": {
+    "greeting": "Olá, {name}!",
+    "greetingAnonymous": "Olá!",
+    "courseSelector": "Disciplina",
+    "moduleSelector": "Módulo",
+    "switchingModule": "Trocando de módulo...",
+    "sessionExpired": "Sua sessão expirou. Verifique sua matrícula novamente.",
+    "logout": "Sair",
+    "nav": {
+      "chat": "Chat",
+      "quizzes": "Quizzes",
+      "assignments": "Atividades",
+      "files": "Materiais",
+      "settings": "Ajustes"
+    }
+  },
+  "chat": {
+    "inputPlaceholder": "Digite sua pergunta...",
+    "thinking": "Pensando...",
+    "newConversationNotice": "Você trocou de módulo. Esta é uma nova conversa para {moduleName}.",
+    "emptyTitle": "Tire suas dúvidas sobre {moduleName}",
+    "emptySubtitle": "O tutor responde com base nos materiais da disciplina.",
+    "errorGeneric": "Não foi possível enviar sua mensagem. Tente novamente.",
+    "errorRateLimit": "Muitas perguntas! Aguarde um momento e tente novamente.",
+    "errorSession": "Sua sessão expirou. Recarregue a página e verifique sua matrícula."
+  },
+  "quizzes": {
+    "title": "Quizzes de Prática",
+    "subtitle": "Teste seus conhecimentos sobre {moduleName}",
+    "difficulty": "Dificuldade",
+    "difficultyEasy": "Fácil",
+    "difficultyMedium": "Médio",
+    "difficultyHard": "Difícil",
+    "start": "Começar quiz",
+    "loading": "Carregando perguntas...",
+    "empty": "Ainda não há quizzes disponíveis para este módulo.",
+    "loadError": "Não foi possível carregar os quizzes."
+  },
+  "assignments": {
+    "title": "Atividades",
+    "subtitle": "Envie seu trabalho e receba feedback do tutor",
+    "due": "Entrega: {date}",
+    "noDueDate": "Sem data de entrega",
+    "downloadStatement": "Baixar enunciado",
+    "requestFeedback": "Pedir feedback",
+    "empty": "Nenhuma atividade publicada para esta disciplina.",
+    "loadError": "Não foi possível carregar as atividades.",
+    "otherModule": "Módulo: {moduleName}"
+  },
+  "files": {
+    "title": "Materiais da Disciplina",
+    "subtitle": "Arquivos disponíveis para download",
+    "empty": "Nenhum material disponível para este módulo.",
+    "loadError": "Não foi possível carregar os materiais."
+  },
+  "settings": {
+    "title": "Ajustes",
+    "language": "Idioma",
+    "theme": "Tema",
+    "themeLight": "Claro",
+    "themeDark": "Escuro",
+    "themeSystem": "Sistema",
+    "saved": "Preferências salvas!",
+    "saveError": "Não foi possível salvar suas preferências."
+  }
+}

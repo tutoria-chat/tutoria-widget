@@ -20,6 +20,7 @@ interface AssignmentFeedbackModalProps {
   verificationToken?: string;
   studentId?: string;
   conversationId?: string;
+  moduleId?: number;
   apiBaseUrl?: string;
   onClose: () => void;
   onFeedbackReceived: (response: string, conversationId: string) => void;
@@ -32,6 +33,7 @@ export default function AssignmentFeedbackModal({
   verificationToken,
   studentId,
   conversationId,
+  moduleId,
   onClose,
   onFeedbackReceived,
 }: AssignmentFeedbackModalProps) {
@@ -45,7 +47,7 @@ export default function AssignmentFeedbackModal({
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await apiClient.getAssignments(moduleToken);
+        const data = await apiClient.getAssignments(moduleToken, moduleId);
         setAssignments(data);
       } catch (err) {
         setErrorMsg('Não foi possível carregar as atividades.');
@@ -54,7 +56,7 @@ export default function AssignmentFeedbackModal({
       }
     };
     load();
-  }, [moduleToken]);
+  }, [moduleToken, moduleId]);
 
   const handleSelectAssignment = (a: Assignment) => {
     setSelectedAssignment(a);
@@ -84,6 +86,7 @@ export default function AssignmentFeedbackModal({
         file: selectedFile,
         studentId,
         conversationId,
+        moduleId,
         verificationToken,
       });
       onFeedbackReceived(result.response, result.conversation_id);

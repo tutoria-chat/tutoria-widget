@@ -1,0 +1,89 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong. Please try again.",
+    "retry": "Retry",
+    "close": "Close",
+    "cancel": "Cancel",
+    "send": "Send",
+    "back": "Back",
+    "download": "Download"
+  },
+  "gate": {
+    "title": "Student Verification",
+    "subtitle": "Enter your student ID to access {courseName}",
+    "matriculaLabel": "Student ID",
+    "matriculaPlaceholder": "Enter your student ID",
+    "verify": "Verify",
+    "verifying": "Verifying...",
+    "notFound": "Student ID not found. Please check and try again.",
+    "notEnrolled": "Student ID not found for this course.",
+    "genericError": "We could not verify your student ID. Please try again.",
+    "helpText": "Your student ID is provided by your institution. If in doubt, ask your professor."
+  },
+  "shell": {
+    "greeting": "Hello, {name}!",
+    "greetingAnonymous": "Hello there!",
+    "courseSelector": "Course",
+    "moduleSelector": "Module",
+    "switchingModule": "Switching module...",
+    "sessionExpired": "Your session expired. Please verify your student ID again.",
+    "logout": "Sign out",
+    "nav": {
+      "chat": "Chat",
+      "quizzes": "Quizzes",
+      "assignments": "Assignments",
+      "files": "Materials",
+      "settings": "Settings"
+    }
+  },
+  "chat": {
+    "inputPlaceholder": "Type your question...",
+    "thinking": "Thinking...",
+    "newConversationNotice": "You switched modules. This is a new conversation for {moduleName}.",
+    "emptyTitle": "Ask anything about {moduleName}",
+    "emptySubtitle": "The tutor answers based on the course materials.",
+    "errorGeneric": "Could not send your message. Please try again.",
+    "errorRateLimit": "Too many questions! Wait a moment and try again.",
+    "errorSession": "Your session expired. Reload the page and verify your student ID."
+  },
+  "quizzes": {
+    "title": "Practice Quizzes",
+    "subtitle": "Test your knowledge of {moduleName}",
+    "difficulty": "Difficulty",
+    "difficultyEasy": "Easy",
+    "difficultyMedium": "Medium",
+    "difficultyHard": "Hard",
+    "start": "Start quiz",
+    "loading": "Loading questions...",
+    "empty": "No quizzes available for this module yet.",
+    "loadError": "Could not load quizzes."
+  },
+  "assignments": {
+    "title": "Assignments",
+    "subtitle": "Submit your work and get tutor feedback",
+    "due": "Due: {date}",
+    "noDueDate": "No due date",
+    "downloadStatement": "Download statement",
+    "requestFeedback": "Request feedback",
+    "empty": "No published assignments for this course.",
+    "loadError": "Could not load assignments.",
+    "otherModule": "Module: {moduleName}"
+  },
+  "files": {
+    "title": "Course Materials",
+    "subtitle": "Files available for download",
+    "empty": "No materials available for this module.",
+    "loadError": "Could not load materials."
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "theme": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeSystem": "System",
+    "saved": "Preferences saved!",
+    "saveError": "Could not save your preferences."
+  }
+}

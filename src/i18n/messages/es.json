@@ -1,0 +1,89 @@
+{
+  "common": {
+    "loading": "Cargando...",
+    "error": "Algo salió mal. Inténtalo de nuevo.",
+    "retry": "Reintentar",
+    "close": "Cerrar",
+    "cancel": "Cancelar",
+    "send": "Enviar",
+    "back": "Volver",
+    "download": "Descargar"
+  },
+  "gate": {
+    "title": "Verificación de Matrícula",
+    "subtitle": "Ingresa tu matrícula para acceder a {courseName}",
+    "matriculaLabel": "Matrícula",
+    "matriculaPlaceholder": "Ingresa tu matrícula",
+    "verify": "Verificar",
+    "verifying": "Verificando...",
+    "notFound": "Matrícula no encontrada. Verifica e inténtalo de nuevo.",
+    "notEnrolled": "Matrícula no encontrada para este curso.",
+    "genericError": "No pudimos verificar tu matrícula. Inténtalo de nuevo.",
+    "helpText": "Tu matrícula la proporciona tu institución. Si tienes dudas, consulta a tu profesor."
+  },
+  "shell": {
+    "greeting": "¡Hola, {name}!",
+    "greetingAnonymous": "¡Hola!",
+    "courseSelector": "Curso",
+    "moduleSelector": "Módulo",
+    "switchingModule": "Cambiando de módulo...",
+    "sessionExpired": "Tu sesión expiró. Verifica tu matrícula nuevamente.",
+    "logout": "Salir",
+    "nav": {
+      "chat": "Chat",
+      "quizzes": "Quizzes",
+      "assignments": "Actividades",
+      "files": "Materiales",
+      "settings": "Ajustes"
+    }
+  },
+  "chat": {
+    "inputPlaceholder": "Escribe tu pregunta...",
+    "thinking": "Pensando...",
+    "newConversationNotice": "Cambiaste de módulo. Esta es una nueva conversación para {moduleName}.",
+    "emptyTitle": "Pregunta lo que quieras sobre {moduleName}",
+    "emptySubtitle": "El tutor responde con base en los materiales del curso.",
+    "errorGeneric": "No se pudo enviar tu mensaje. Inténtalo de nuevo.",
+    "errorRateLimit": "¡Demasiadas preguntas! Espera un momento e inténtalo de nuevo.",
+    "errorSession": "Tu sesión expiró. Recarga la página y verifica tu matrícula."
+  },
+  "quizzes": {
+    "title": "Quizzes de Práctica",
+    "subtitle": "Pon a prueba tus conocimientos de {moduleName}",
+    "difficulty": "Dificultad",
+    "difficultyEasy": "Fácil",
+    "difficultyMedium": "Medio",
+    "difficultyHard": "Difícil",
+    "start": "Comenzar quiz",
+    "loading": "Cargando preguntas...",
+    "empty": "Aún no hay quizzes disponibles para este módulo.",
+    "loadError": "No se pudieron cargar los quizzes."
+  },
+  "assignments": {
+    "title": "Actividades",
+    "subtitle": "Envía tu trabajo y recibe retroalimentación del tutor",
+    "due": "Entrega: {date}",
+    "noDueDate": "Sin fecha de entrega",
+    "downloadStatement": "Descargar enunciado",
+    "requestFeedback": "Pedir retroalimentación",
+    "empty": "No hay actividades publicadas para este curso.",
+    "loadError": "No se pudieron cargar las actividades.",
+    "otherModule": "Módulo: {moduleName}"
+  },
+  "files": {
+    "title": "Materiales del Curso",
+    "subtitle": "Archivos disponibles para descargar",
+    "empty": "No hay materiales disponibles para este módulo.",
+    "loadError": "No se pudieron cargar los materiales."
+  },
+  "settings": {
+    "title": "Ajustes",
+    "language": "Idioma",
+    "theme": "Tema",
+    "themeLight": "Claro",
+    "themeDark": "Oscuro",
+    "themeSystem": "Sistema",
+    "saved": "¡Preferencias guardadas!",
+    "saveError": "No se pudieron guardar tus preferencias."
+  }
+}
