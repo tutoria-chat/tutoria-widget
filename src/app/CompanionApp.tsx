@@ -7,6 +7,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Card } from '../components/ui/card';
 import ConsentGate from '../components/ConsentGate';
 import MatriculaGate from '../auth/MatriculaGate';
+import LoginGate from '../auth/LoginGate';
 import { AppProvider } from './AppContext';
 import Shell, { type PanelKey } from './Shell';
 import {
@@ -64,6 +65,12 @@ function CompanionAppInner({ apiBaseUrl }: { apiBaseUrl: string }) {
     []
   );
   const moduleToken = params.get('module_token') || '';
+  // Direct mode: no AVA module_token — students log in with matricula +
+  // email + password. All API calls use the "session" sentinel token, which
+  // the backend resolves from the widget session JWT.
+  const isDirectMode = !moduleToken;
+  const effectiveToken = moduleToken || 'session';
+  const storageKey = moduleToken || 'direct-login';
   // Streaming is the default; ?streaming=false opts out
   const streaming = params.get('streaming') !== 'false';
   const darkParam = params.get('dark') ?? 'auto';
@@ -101,42 +108,42 @@ function CompanionAppInner({ apiBaseUrl }: { apiBaseUrl: string }) {
 
   // ── Boot: restore session or show gate ────────────────────────────────────
   useEffect(() => {
-    if (!moduleToken) {
-      setBootState('error');
-      setBootError('missing-token');
-      return;
-    }
-
     let cancelled = false;
 
     const boot = async () => {
-      // Course name for the gate (also confirms the token is valid)
-      try {
-        const info = await apiClient.requiresVerification(moduleToken);
-        if (!cancelled) {
-          setCourseName(info.course_name);
-          // Pre-session locale: ?lang= wins, otherwise the module's tutor
-          // language drives the gate (a Brazilian course gates in Portuguese
-          // even on an English OS). Student preference takes over post-login.
-          const langParam = normalizeLocale(params.get('lang'));
-          if (!langParam) {
-            const moduleLocale = normalizeLocale(info.tutor_language);
-            if (moduleLocale) setLocale(moduleLocale);
+      if (isDirectMode) {
+        // No AVA token: nothing to validate up front; the login form is the gate.
+        const langParam = normalizeLocale(params.get('lang'));
+        if (langParam) setLocale(langParam);
+      } else {
+        // Course name for the gate (also confirms the token is valid)
+        try {
+          const info = await apiClient.requiresVerification(moduleToken);
+          if (!cancelled) {
+            setCourseName(info.course_name);
+            // Pre-session locale: ?lang= wins, otherwise the module's tutor
+            // language drives the gate (a Brazilian course gates in Portuguese
+            // even on an English OS). Student preference takes over post-login.
+            const langParam = normalizeLocale(params.get('lang'));
+            if (!langParam) {
+              const moduleLocale = normalizeLocale(info.tutor_language);
+              if (moduleLocale) setLocale(moduleLocale);
+            }
           }
+        } catch {
+          if (!cancelled) {
+            setBootState('error');
+            setBootError('invalid-token');
+          }
+          return;
         }
-      } catch {
-        if (!cancelled) {
-          setBootState('error');
-          setBootError('invalid-token');
-        }
-        return;
       }
 
-      const stored = loadStoredSession(moduleToken);
+      const stored = loadStoredSession(storageKey);
       if (stored) {
         apiClient.setSessionToken(stored.session_token);
         try {
-          const ctx = await apiClient.getSessionContext(moduleToken);
+          const ctx = await apiClient.getSessionContext(effectiveToken);
           if (cancelled) return;
           setSession(stored);
           setContext(ctx);
@@ -146,7 +153,7 @@ function CompanionAppInner({ apiBaseUrl }: { apiBaseUrl: string }) {
         } catch {
           // Stored session expired or invalid — fall through to the gate
           apiClient.setSessionToken(null);
-          storeSession(moduleToken, null);
+          storeSession(storageKey, null);
         }
       }
 
@@ -171,7 +178,7 @@ function CompanionAppInner({ apiBaseUrl }: { apiBaseUrl: string }) {
 
   // ── Gate success: store session, load context ──────────────────────────────
   const handleSession = async (newSession: WidgetSession) => {
-    storeSession(moduleToken, newSession);
+    storeSession(storageKey, newSession);
     setSession(newSession);
 
     const pref = normalizeLocale(newSession.student.language_preference);
@@ -183,7 +190,7 @@ function CompanionAppInner({ apiBaseUrl }: { apiBaseUrl: string }) {
 
     setBootState('context');
     try {
-      const ctx = await apiClient.getSessionContext(moduleToken);
+      const ctx = await apiClient.getSessionContext(effectiveToken);
       setContext(ctx);
       setBootState('consent');
     } catch {
@@ -194,7 +201,7 @@ function CompanionAppInner({ apiBaseUrl }: { apiBaseUrl: string }) {
 
   const handleSessionEnded = () => {
     apiClient.setSessionToken(null);
-    storeSession(moduleToken, null);
+    storeSession(storageKey, null);
     setSession(null);
     setContext(null);
     setBootState('gate');
@@ -204,15 +211,7 @@ function CompanionAppInner({ apiBaseUrl }: { apiBaseUrl: string }) {
   if (bootState === 'error') {
     return (
       <Card className="flex flex-col h-full !rounded-none !border-none items-center justify-center text-center p-8">
-        <h2 className="text-xl font-semibold text-foreground">
-          {bootError === 'missing-token' ? (
-            <>
-              Autenticação necessária — este widget requer um <code>module_token</code>.
-            </>
-          ) : (
-            tCommon('error')
-          )}
-        </h2>
+        <h2 className="text-xl font-semibold text-foreground">{tCommon('error')}</h2>
       </Card>
     );
   }
@@ -233,7 +232,11 @@ function CompanionAppInner({ apiBaseUrl }: { apiBaseUrl: string }) {
   if (bootState === 'gate') {
     return (
       <Card className="flex flex-col h-full !rounded-none !border-none">
-        <MatriculaGate moduleToken={moduleToken} courseName={courseName} onSession={handleSession} />
+        {isDirectMode ? (
+          <LoginGate onSession={handleSession} />
+        ) : (
+          <MatriculaGate moduleToken={moduleToken} courseName={courseName} onSession={handleSession} />
+        )}
       </Card>
     );
   }
@@ -242,7 +245,7 @@ function CompanionAppInner({ apiBaseUrl }: { apiBaseUrl: string }) {
     return (
       <Card className="flex flex-col h-full !rounded-none !border-none">
         <ConsentGate
-          moduleToken={moduleToken}
+          moduleToken={effectiveToken}
           apiBaseUrl={apiBaseUrl}
           studentId={session.student.id}
           onConsented={() => setBootState('ready')}
@@ -254,7 +257,7 @@ function CompanionAppInner({ apiBaseUrl }: { apiBaseUrl: string }) {
   if (bootState === 'ready' && session && context) {
     return (
       <AppProvider
-        moduleToken={moduleToken}
+        moduleToken={effectiveToken}
         session={session}
         initialContext={context}
         onSessionEnded={handleSessionEnded}

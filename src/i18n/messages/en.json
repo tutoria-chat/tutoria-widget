@@ -20,7 +20,29 @@
     "notFound": "Student ID not found. Please check and try again.",
     "notEnrolled": "Student ID not found for this course.",
     "genericError": "We could not verify your student ID. Please try again.",
-    "helpText": "Your student ID is provided by your institution. If in doubt, ask your professor."
+    "helpText": "Your student ID is provided by your institution. If in doubt, ask your professor.",
+    "login": {
+      "title": "Sign in to Erwin",
+      "subtitle": "Use the credentials provided by your institution",
+      "emailLabel": "Email",
+      "emailPlaceholder": "you@email.com",
+      "passwordLabel": "Password",
+      "submit": "Sign in",
+      "invalidCredentials": "Invalid credentials. Check your email, student ID and password.",
+      "genericError": "Could not sign in. Please try again.",
+      "firstAccessHint": "First time here? Enter your email and student ID, leave the password blank and click Sign in to create one.",
+      "firstAccessTitle": "First access",
+      "firstAccessSubtitle": "Create a password to access Erwin directly",
+      "newPasswordLabel": "New password",
+      "confirmPasswordLabel": "Confirm password",
+      "passwordRules": "At least 8 characters",
+      "passwordMismatch": "Passwords do not match",
+      "createPasswordSubmit": "Create password and sign in",
+      "backToLogin": "Back to sign in",
+      "alreadyHasPassword": "This account already has a password. Use the sign-in screen.",
+      "chooseUniversityTitle": "Choose your institution",
+      "chooseUniversitySubtitle": "Your student ID exists at more than one institution"
+    }
   },
   "shell": {
     "greeting": "Hello, {name}!",
@@ -100,7 +122,20 @@
     "themeDark": "Dark",
     "themeSystem": "System",
     "saved": "Preferences saved!",
-    "saveError": "Could not save your preferences."
+    "saveError": "Could not save your preferences.",
+    "password": {
+      "title": "Access password",
+      "description": "With a password you can sign in to Erwin directly, without your institution's link. Leave the current password blank if you don't have one yet.",
+      "currentPlaceholder": "Current password (if you have one)",
+      "newPlaceholder": "New password",
+      "confirmPlaceholder": "Confirm new password",
+      "mismatch": "Passwords do not match",
+      "rules": "At least 8 characters",
+      "submit": "Save password",
+      "saving": "Saving...",
+      "saved": "Password updated!",
+      "wrongCurrent": "Current password is incorrect"
+    }
   },
   "quizModal": {
     "practice": "Practice",

@@ -191,6 +191,12 @@ export interface SessionCourse {
   modules: SessionModule[];
 }
 
+export interface DirectLoginResponse {
+  status: 'ok' | 'first_access' | 'choose_university';
+  session?: WidgetSession | null;
+  universities: Array<{ id: number; name: string }>;
+}
+
 export interface SessionContext {
   student: SessionStudent;
   default_module_id: number;
@@ -260,6 +266,85 @@ export class WidgetAPIClient {
     const session: WidgetSession = await response.json();
     this.setSessionToken(session.session_token);
     return session;
+  }
+
+  /**
+   * Direct (tokenless) login: matricula + email + password.
+   * On status "ok" the session token is stored for subsequent calls.
+   */
+  async directLogin(payload: {
+    email: string;
+    matricula: string;
+    password?: string;
+    university_id?: number;
+  }): Promise<DirectLoginResponse> {
+    const response = await robustFetch(`${this.baseUrl}/api/widget/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      timeout: 15000,
+      retries: 1,
+    });
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      let detail = '';
+      try { detail = JSON.parse(errorText).detail || ''; } catch { /* ignore */ }
+      if (response.status === 401) throw new Error(detail || 'INVALID_CREDENTIALS');
+      throw new Error(detail || `Login failed: ${response.status}`);
+    }
+    const result: DirectLoginResponse = await response.json();
+    if (result.status === 'ok' && result.session) {
+      this.setSessionToken(result.session.session_token);
+    }
+    return result;
+  }
+
+  /** First-access password creation; logs the student in on success. */
+  async setFirstPassword(payload: {
+    email: string;
+    matricula: string;
+    password: string;
+    university_id?: number;
+  }): Promise<DirectLoginResponse> {
+    const response = await robustFetch(`${this.baseUrl}/api/widget/login/set-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      timeout: 15000,
+      retries: 1,
+    });
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      let detail = '';
+      try { detail = JSON.parse(errorText).detail || ''; } catch { /* ignore */ }
+      throw new Error(detail || `Set password failed: ${response.status}`);
+    }
+    const result: DirectLoginResponse = await response.json();
+    if (result.status === 'ok' && result.session) {
+      this.setSessionToken(result.session.session_token);
+    }
+    return result;
+  }
+
+  /** Change (or set) the student's password — the only editable profile field. */
+  async changePassword(currentPassword: string | null, newPassword: string): Promise<void> {
+    const response = await robustFetch(`${this.baseUrl}/api/widget/me/password`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...this.sessionHeaders() },
+      body: JSON.stringify({
+        current_password: currentPassword || null,
+        new_password: newPassword,
+      }),
+      timeout: 15000,
+      retries: 0,
+    });
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      let detail = '';
+      try { detail = JSON.parse(errorText).detail || ''; } catch { /* ignore */ }
+      if (response.status === 401) throw new Error(detail || 'WRONG_CURRENT_PASSWORD');
+      throw new Error(detail || `Password change failed: ${response.status}`);
+    }
   }
 
   /**
@@ -900,6 +985,7 @@ export class WidgetAPIClient {
     try {
       const response = await robustFetch(url, {
         method: 'GET',
+        headers: this.sessionHeaders(),
         timeout: 15000,
         retries: 2,
       });
@@ -927,6 +1013,7 @@ export class WidgetAPIClient {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...this.sessionHeaders(),
         },
         body: JSON.stringify({
           student_id: studentId,

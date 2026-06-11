@@ -1,9 +1,10 @@
 /**
- * Settings panel: student UI language and theme preferences.
- * Persisted on the unified Users table via PATCH /api/widget/me/preferences.
+ * Settings panel: student UI language and theme preferences, plus password
+ * management (the only profile field students may edit — everything else
+ * stays under the institution's control).
  */
 import React, { useState } from 'react';
-import { Check, Loader2, Settings as SettingsIcon } from 'lucide-react';
+import { Check, KeyRound, Loader2, Settings as SettingsIcon } from 'lucide-react';
 import { apiClient } from '../../lib/api-client';
 import {
   LOCALE_NAMES,
@@ -104,7 +105,106 @@ export default function SettingsPanel({ theme, onThemeChange }: SettingsPanelPro
           {saved && <span className="text-green-600 dark:text-green-400">{t('saved')}</span>}
           {error && <span className="text-destructive">{error}</span>}
         </div>
+
+        <PasswordSection />
       </div>
+    </div>
+  );
+}
+
+function PasswordSection() {
+  const t = useTranslations('settings');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const inputClass =
+    'w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring';
+
+  const canSubmit =
+    newPassword.length >= 8 && newPassword === confirmPassword && !busy;
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canSubmit) return;
+    setBusy(true);
+    setDone(false);
+    setError(null);
+    try {
+      await apiClient.changePassword(currentPassword || null, newPassword);
+      setDone(true);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => setDone(false), 3000);
+    } catch (err: any) {
+      const message: string = err?.message || '';
+      setError(
+        message === 'WRONG_CURRENT_PASSWORD' || message.includes('atual incorreta')
+          ? t('password.wrongCurrent')
+          : t('saveError')
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3 border-t border-border pt-6">
+      <div className="flex items-center gap-2">
+        <KeyRound className="h-4 w-4 text-muted-foreground" />
+        <p className="text-sm font-medium">{t('password.title')}</p>
+      </div>
+      <p className="text-xs text-muted-foreground">{t('password.description')}</p>
+
+      <form onSubmit={submit} className="space-y-2">
+        <input
+          type="password"
+          value={currentPassword}
+          onChange={(e) => setCurrentPassword(e.target.value)}
+          placeholder={t('password.currentPlaceholder')}
+          autoComplete="current-password"
+          className={inputClass}
+        />
+        <input
+          type="password"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+          placeholder={t('password.newPlaceholder')}
+          autoComplete="new-password"
+          className={inputClass}
+        />
+        <input
+          type="password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          placeholder={t('password.confirmPlaceholder')}
+          autoComplete="new-password"
+          className={inputClass}
+        />
+        {confirmPassword && newPassword !== confirmPassword && (
+          <p className="text-xs text-destructive">{t('password.mismatch')}</p>
+        )}
+        {newPassword && newPassword.length < 8 && (
+          <p className="text-xs text-muted-foreground">{t('password.rules')}</p>
+        )}
+
+        <button
+          type="submit"
+          disabled={!canSubmit}
+          className="w-full rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+        >
+          {busy ? t('password.saving') : t('password.submit')}
+        </button>
+
+        <div className="h-5 text-sm">
+          {done && <span className="text-green-600 dark:text-green-400">{t('password.saved')}</span>}
+          {error && <span className="text-destructive">{error}</span>}
+        </div>
+      </form>
     </div>
   );
 }

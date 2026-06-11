@@ -20,7 +20,29 @@
     "notFound": "Matrícula não encontrada. Verifique e tente novamente.",
     "notEnrolled": "Matrícula não encontrada para este curso.",
     "genericError": "Não foi possível verificar sua matrícula. Tente novamente.",
-    "helpText": "Sua matrícula é fornecida pela sua instituição. Em caso de dúvida, fale com seu professor."
+    "helpText": "Sua matrícula é fornecida pela sua instituição. Em caso de dúvida, fale com seu professor.",
+    "login": {
+      "title": "Entrar no Erwin",
+      "subtitle": "Use os dados fornecidos pela sua instituição de ensino",
+      "emailLabel": "E-mail",
+      "emailPlaceholder": "seu@email.com",
+      "passwordLabel": "Senha",
+      "submit": "Entrar",
+      "invalidCredentials": "Credenciais inválidas. Verifique e-mail, matrícula e senha.",
+      "genericError": "Não foi possível entrar. Tente novamente.",
+      "firstAccessHint": "Primeiro acesso? Digite seu e-mail e matrícula, deixe a senha em branco e clique em Entrar para criá-la.",
+      "firstAccessTitle": "Primeiro acesso",
+      "firstAccessSubtitle": "Crie uma senha para acessar o Erwin diretamente",
+      "newPasswordLabel": "Nova senha",
+      "confirmPasswordLabel": "Confirmar senha",
+      "passwordRules": "Mínimo de 8 caracteres",
+      "passwordMismatch": "As senhas não coincidem",
+      "createPasswordSubmit": "Criar senha e entrar",
+      "backToLogin": "Voltar para o login",
+      "alreadyHasPassword": "Esta conta já possui uma senha. Use a tela de login.",
+      "chooseUniversityTitle": "Escolha sua instituição",
+      "chooseUniversitySubtitle": "Sua matrícula existe em mais de uma instituição de ensino"
+    }
   },
   "shell": {
     "greeting": "Olá, {name}!",
@@ -100,7 +122,20 @@
     "themeDark": "Escuro",
     "themeSystem": "Sistema",
     "saved": "Preferências salvas!",
-    "saveError": "Não foi possível salvar suas preferências."
+    "saveError": "Não foi possível salvar suas preferências.",
+    "password": {
+      "title": "Senha de acesso",
+      "description": "Com uma senha você pode entrar no Erwin diretamente, sem o link da sua instituição. Deixe o campo de senha atual em branco se ainda não tiver uma.",
+      "currentPlaceholder": "Senha atual (se já tiver)",
+      "newPlaceholder": "Nova senha",
+      "confirmPlaceholder": "Confirmar nova senha",
+      "mismatch": "As senhas não coincidem",
+      "rules": "Mínimo de 8 caracteres",
+      "submit": "Salvar senha",
+      "saving": "Salvando...",
+      "saved": "Senha atualizada!",
+      "wrongCurrent": "Senha atual incorreta"
+    }
   },
   "quizModal": {
     "practice": "Prática",

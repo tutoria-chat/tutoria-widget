@@ -20,7 +20,29 @@
     "notFound": "Matrícula no encontrada. Verifica e inténtalo de nuevo.",
     "notEnrolled": "Matrícula no encontrada para este curso.",
     "genericError": "No pudimos verificar tu matrícula. Inténtalo de nuevo.",
-    "helpText": "Tu matrícula la proporciona tu institución. Si tienes dudas, consulta a tu profesor."
+    "helpText": "Tu matrícula la proporciona tu institución. Si tienes dudas, consulta a tu profesor.",
+    "login": {
+      "title": "Entrar en Erwin",
+      "subtitle": "Usa los datos proporcionados por tu institución educativa",
+      "emailLabel": "Correo electrónico",
+      "emailPlaceholder": "tu@email.com",
+      "passwordLabel": "Contraseña",
+      "submit": "Entrar",
+      "invalidCredentials": "Credenciales inválidas. Verifica tu correo, matrícula y contraseña.",
+      "genericError": "No se pudo iniciar sesión. Inténtalo de nuevo.",
+      "firstAccessHint": "¿Primer acceso? Ingresa tu correo y matrícula, deja la contraseña en blanco y haz clic en Entrar para crearla.",
+      "firstAccessTitle": "Primer acceso",
+      "firstAccessSubtitle": "Crea una contraseña para acceder a Erwin directamente",
+      "newPasswordLabel": "Nueva contraseña",
+      "confirmPasswordLabel": "Confirmar contraseña",
+      "passwordRules": "Mínimo 8 caracteres",
+      "passwordMismatch": "Las contraseñas no coinciden",
+      "createPasswordSubmit": "Crear contraseña y entrar",
+      "backToLogin": "Volver al inicio de sesión",
+      "alreadyHasPassword": "Esta cuenta ya tiene una contraseña. Usa la pantalla de inicio de sesión.",
+      "chooseUniversityTitle": "Elige tu institución",
+      "chooseUniversitySubtitle": "Tu matrícula existe en más de una institución educativa"
+    }
   },
   "shell": {
     "greeting": "¡Hola, {name}!",
@@ -100,7 +122,20 @@
     "themeDark": "Oscuro",
     "themeSystem": "Sistema",
     "saved": "¡Preferencias guardadas!",
-    "saveError": "No se pudieron guardar tus preferencias."
+    "saveError": "No se pudieron guardar tus preferencias.",
+    "password": {
+      "title": "Contraseña de acceso",
+      "description": "Con una contraseña puedes entrar en Erwin directamente, sin el enlace de tu institución. Deja la contraseña actual en blanco si aún no tienes una.",
+      "currentPlaceholder": "Contraseña actual (si ya tienes)",
+      "newPlaceholder": "Nueva contraseña",
+      "confirmPlaceholder": "Confirmar nueva contraseña",
+      "mismatch": "Las contraseñas no coinciden",
+      "rules": "Mínimo 8 caracteres",
+      "submit": "Guardar contraseña",
+      "saving": "Guardando...",
+      "saved": "¡Contraseña actualizada!",
+      "wrongCurrent": "Contraseña actual incorrecta"
+    }
   },
   "quizModal": {
     "practice": "Práctica",

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Shield, Loader2, AlertCircle, ExternalLink } from 'lucide-react';
-import { WidgetAPIClient } from '@/lib/api-client';
+import { apiClient as sharedApiClient } from '@/lib/api-client';
 import { useTranslations } from '@/i18n';
 
 interface ConsentGateProps {
@@ -53,10 +53,10 @@ export default function ConsentGate({ moduleToken, apiBaseUrl, studentId, onCons
         // sessionStorage may be unavailable
       }
 
-      // Call API to check consent status
+      // Call API to check consent status. Use the SHARED client: it carries the
+      // widget session JWT, required when moduleToken is the "session" sentinel.
       try {
-        const apiClient = new WidgetAPIClient(apiBaseUrl);
-        const result = await apiClient.checkConsentStatus(moduleToken, studentId);
+        const result = await sharedApiClient.checkConsentStatus(moduleToken, studentId);
 
         if (result.has_all_consents) {
           // Already consented, cache and pass through
@@ -86,8 +86,7 @@ export default function ConsentGate({ moduleToken, apiBaseUrl, studentId, onCons
     setState('submitting');
 
     try {
-      const apiClient = new WidgetAPIClient(apiBaseUrl);
-      await apiClient.recordConsent(moduleToken, studentId, [
+      await sharedApiClient.recordConsent(moduleToken, studentId, [
         'lgpd_privacy_policy',
         'ai_data_processing',
         'openai_cross_border_transfer',
