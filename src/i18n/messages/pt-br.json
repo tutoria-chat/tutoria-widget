@@ -73,7 +73,9 @@
     "feedbackProcessingHint": "Você pode continuar usando o tutor — avisaremos aqui quando o feedback estiver pronto.",
     "feedbackReady": "Feedback: {title}",
     "feedbackFailed": "Não foi possível gerar o feedback de \"{title}\". Tente novamente.",
-    "discussInChat": "Discutir no chat"
+    "discussInChat": "Discutir no chat",
+    "quotaRemaining": "{remaining} de {limit} pedidos de feedback restantes hoje",
+    "quotaExhausted": "Limite diário de feedback atingido ({limit}/dia). Volte amanhã!"
   },
   "files": {
     "title": "Materiais da Disciplina",

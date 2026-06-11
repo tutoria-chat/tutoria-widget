@@ -26,8 +26,14 @@ interface Assignment {
   is_own_module: boolean;
   title: string;
   description?: string | null;
-  due_date?: string | null;
+  due_date: string;
   original_file_name: string;
+  file_size_bytes: number;
+  content_type: string;
+  // Daily feedback quota for the verified student (absent in legacy mode)
+  feedback_daily_limit?: number;
+  feedback_used_today?: number;
+  feedback_remaining_today?: number;
 }
 
 export default function AssignmentsPanel({ onOpenChat }: { onOpenChat: () => void }) {
@@ -47,14 +53,15 @@ export default function AssignmentsPanel({ onOpenChat }: { onOpenChat: () => voi
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackTarget, setFeedbackTarget] = useState<Assignment | null>(null);
+  const [quotaRefresh, setQuotaRefresh] = useState(0);
 
   const isDefaultModule = activeModuleId === session.default_module_id;
   const moduleIdParam = isDefaultModule ? undefined : activeModuleId;
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    if (quotaRefresh === 0) setLoading(true);
     setError(null);
 
     apiClient
@@ -72,7 +79,7 @@ export default function AssignmentsPanel({ onOpenChat }: { onOpenChat: () => voi
     return () => {
       cancelled = true;
     };
-  }, [moduleToken, activeModuleId, moduleIdParam]);
+  }, [moduleToken, activeModuleId, moduleIdParam, quotaRefresh]);
 
   const handleDownload = async (assignment: Assignment) => {
     try {
@@ -83,7 +90,7 @@ export default function AssignmentsPanel({ onOpenChat }: { onOpenChat: () => voi
     }
   };
 
-  const formatDate = (iso?: string | null) => {
+  const formatDate = (iso?: string | null): string => {
     if (!iso) return t('noDueDate');
     try {
       const localeMap = { 'pt-br': 'pt-BR', en: 'en-US', es: 'es-ES' } as const;
@@ -201,32 +208,50 @@ export default function AssignmentsPanel({ onOpenChat }: { onOpenChat: () => voi
                   {t('otherModule', { moduleName: a.module_name })}
                 </p>
               )}
-              <div className="flex gap-2 pt-1">
-                <Button variant="outline" size="sm" onClick={() => handleDownload(a)}>
-                  <Download className="w-4 h-4 mr-1" />
-                  {t('downloadStatement')}
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => setShowFeedbackModal(true)}
-                  disabled={job?.status === 'processing'}
-                >
-                  <MessageSquareText className="w-4 h-4 mr-1" />
-                  {t('requestFeedback')}
-                </Button>
-              </div>
+              {(() => {
+                const remaining = a.feedback_remaining_today;
+                const quotaExhausted = remaining === 0;
+                return (
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex gap-2 items-center">
+                      <Button variant="outline" size="sm" onClick={() => handleDownload(a)}>
+                        <Download className="w-4 h-4 mr-1" />
+                        {t('downloadStatement')}
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => setFeedbackTarget(a)}
+                        disabled={job?.status === 'processing' || quotaExhausted}
+                      >
+                        <MessageSquareText className="w-4 h-4 mr-1" />
+                        {t('requestFeedback')}
+                      </Button>
+                    </div>
+                    {quotaExhausted ? (
+                      <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                        {t('quotaExhausted', { limit: a.feedback_daily_limit ?? 0 })}
+                      </p>
+                    ) : remaining !== undefined && a.feedback_daily_limit !== undefined ? (
+                      <p className="text-xs text-muted-foreground">
+                        {t('quotaRemaining', { remaining, limit: a.feedback_daily_limit })}
+                      </p>
+                    ) : null}
+                  </div>
+                );
+              })()}
             </div>
           ))}
         </div>
       )}
 
-      {showFeedbackModal && (
+      {feedbackTarget && (
         <AssignmentFeedbackModal
           moduleToken={moduleToken}
           studentId={String(session.student.id)}
           conversationId={getThread(activeModuleId).conversationId ?? undefined}
           moduleId={moduleIdParam}
-          onClose={() => setShowFeedbackModal(false)}
+          initialAssignment={feedbackTarget}
+          onClose={() => setFeedbackTarget(null)}
           onFeedbackReceived={() => {
             /* unused in background mode */
           }}
@@ -237,6 +262,8 @@ export default function AssignmentsPanel({ onOpenChat }: { onOpenChat: () => voi
               status: 'processing',
               conversationId: jobConversationId,
             });
+            // Re-fetch so the quota counters reflect the new submission
+            setQuotaRefresh((n) => n + 1);
           }}
         />
       )}

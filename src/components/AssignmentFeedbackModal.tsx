@@ -9,7 +9,7 @@ import { useTranslations } from '@/i18n';
 interface Assignment {
   id: number;
   title: string;
-  description?: string;
+  description?: string | null;
   due_date: string;
   original_file_name: string;
   file_size_bytes: number;
@@ -35,6 +35,8 @@ interface AssignmentFeedbackModalProps {
     conversationId: string;
     assignmentTitle: string;
   }) => void;
+  /** Skip the selection step and go straight to upload for this assignment. */
+  initialAssignment?: Assignment | null;
 }
 
 type Step = 'select' | 'upload' | 'loading';
@@ -48,16 +50,18 @@ export default function AssignmentFeedbackModal({
   onClose,
   onFeedbackReceived,
   onJobStarted,
+  initialAssignment,
 }: AssignmentFeedbackModalProps) {
   const t = useTranslations('feedbackModal');
-  const [step, setStep] = useState<Step>('select');
+  const [step, setStep] = useState<Step>(initialAssignment ? 'upload' : 'select');
   const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [loadingAssignments, setLoadingAssignments] = useState(true);
-  const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
+  const [loadingAssignments, setLoadingAssignments] = useState(!initialAssignment);
+  const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(initialAssignment ?? null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
+    if (initialAssignment) return; // selection step is skipped — no list needed
     const load = async () => {
       try {
         const data = await apiClient.getAssignments(moduleToken, moduleId);
@@ -69,7 +73,7 @@ export default function AssignmentFeedbackModal({
       }
     };
     load();
-  }, [moduleToken, moduleId]);
+  }, [moduleToken, moduleId, initialAssignment]);
 
   const handleSelectAssignment = (a: Assignment) => {
     setSelectedAssignment(a);
@@ -145,7 +149,7 @@ export default function AssignmentFeedbackModal({
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b shrink-0">
           <div className="flex items-center gap-2">
-            {step === 'upload' && (
+            {step === 'upload' && !initialAssignment && (
               <button onClick={() => setStep('select')} className="text-muted-foreground hover:text-foreground mr-1">
                 <ArrowLeft className="w-4 h-4" />
               </button>

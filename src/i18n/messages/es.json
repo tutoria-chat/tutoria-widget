@@ -73,7 +73,9 @@
     "feedbackProcessingHint": "Puedes seguir usando el tutor — te avisaremos aquí cuando la retroalimentación esté lista.",
     "feedbackReady": "Retroalimentación: {title}",
     "feedbackFailed": "No se pudo generar la retroalimentación de \"{title}\". Inténtalo de nuevo.",
-    "discussInChat": "Discutir en el chat"
+    "discussInChat": "Discutir en el chat",
+    "quotaRemaining": "{remaining} de {limit} solicitudes de retroalimentación restantes hoy",
+    "quotaExhausted": "Límite diario de retroalimentación alcanzado ({limit}/día). ¡Vuelve mañana!"
   },
   "files": {
     "title": "Materiales del Curso",

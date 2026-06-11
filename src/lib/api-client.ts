@@ -51,7 +51,7 @@ function isRetryable(error: any, status?: number): boolean {
   }
 
   // Timeout errors
-  if (error.name === 'AbortError') {
+  if (error?.name === 'AbortError') {
     return true;
   }
 
@@ -122,9 +122,11 @@ export async function robustFetch(
 
       // Check if we should retry based on status
       lastStatus = response.status;
-      if (!isRetryable(null, response.status)) {
-        console.warn(`[API] Non-retryable status ${response.status}, returning response`);
-        return response; // Return non-retryable error responses
+      if (!isRetryable(null, response.status) || attempt === maxRetries) {
+        // Non-retryable status, or retries exhausted: hand the response back so
+        // callers can read the body (e.g. localized 429 quota messages).
+        console.warn(`[API] Returning non-ok response (status ${response.status})`);
+        return response;
       }
 
       console.warn(`[API] Retryable status ${response.status}, will retry`);

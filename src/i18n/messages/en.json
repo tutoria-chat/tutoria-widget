@@ -73,7 +73,9 @@
     "feedbackProcessingHint": "You can keep using the tutor — we'll let you know here when the feedback is ready.",
     "feedbackReady": "Feedback: {title}",
     "feedbackFailed": "Could not generate feedback for \"{title}\". Please try again.",
-    "discussInChat": "Discuss in chat"
+    "discussInChat": "Discuss in chat",
+    "quotaRemaining": "{remaining} of {limit} feedback requests left today",
+    "quotaExhausted": "Daily feedback limit reached ({limit}/day). Come back tomorrow!"
   },
   "files": {
     "title": "Course Materials",
