@@ -72,6 +72,8 @@ export default function Shell({
 
   // University branding from the module info (primary/secondary colors)
   const [branding, setBranding] = useState<{ primary?: string | null; secondary?: string | null }>({});
+  // ENEM/Vestibular tab is opt-in per course (default off) — universities hide it.
+  const [enableEnem, setEnableEnem] = useState(false);
   useEffect(() => {
     let cancelled = false;
     const isDefault = activeModuleId === session.default_module_id;
@@ -83,6 +85,7 @@ export default function Shell({
             primary: info?.appearance?.primary_color ?? null,
             secondary: info?.appearance?.secondary_color ?? null,
           });
+          setEnableEnem(!!info?.enable_enem);
         }
       })
       .catch(() => {
@@ -101,7 +104,9 @@ export default function Shell({
     }
     items.push({ key: 'plan', label: t('nav.plan'), icon: <CalendarCheck className="w-5 h-5" /> });
     items.push({ key: 'flashcards', label: t('nav.flashcards'), icon: <Layers className="w-5 h-5" /> });
-    items.push({ key: 'enem', label: t('nav.enem'), icon: <GraduationCap className="w-5 h-5" /> });
+    if (enableEnem) {
+      items.push({ key: 'enem', label: t('nav.enem'), icon: <GraduationCap className="w-5 h-5" /> });
+    }
     if (context.features.quizzes) {
       items.push({ key: 'quizzes', label: t('nav.quizzes'), icon: <Brain className="w-5 h-5" /> });
     }
@@ -114,7 +119,7 @@ export default function Shell({
     items.push({ key: 'progress', label: t('nav.progress'), icon: <TrendingUp className="w-5 h-5" /> });
     items.push({ key: 'settings', label: t('nav.settings'), icon: <SettingsIcon className="w-5 h-5" /> });
     return items;
-  }, [context.features, t]);
+  }, [context.features, enableEnem, t]);
 
   const defaultPanel: PanelKey =
     initialPanel && navItems.some((i) => i.key === initialPanel)
