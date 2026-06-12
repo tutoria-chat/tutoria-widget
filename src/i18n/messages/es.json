@@ -60,6 +60,7 @@
       "quizzes": "Quizzes",
       "assignments": "Actividades",
       "files": "Materiales",
+      "progress": "Mi Progreso",
       "settings": "Ajustes"
     }
   },
@@ -160,6 +161,37 @@
       "weekly_flashcards": "Repasa 2 mazos de flashcards",
       "weekly_plan": "Genera un plan de estudios",
       "weekly_streak": "Mantén una racha de 5 días"
+    }
+  },
+  "progress": {
+    "title": "Mi Progreso",
+    "xpThisWeek": "XP esta semana",
+    "activitiesThisWeek": "Actividades esta semana",
+    "evolutionTitle": "Evolución (8 semanas)",
+    "noXpYet": "¡Empieza a estudiar para ver tu evolución aquí!",
+    "byDisciplineTitle": "XP por asignatura",
+    "goalsTitle": "Mis Metas",
+    "addGoal": "Nueva meta",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "noGoals": "Aún no has definido metas. ¡Crea una para desafiarte!",
+    "done": "Completada",
+    "removeGoal": "Eliminar meta",
+    "metric": {
+      "level": "Alcanzar nivel",
+      "xp": "Acumular XP",
+      "streak": "Racha de días",
+      "quizzes": "Completar quizzes",
+      "questions": "Hacer preguntas",
+      "flashcards": "Repasar flashcards"
+    },
+    "goalLabel": {
+      "level": "Alcanzar el nivel {target}",
+      "xp": "Acumular {target} XP",
+      "streak": "Racha de {target} días",
+      "quizzes": "Completar {target} quizzes",
+      "questions": "Hacer {target} preguntas",
+      "flashcards": "Repasar flashcards {target}x"
     }
   },
   "chat": {

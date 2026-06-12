@@ -294,6 +294,34 @@ export interface GamificationData {
   title: { tier: string; course_id: number; course_name: string; course_xp: number } | null;
 }
 
+export interface EvolutionWeek {
+  week_start: string;
+  xp: number;
+  activities: number;
+}
+
+export interface ProgressEvolution {
+  weeks: EvolutionWeek[];
+  comparison: {
+    this_week: { xp: number; activities: number };
+    last_week: { xp: number; activities: number };
+    xp_delta: number;
+    activities_delta: number;
+  };
+  by_course: Array<{ course_id: number; course_name: string; xp: number }>;
+}
+
+export interface GoalDto {
+  id: number;
+  metric: string;
+  target: number;
+  progress: number;
+  completed: boolean;
+  course_id: number | null;
+  course_name: string | null;
+  created_at: string | null;
+}
+
 export interface ChallengeDto {
   key: string;
   target: number;
@@ -531,6 +559,25 @@ export class WidgetAPIClient {
 
   async getChallenges(): Promise<{ challenges: ChallengeDto[] }> {
     return this.sessionJson('/api/widget/challenges');
+  }
+
+  async getProgressEvolution(): Promise<ProgressEvolution> {
+    return this.sessionJson('/api/widget/progress/evolution');
+  }
+
+  async getGoals(): Promise<{ goals: GoalDto[] }> {
+    return this.sessionJson('/api/widget/goals');
+  }
+
+  async createGoal(metric: string, target: number, courseId?: number): Promise<GoalDto> {
+    return this.sessionJson('/api/widget/goals', {
+      method: 'POST',
+      body: { metric, target, course_id: courseId },
+    });
+  }
+
+  async deleteGoal(goalId: number): Promise<void> {
+    await this.sessionJson(`/api/widget/goals/${goalId}`, { method: 'DELETE' });
   }
 
   async claimChallenge(key: string): Promise<{ status: string; reward: GamificationReward | null }> {

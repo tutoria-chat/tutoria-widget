@@ -13,6 +13,7 @@ import {
   Layers,
   MessageCircle,
   Settings as SettingsIcon,
+  TrendingUp,
 } from 'lucide-react';
 import { useApp } from './AppContext';
 import { apiClient } from '../lib/api-client';
@@ -25,6 +26,7 @@ import SettingsPanel from '../features/settings/SettingsPanel';
 import HomePanel from '../features/home/HomePanel';
 import StudyPlanPanel from '../features/plan/StudyPlanPanel';
 import FlashcardsPanel from '../features/flashcards/FlashcardsPanel';
+import ProgressPanel from '../features/progress/ProgressPanel';
 
 type Theme = 'light' | 'dark' | 'system';
 export type PanelKey =
@@ -35,6 +37,7 @@ export type PanelKey =
   | 'quizzes'
   | 'assignments'
   | 'files'
+  | 'progress'
   | 'settings';
 
 interface ShellProps {
@@ -104,6 +107,7 @@ export default function Shell({
     if (context.features.files) {
       items.push({ key: 'files', label: t('nav.files'), icon: <FolderOpen className="w-5 h-5" /> });
     }
+    items.push({ key: 'progress', label: t('nav.progress'), icon: <TrendingUp className="w-5 h-5" /> });
     items.push({ key: 'settings', label: t('nav.settings'), icon: <SettingsIcon className="w-5 h-5" /> });
     return items;
   }, [context.features, t]);
@@ -224,6 +228,7 @@ export default function Shell({
               <AssignmentsPanel key={`asg-${activeModuleId}`} onOpenChat={() => setActivePanel('chat')} />
             )}
             {activePanel === 'files' && <FilesPanel key={`files-${activeModuleId}`} apiBaseUrl={apiBaseUrl} />}
+            {activePanel === 'progress' && <ProgressPanel key={`progress-${activeCourse?.id ?? 0}`} />}
             {activePanel === 'settings' && <SettingsPanel theme={theme} onThemeChange={onThemeChange} />}
           </div>
         </main>

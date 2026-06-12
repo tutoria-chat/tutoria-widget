@@ -60,6 +60,7 @@
       "quizzes": "Quizzes",
       "assignments": "Assignments",
       "files": "Materials",
+      "progress": "My Progress",
       "settings": "Settings"
     }
   },
@@ -160,6 +161,37 @@
       "weekly_flashcards": "Review 2 flashcard decks",
       "weekly_plan": "Generate a study plan",
       "weekly_streak": "Keep a 5-day streak"
+    }
+  },
+  "progress": {
+    "title": "My Progress",
+    "xpThisWeek": "XP this week",
+    "activitiesThisWeek": "Activities this week",
+    "evolutionTitle": "Evolution (8 weeks)",
+    "noXpYet": "Start studying to see your evolution here!",
+    "byDisciplineTitle": "XP by discipline",
+    "goalsTitle": "My Goals",
+    "addGoal": "New goal",
+    "cancel": "Cancel",
+    "save": "Save",
+    "noGoals": "You haven't set any goals yet. Create one to challenge yourself!",
+    "done": "Done",
+    "removeGoal": "Remove goal",
+    "metric": {
+      "level": "Reach level",
+      "xp": "Accumulate XP",
+      "streak": "Day streak",
+      "quizzes": "Complete quizzes",
+      "questions": "Ask questions",
+      "flashcards": "Review flashcards"
+    },
+    "goalLabel": {
+      "level": "Reach level {target}",
+      "xp": "Accumulate {target} XP",
+      "streak": "{target}-day streak",
+      "quizzes": "Complete {target} quizzes",
+      "questions": "Ask {target} questions",
+      "flashcards": "Review flashcards {target}x"
     }
   },
   "chat": {
