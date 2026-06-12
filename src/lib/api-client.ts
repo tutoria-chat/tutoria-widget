@@ -191,6 +191,74 @@ export interface SessionCourse {
   modules: SessionModule[];
 }
 
+export interface StudyPlanTask {
+  description: string;
+  duration_min?: number;
+  module_id?: number;
+}
+
+export interface StudyPlanDay {
+  date: string;
+  title: string;
+  focus: string;
+  tasks: StudyPlanTask[];
+}
+
+export interface StudyPlanDto {
+  id: number;
+  course_id: number;
+  course_name?: string;
+  week_start: string | null;
+  style: string;
+  overview: string;
+  days: StudyPlanDay[];
+  weak_concepts: Array<{ concept: string; success_rate: number; attempts: number }>;
+  language: string;
+  daily_reminder_opt_in: boolean;
+  created_at: string | null;
+}
+
+export interface HomeData {
+  student: { id: number; first_name: string };
+  today: string;
+  today_tasks: Array<{
+    plan_id: number;
+    course_id: number;
+    course_name: string;
+    title: string;
+    focus: string;
+    tasks: StudyPlanTask[];
+  }>;
+  week_plans: Array<{
+    plan_id: number;
+    course_id: number;
+    course_name: string;
+    style: string;
+    daily_reminder_opt_in: boolean;
+  }>;
+  recent_quizzes: Array<{
+    quiz_id: number;
+    module_id: number;
+    date: string;
+    correct: number;
+    total: number;
+  }>;
+}
+
+export interface FlashcardDto {
+  id: number;
+  front: string;
+  back: string;
+  concept?: string | null;
+  difficulty: string;
+}
+
+export interface FlashcardsResponse {
+  status: 'ready' | 'generating' | 'none';
+  total: number;
+  cards: FlashcardDto[];
+}
+
 export interface DirectLoginResponse {
   status: 'ok' | 'first_access' | 'choose_university';
   session?: WidgetSession | null;
@@ -345,6 +413,76 @@ export class WidgetAPIClient {
       if (response.status === 401) throw new Error(detail || 'WRONG_CURRENT_PASSWORD');
       throw new Error(detail || `Password change failed: ${response.status}`);
     }
+  }
+
+  // ─── Study plans, home & flashcards ─────────────────────────────────────
+
+  private async sessionJson<T>(path: string, init?: { method?: string; body?: unknown }): Promise<T> {
+    const response = await robustFetch(`${this.baseUrl}${path}`, {
+      method: init?.method || 'GET',
+      headers: { 'Content-Type': 'application/json', ...this.sessionHeaders() },
+      body: init?.body !== undefined ? JSON.stringify(init.body) : undefined,
+      timeout: 60000, // plan generation can take a while
+      retries: 0,
+    });
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      let detail = '';
+      try { detail = JSON.parse(errorText).detail || ''; } catch { /* ignore */ }
+      if (response.status === 401) throw new Error('SESSION_EXPIRED');
+      if (response.status === 409) throw new Error(detail || 'QUOTA_REACHED');
+      throw new Error(detail || `Request failed: ${response.status}`);
+    }
+    return response.json();
+  }
+
+  async createStudyPlan(body: {
+    course_id: number;
+    style: string;
+    preferences?: string;
+    daily_reminder: boolean;
+  }): Promise<StudyPlanDto> {
+    return this.sessionJson('/api/widget/study-plans', { method: 'POST', body });
+  }
+
+  async getStudyPlans(courseId?: number): Promise<{ week_start: string; plans: StudyPlanDto[] }> {
+    const query = courseId ? `?course_id=${courseId}` : '';
+    return this.sessionJson(`/api/widget/study-plans${query}`);
+  }
+
+  async updatePlanReminder(planId: number, optIn: boolean): Promise<void> {
+    await this.sessionJson(`/api/widget/study-plans/${planId}/reminder`, {
+      method: 'PATCH',
+      body: { opt_in: optIn },
+    });
+  }
+
+  async getHome(): Promise<HomeData> {
+    return this.sessionJson('/api/widget/home');
+  }
+
+  async getFlashcards(moduleToken: string, moduleId?: number, count = 12): Promise<FlashcardsResponse> {
+    const url = `${this.baseUrl}/api/widget/flashcards?module_token=${encodeURIComponent(moduleToken)}${this.moduleParam(moduleId)}&count=${count}`;
+    const response = await robustFetch(url, {
+      method: 'GET',
+      headers: this.sessionHeaders(),
+      timeout: 15000,
+      retries: 1,
+    });
+    if (!response.ok) throw new Error(`Failed to load flashcards: ${response.status}`);
+    return response.json();
+  }
+
+  async generateFlashcards(moduleToken: string, moduleId?: number): Promise<{ status: string }> {
+    const url = `${this.baseUrl}/api/widget/flashcards/generate?module_token=${encodeURIComponent(moduleToken)}${this.moduleParam(moduleId)}`;
+    const response = await robustFetch(url, {
+      method: 'POST',
+      headers: this.sessionHeaders(),
+      timeout: 15000,
+      retries: 0,
+    });
+    if (!response.ok) throw new Error(`Failed to start generation: ${response.status}`);
+    return response.json();
   }
 
   /**

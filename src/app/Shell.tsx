@@ -6,8 +6,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Brain,
+  CalendarCheck,
   ClipboardList,
   FolderOpen,
+  Home as HomeIcon,
+  Layers,
   MessageCircle,
   Settings as SettingsIcon,
 } from 'lucide-react';
@@ -19,9 +22,20 @@ import QuizzesPanel from '../features/quizzes/QuizzesPanel';
 import AssignmentsPanel from '../features/assignments/AssignmentsPanel';
 import FilesPanel from '../features/files/FilesPanel';
 import SettingsPanel from '../features/settings/SettingsPanel';
+import HomePanel from '../features/home/HomePanel';
+import StudyPlanPanel from '../features/plan/StudyPlanPanel';
+import FlashcardsPanel from '../features/flashcards/FlashcardsPanel';
 
 type Theme = 'light' | 'dark' | 'system';
-export type PanelKey = 'chat' | 'quizzes' | 'assignments' | 'files' | 'settings';
+export type PanelKey =
+  | 'home'
+  | 'chat'
+  | 'plan'
+  | 'flashcards'
+  | 'quizzes'
+  | 'assignments'
+  | 'files'
+  | 'settings';
 
 interface ShellProps {
   apiBaseUrl: string;
@@ -75,9 +89,12 @@ export default function Shell({
 
   const navItems = useMemo(() => {
     const items: { key: PanelKey; label: string; icon: React.ReactNode }[] = [];
+    items.push({ key: 'home', label: t('nav.home'), icon: <HomeIcon className="w-5 h-5" /> });
     if (context.features.chat) {
       items.push({ key: 'chat', label: t('nav.chat'), icon: <MessageCircle className="w-5 h-5" /> });
     }
+    items.push({ key: 'plan', label: t('nav.plan'), icon: <CalendarCheck className="w-5 h-5" /> });
+    items.push({ key: 'flashcards', label: t('nav.flashcards'), icon: <Layers className="w-5 h-5" /> });
     if (context.features.quizzes) {
       items.push({ key: 'quizzes', label: t('nav.quizzes'), icon: <Brain className="w-5 h-5" /> });
     }
@@ -196,6 +213,9 @@ export default function Shell({
           {/* key={activeModuleId} forces panels to reload when the module changes —
               the visible cue that the context switched (WhatsApp model) */}
           <div key={`${activePanel}-${activeModuleId}`} className="erwin-fade-up h-full">
+            {activePanel === 'home' && <HomePanel onNavigate={setActivePanel} />}
+            {activePanel === 'plan' && <StudyPlanPanel key={`plan-${activeCourse?.id ?? 0}`} />}
+            {activePanel === 'flashcards' && <FlashcardsPanel key={`fc-${activeModuleId}`} />}
             {activePanel === 'chat' && <ChatPanel key={`chat-${activeModuleId}`} streaming={streaming} />}
             {activePanel === 'quizzes' && (
               <QuizzesPanel key={`quiz-${activeModuleId}`} onOpenChat={() => setActivePanel('chat')} />
