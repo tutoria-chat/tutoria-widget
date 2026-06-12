@@ -124,6 +124,35 @@
     "newRound": "Nova rodada (cartas embaralhadas)",
     "difficulty": { "easy": "Fácil", "medium": "Médio", "hard": "Difícil" }
   },
+  "gamification": {
+    "level": "Nível {level}",
+    "tier": {
+      "bronze": "Bronze", "silver": "Prata", "gold": "Ouro",
+      "platinum": "Platina", "diamond": "Diamante", "crystal": "Cristal"
+    },
+    "toNextLevel": "{current}/{needed} XP para o nível {next}",
+    "titleByTier": {
+      "bronze": "Aprendiz de {course}",
+      "silver": "Estudante de {course}",
+      "gold": "Destaque em {course}",
+      "platinum": "Mestre de {course}",
+      "diamond": "Especialista em {course}",
+      "crystal": "Lenda de {course}"
+    },
+    "badge": {
+      "first_steps": "Primeiros Passos",
+      "curious_10": "Curioso",
+      "curious_50": "Mente Inquieta",
+      "quiz_ace": "Gabaritou!",
+      "streak_7": "Sequência de 7 dias",
+      "streak_30": "Sequência de 30 dias",
+      "scholar_10": "Erudito",
+      "planner": "Planejador"
+    },
+    "leaderboardTitle": "Ranking · {course}",
+    "you": "você",
+    "yourRank": "Você está em #{rank} de {total} · {xp} XP"
+  },
   "chat": {
     "inputPlaceholder": "Digite sua pergunta...",
     "thinking": "Pensando...",

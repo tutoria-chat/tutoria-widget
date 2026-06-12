@@ -124,6 +124,35 @@
     "newRound": "Nueva ronda (cartas mezcladas)",
     "difficulty": { "easy": "Fácil", "medium": "Medio", "hard": "Difícil" }
   },
+  "gamification": {
+    "level": "Nivel {level}",
+    "tier": {
+      "bronze": "Bronce", "silver": "Plata", "gold": "Oro",
+      "platinum": "Platino", "diamond": "Diamante", "crystal": "Cristal"
+    },
+    "toNextLevel": "{current}/{needed} XP para el nivel {next}",
+    "titleByTier": {
+      "bronze": "Aprendiz de {course}",
+      "silver": "Estudiante de {course}",
+      "gold": "Destacado en {course}",
+      "platinum": "Maestro de {course}",
+      "diamond": "Especialista en {course}",
+      "crystal": "Leyenda de {course}"
+    },
+    "badge": {
+      "first_steps": "Primeros Pasos",
+      "curious_10": "Curioso",
+      "curious_50": "Mente Inquieta",
+      "quiz_ace": "¡Perfecto!",
+      "streak_7": "Racha de 7 días",
+      "streak_30": "Racha de 30 días",
+      "scholar_10": "Erudito",
+      "planner": "Planificador"
+    },
+    "leaderboardTitle": "Clasificación · {course}",
+    "you": "tú",
+    "yourRank": "Estás en #{rank} de {total} · {xp} XP"
+  },
   "chat": {
     "inputPlaceholder": "Escribe tu pregunta...",
     "thinking": "Pensando...",

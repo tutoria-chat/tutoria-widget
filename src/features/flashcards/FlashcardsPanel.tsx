@@ -25,9 +25,19 @@ export default function FlashcardsPanel() {
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const reviewReported = useRef(false);
 
   const isDefault = activeModuleId === session.default_module_id;
   const moduleParam = isDefault ? undefined : activeModuleId;
+
+  // Award XP the first time the student reaches the end of a deck this session
+  // (server-side daily cap prevents farming). Fire-and-forget.
+  useEffect(() => {
+    if (status === 'ready' && cards.length > 0 && index >= cards.length - 1 && !reviewReported.current) {
+      reviewReported.current = true;
+      apiClient.reportFlashcardsReviewed(moduleToken, moduleParam).catch(() => {});
+    }
+  }, [status, index, cards.length, moduleToken, moduleParam]);
 
   const load = useCallback(async () => {
     try {

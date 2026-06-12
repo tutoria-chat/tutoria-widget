@@ -124,6 +124,35 @@
     "newRound": "New round (shuffled cards)",
     "difficulty": { "easy": "Easy", "medium": "Medium", "hard": "Hard" }
   },
+  "gamification": {
+    "level": "Level {level}",
+    "tier": {
+      "bronze": "Bronze", "silver": "Silver", "gold": "Gold",
+      "platinum": "Platinum", "diamond": "Diamond", "crystal": "Crystal"
+    },
+    "toNextLevel": "{current}/{needed} XP to level {next}",
+    "titleByTier": {
+      "bronze": "{course} Apprentice",
+      "silver": "{course} Student",
+      "gold": "{course} Standout",
+      "platinum": "{course} Master",
+      "diamond": "{course} Specialist",
+      "crystal": "{course} Legend"
+    },
+    "badge": {
+      "first_steps": "First Steps",
+      "curious_10": "Curious",
+      "curious_50": "Restless Mind",
+      "quiz_ace": "Perfect Score!",
+      "streak_7": "7-day Streak",
+      "streak_30": "30-day Streak",
+      "scholar_10": "Scholar",
+      "planner": "Planner"
+    },
+    "leaderboardTitle": "Leaderboard · {course}",
+    "you": "you",
+    "yourRank": "You're #{rank} of {total} · {xp} XP"
+  },
   "chat": {
     "inputPlaceholder": "Type your question...",
     "thinking": "Thinking...",

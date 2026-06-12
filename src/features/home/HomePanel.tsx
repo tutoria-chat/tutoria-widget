@@ -15,11 +15,12 @@ import {
   MessageCircle,
   Sparkles,
 } from 'lucide-react';
-import type { UpcomingEvent } from '../../lib/api-client';
+import type { UpcomingEvent, GamificationData, LeaderboardData } from '../../lib/api-client';
 import { apiClient, type HomeData } from '../../lib/api-client';
 import { useApp } from '../../app/AppContext';
 import { useTranslations } from '../../i18n';
 import type { PanelKey } from '../../app/Shell';
+import { GamificationCard, Leaderboard } from '../gamification/GamificationCard';
 
 interface HomePanelProps {
   onNavigate: (panel: PanelKey) => void;
@@ -27,8 +28,10 @@ interface HomePanelProps {
 
 export default function HomePanel({ onNavigate }: HomePanelProps) {
   const t = useTranslations('home');
-  const { session } = useApp();
+  const { session, activeCourse } = useApp();
   const [data, setData] = useState<HomeData | null>(null);
+  const [gamification, setGamification] = useState<GamificationData | null>(null);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -38,8 +41,17 @@ export default function HomePanel({ onNavigate }: HomePanelProps) {
       .then((home) => { if (!cancelled) setData(home); })
       .catch(() => { /* home is best-effort; sections degrade gracefully */ })
       .finally(() => { if (!cancelled) setLoading(false); });
+    // Gamification card + leaderboard load independently (never block Home)
+    apiClient.getGamification(activeCourse?.id)
+      .then((g) => { if (!cancelled) setGamification(g); })
+      .catch(() => {});
+    if (activeCourse?.id) {
+      apiClient.getLeaderboard(activeCourse.id, 10)
+        .then((l) => { if (!cancelled) setLeaderboard(l); })
+        .catch(() => {});
+    }
     return () => { cancelled = true; };
-  }, []);
+  }, [activeCourse?.id]);
 
   const firstName = session.student.first_name?.trim() || '';
 
@@ -65,6 +77,13 @@ export default function HomePanel({ onNavigate }: HomePanelProps) {
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
       </div>
+
+      {/* Gamification: level / XP / tier / streak / badges / title */}
+      {gamification && (
+        <div className="mt-5">
+          <GamificationCard data={gamification} />
+        </div>
+      )}
 
       {/* Upcoming events strip: next test / deadline / field event */}
       {upcomingEvents.length > 0 && (
@@ -176,6 +195,13 @@ export default function HomePanel({ onNavigate }: HomePanelProps) {
               );
             })}
           </div>
+        </section>
+      )}
+
+      {/* Course leaderboard */}
+      {leaderboard && leaderboard.entries.length > 0 && (
+        <section className="mt-6">
+          <Leaderboard data={leaderboard} />
         </section>
       )}
 

@@ -271,6 +271,45 @@ export interface FlashcardsResponse {
   cards: FlashcardDto[];
 }
 
+export interface GamificationReward {
+  xp_gained: number;
+  total_xp: number;
+  level: number;
+  tier: string;
+  leveled_up: boolean;
+  streak: number;
+  new_badges: string[];
+}
+
+export interface GamificationData {
+  total_xp: number;
+  level: number;
+  tier: string;
+  level_xp: number;
+  level_xp_needed: number;
+  next_level: number;
+  streak: number;
+  longest_streak: number;
+  badges: Array<{ key: string; earned_at: string | null }>;
+  title: { tier: string; course_id: number; course_name: string; course_xp: number } | null;
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  name: string;
+  xp: number;
+  is_me: boolean;
+}
+
+export interface LeaderboardData {
+  course_id: number;
+  course_name: string;
+  entries: LeaderboardEntry[];
+  my_rank: number | null;
+  my_xp: number;
+  total_ranked: number;
+}
+
 export interface DirectLoginResponse {
   status: 'ok' | 'first_access' | 'choose_university';
   session?: WidgetSession | null;
@@ -471,6 +510,27 @@ export class WidgetAPIClient {
 
   async getHome(): Promise<HomeData> {
     return this.sessionJson('/api/widget/home');
+  }
+
+  async getGamification(courseId?: number): Promise<GamificationData> {
+    const query = courseId ? `?course_id=${courseId}` : '';
+    return this.sessionJson(`/api/widget/gamification${query}`);
+  }
+
+  async getLeaderboard(courseId: number, limit = 10): Promise<LeaderboardData> {
+    return this.sessionJson(`/api/widget/leaderboard?course_id=${courseId}&limit=${limit}`);
+  }
+
+  async reportFlashcardsReviewed(moduleToken: string, moduleId?: number): Promise<{ reward: GamificationReward }> {
+    const url = `${this.baseUrl}/api/widget/flashcards/reviewed?module_token=${encodeURIComponent(moduleToken)}${this.moduleParam(moduleId)}`;
+    const response = await robustFetch(url, {
+      method: 'POST',
+      headers: this.sessionHeaders(),
+      timeout: 15000,
+      retries: 0,
+    });
+    if (!response.ok) throw new Error(`Failed to report review: ${response.status}`);
+    return response.json();
   }
 
   async getFlashcards(moduleToken: string, moduleId?: number, count = 12): Promise<FlashcardsResponse> {
