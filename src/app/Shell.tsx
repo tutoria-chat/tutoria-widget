@@ -14,6 +14,7 @@ import {
   MessageCircle,
   Settings as SettingsIcon,
   TrendingUp,
+  GraduationCap,
 } from 'lucide-react';
 import { useApp } from './AppContext';
 import { apiClient } from '../lib/api-client';
@@ -27,6 +28,7 @@ import HomePanel from '../features/home/HomePanel';
 import StudyPlanPanel from '../features/plan/StudyPlanPanel';
 import FlashcardsPanel from '../features/flashcards/FlashcardsPanel';
 import ProgressPanel from '../features/progress/ProgressPanel';
+import EnemPanel from '../features/enem/EnemPanel';
 
 type Theme = 'light' | 'dark' | 'system';
 export type PanelKey =
@@ -34,6 +36,7 @@ export type PanelKey =
   | 'chat'
   | 'plan'
   | 'flashcards'
+  | 'enem'
   | 'quizzes'
   | 'assignments'
   | 'files'
@@ -98,6 +101,7 @@ export default function Shell({
     }
     items.push({ key: 'plan', label: t('nav.plan'), icon: <CalendarCheck className="w-5 h-5" /> });
     items.push({ key: 'flashcards', label: t('nav.flashcards'), icon: <Layers className="w-5 h-5" /> });
+    items.push({ key: 'enem', label: t('nav.enem'), icon: <GraduationCap className="w-5 h-5" /> });
     if (context.features.quizzes) {
       items.push({ key: 'quizzes', label: t('nav.quizzes'), icon: <Brain className="w-5 h-5" /> });
     }
@@ -220,6 +224,7 @@ export default function Shell({
             {activePanel === 'home' && <HomePanel onNavigate={setActivePanel} />}
             {activePanel === 'plan' && <StudyPlanPanel key={`plan-${activeCourse?.id ?? 0}`} />}
             {activePanel === 'flashcards' && <FlashcardsPanel key={`fc-${activeModuleId}`} />}
+            {activePanel === 'enem' && <EnemPanel />}
             {activePanel === 'chat' && <ChatPanel key={`chat-${activeModuleId}`} streaming={streaming} />}
             {activePanel === 'quizzes' && (
               <QuizzesPanel key={`quiz-${activeModuleId}`} onOpenChat={() => setActivePanel('chat')} />

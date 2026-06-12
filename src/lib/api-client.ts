@@ -283,6 +283,32 @@ export interface DueFlashcardsResponse {
 
 export type ReviewGrade = 'again' | 'hard' | 'good' | 'easy';
 
+export type EnemArea = 'linguagens' | 'matematica' | 'natureza' | 'humanas';
+
+export interface EnemQuestion {
+  id: number;
+  statement: string;
+  options: string[];
+  correct_index: number;
+  explanation?: string | null;
+  difficulty: string;
+}
+
+export interface EnemQuestionsResponse {
+  status: 'ready' | 'generating' | 'none';
+  area: EnemArea;
+  total: number;
+  questions: EnemQuestion[];
+}
+
+export interface EnemSubmitResult {
+  area: EnemArea;
+  score: number;
+  total: number;
+  results: Array<{ question_id: number; correct: boolean; correct_index: number; explanation?: string | null }>;
+  reward: GamificationReward;
+}
+
 export interface GamificationReward {
   xp_gained: number;
   total_xp: number;
@@ -571,6 +597,18 @@ export class WidgetAPIClient {
 
   async getChallenges(): Promise<{ challenges: ChallengeDto[] }> {
     return this.sessionJson('/api/widget/challenges');
+  }
+
+  async getEnemQuestions(area: EnemArea, count = 10): Promise<EnemQuestionsResponse> {
+    return this.sessionJson(`/api/widget/enem/questions?area=${area}&count=${count}`);
+  }
+
+  async generateEnem(area: EnemArea): Promise<{ status: string }> {
+    return this.sessionJson(`/api/widget/enem/generate?area=${area}`, { method: 'POST' });
+  }
+
+  async submitEnem(area: EnemArea, answers: Array<{ question_id: number; selected_index: number }>): Promise<EnemSubmitResult> {
+    return this.sessionJson('/api/widget/enem/submit', { method: 'POST', body: { area, answers } });
   }
 
   async getProgressEvolution(): Promise<ProgressEvolution> {

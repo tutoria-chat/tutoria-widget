@@ -57,6 +57,7 @@
       "chat": "Chat",
       "plan": "Plan de Estudios",
       "flashcards": "Flashcards",
+      "enem": "ENEM",
       "quizzes": "Quizzes",
       "assignments": "Actividades",
       "files": "Materiales",
@@ -170,6 +171,26 @@
       "weekly_plan": "Genera un plan de estudios",
       "weekly_streak": "Mantén una racha de 5 días"
     }
+  },
+  "enem": {
+    "title": "ENEM y Vestibulares",
+    "subtitle": "Practica con simulacros estilo ENEM",
+    "pickArea": "Elige un área de conocimiento:",
+    "area": {
+      "linguagens": "Lenguajes",
+      "matematica": "Matemáticas",
+      "natureza": "Ciencias de la Naturaleza",
+      "humanas": "Ciencias Humanas"
+    },
+    "loading": "Cargando simulacro...",
+    "generatingTitle": "Preparando tu simulacro...",
+    "generatingHint": "Generando preguntas para esta área. Tarda unos segundos (solo la primera vez).",
+    "error": "No se pudo cargar el simulacro.",
+    "backToAreas": "Volver a las áreas",
+    "answerAll": "Responde todas las preguntas",
+    "finish": "Finalizar simulacro",
+    "newSimulado": "Nuevo simulacro",
+    "scorePct": "{pct}% de acierto"
   },
   "progress": {
     "title": "Mi Progreso",

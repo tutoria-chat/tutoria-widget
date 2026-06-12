@@ -57,6 +57,7 @@
       "chat": "Chat",
       "plan": "Study Plan",
       "flashcards": "Flashcards",
+      "enem": "ENEM",
       "quizzes": "Quizzes",
       "assignments": "Assignments",
       "files": "Materials",
@@ -170,6 +171,26 @@
       "weekly_plan": "Generate a study plan",
       "weekly_streak": "Keep a 5-day streak"
     }
+  },
+  "enem": {
+    "title": "ENEM & College Prep",
+    "subtitle": "Practice with ENEM-style mock exams",
+    "pickArea": "Pick a knowledge area:",
+    "area": {
+      "linguagens": "Languages",
+      "matematica": "Mathematics",
+      "natureza": "Natural Sciences",
+      "humanas": "Humanities"
+    },
+    "loading": "Loading mock exam...",
+    "generatingTitle": "Preparing your mock exam...",
+    "generatingHint": "Generating questions for this area. Takes a few seconds (first time only).",
+    "error": "Could not load the mock exam.",
+    "backToAreas": "Back to areas",
+    "answerAll": "Answer all questions",
+    "finish": "Finish exam",
+    "newSimulado": "New mock exam",
+    "scorePct": "{pct}% correct"
   },
   "progress": {
     "title": "My Progress",
