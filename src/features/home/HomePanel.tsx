@@ -313,9 +313,9 @@ function QuickAction({
       onClick={onClick}
       className="group flex items-center gap-2.5 rounded-xl border border-border bg-card px-3.5 py-3 text-left text-sm font-medium shadow-sm transition-all hover:border-primary/40 hover:shadow"
     >
-      <span className="text-primary">{icon}</span>
-      <span className="min-w-0 truncate">{label}</span>
-      <ArrowRight className="ml-auto h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+      <span className="shrink-0 self-start text-primary">{icon}</span>
+      <span className="min-w-0 leading-tight">{label}</span>
+      <ArrowRight className="ml-auto h-4 w-4 shrink-0 self-center text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
     </button>
   );
 }
