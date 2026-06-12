@@ -4,9 +4,10 @@
  * already-fetched data as props so the Home panel controls loading.
  */
 import React from 'react';
-import { Flame, Trophy, Crown } from 'lucide-react';
-import type { GamificationData, LeaderboardData } from '../../lib/api-client';
+import { Flame, Trophy, Crown, Target, Check, Loader2 } from 'lucide-react';
+import type { GamificationData, LeaderboardData, ChallengeDto } from '../../lib/api-client';
 import { useTranslations } from '../../i18n';
+import { TierEmblem, type Tier } from './TierEmblem';
 
 // FFXIV Crystalline-Conflict-style tiers → gradient + emblem.
 export const TIER_STYLE: Record<string, { gradient: string; emoji: string }> = {
@@ -41,9 +42,7 @@ export function GamificationCard({ data }: { data: GamificationData }) {
       <div className="rounded-2xl bg-card p-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className={`flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${tier.gradient} text-2xl shadow-inner`}>
-              {tier.emoji}
-            </div>
+            <TierEmblem tier={data.tier as Tier} size={48} />
             <div>
               <p className="text-sm font-bold text-foreground">
                 {t('level', { level: data.level })}
@@ -105,6 +104,87 @@ export function GamificationCard({ data }: { data: GamificationData }) {
             ))}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+const CHALLENGE_EMOJI: Record<string, string> = {
+  weekly_questions: '💬',
+  weekly_quizzes: '🧩',
+  weekly_flashcards: '🃏',
+  weekly_plan: '🗓️',
+  weekly_streak: '🔥',
+};
+
+export function MissionsCard({
+  challenges,
+  claimingKey,
+  onClaim,
+}: {
+  challenges: ChallengeDto[];
+  claimingKey: string | null;
+  onClaim: (key: string) => void;
+}) {
+  const t = useTranslations('gamification');
+  if (challenges.length === 0) return null;
+
+  return (
+    <div>
+      <div className="flex items-center gap-2">
+        <Target className="h-4 w-4 text-primary" />
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          {t('missionsTitle')}
+        </h3>
+      </div>
+      <div className="mt-3 space-y-2">
+        {challenges.map((ch) => {
+          const pct = Math.min(100, Math.round((ch.progress / ch.target) * 100));
+          const claimed = ch.status === 'claimed';
+          const claimable = ch.status === 'claimable';
+          return (
+            <div
+              key={ch.key}
+              className={`rounded-xl border p-3 transition-colors ${
+                claimed ? 'border-border bg-muted/40' : claimable ? 'border-primary/40 bg-primary/5' : 'border-border bg-card'
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="text-lg">{CHALLENGE_EMOJI[ch.key] ?? '🎯'}</span>
+                  <span className="truncate text-sm font-medium">{t(`mission.${ch.key}`)}</span>
+                </div>
+                {claimed ? (
+                  <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-green-600 dark:text-green-400">
+                    <Check className="h-3.5 w-3.5" /> +{ch.xp} XP
+                  </span>
+                ) : claimable ? (
+                  <button
+                    onClick={() => onClaim(ch.key)}
+                    disabled={claimingKey === ch.key}
+                    className="flex shrink-0 items-center gap-1 rounded-full bg-gradient-to-r from-[#5e17eb] to-[#7c3aed] px-3 py-1 text-xs font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:opacity-60"
+                  >
+                    {claimingKey === ch.key ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                    {t('claim', { xp: ch.xp })}
+                  </button>
+                ) : (
+                  <span className="shrink-0 text-xs text-muted-foreground">+{ch.xp} XP</span>
+                )}
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className={`h-full rounded-full transition-all ${claimed || claimable ? 'bg-gradient-to-r from-[#5e17eb] to-[#5ce1e6]' : 'bg-primary/60'}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                  {ch.progress}/{ch.target}
+                </span>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

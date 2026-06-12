@@ -294,6 +294,14 @@ export interface GamificationData {
   title: { tier: string; course_id: number; course_name: string; course_xp: number } | null;
 }
 
+export interface ChallengeDto {
+  key: string;
+  target: number;
+  progress: number;
+  xp: number;
+  status: 'in_progress' | 'claimable' | 'claimed';
+}
+
 export interface LeaderboardEntry {
   rank: number;
   name: string;
@@ -519,6 +527,14 @@ export class WidgetAPIClient {
 
   async getLeaderboard(courseId: number, limit = 10): Promise<LeaderboardData> {
     return this.sessionJson(`/api/widget/leaderboard?course_id=${courseId}&limit=${limit}`);
+  }
+
+  async getChallenges(): Promise<{ challenges: ChallengeDto[] }> {
+    return this.sessionJson('/api/widget/challenges');
+  }
+
+  async claimChallenge(key: string): Promise<{ status: string; reward: GamificationReward | null }> {
+    return this.sessionJson(`/api/widget/challenges/${encodeURIComponent(key)}/claim`, { method: 'POST' });
   }
 
   async reportFlashcardsReviewed(moduleToken: string, moduleId?: number): Promise<{ reward: GamificationReward }> {

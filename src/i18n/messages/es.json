@@ -151,7 +151,16 @@
     },
     "leaderboardTitle": "Clasificación · {course}",
     "you": "tú",
-    "yourRank": "Estás en #{rank} de {total} · {xp} XP"
+    "yourRank": "Estás en #{rank} de {total} · {xp} XP",
+    "missionsTitle": "Misiones de la Semana",
+    "claim": "Reclamar +{xp} XP",
+    "mission": {
+      "weekly_questions": "Haz 10 preguntas al tutor",
+      "weekly_quizzes": "Completa 3 quizzes",
+      "weekly_flashcards": "Repasa 2 mazos de flashcards",
+      "weekly_plan": "Genera un plan de estudios",
+      "weekly_streak": "Mantén una racha de 5 días"
+    }
   },
   "chat": {
     "inputPlaceholder": "Escribe tu pregunta...",

@@ -15,12 +15,12 @@ import {
   MessageCircle,
   Sparkles,
 } from 'lucide-react';
-import type { UpcomingEvent, GamificationData, LeaderboardData } from '../../lib/api-client';
+import type { UpcomingEvent, GamificationData, LeaderboardData, ChallengeDto } from '../../lib/api-client';
 import { apiClient, type HomeData } from '../../lib/api-client';
 import { useApp } from '../../app/AppContext';
 import { useTranslations } from '../../i18n';
 import type { PanelKey } from '../../app/Shell';
-import { GamificationCard, Leaderboard } from '../gamification/GamificationCard';
+import { GamificationCard, MissionsCard, Leaderboard } from '../gamification/GamificationCard';
 
 interface HomePanelProps {
   onNavigate: (panel: PanelKey) => void;
@@ -32,6 +32,8 @@ export default function HomePanel({ onNavigate }: HomePanelProps) {
   const [data, setData] = useState<HomeData | null>(null);
   const [gamification, setGamification] = useState<GamificationData | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardData | null>(null);
+  const [challenges, setChallenges] = useState<ChallengeDto[]>([]);
+  const [claimingKey, setClaimingKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -50,8 +52,29 @@ export default function HomePanel({ onNavigate }: HomePanelProps) {
         .then((l) => { if (!cancelled) setLeaderboard(l); })
         .catch(() => {});
     }
+    apiClient.getChallenges()
+      .then((c) => { if (!cancelled) setChallenges(c.challenges); })
+      .catch(() => {});
     return () => { cancelled = true; };
   }, [activeCourse?.id]);
+
+  const handleClaim = async (key: string) => {
+    setClaimingKey(key);
+    try {
+      await apiClient.claimChallenge(key);
+      // Refresh challenges + progress so the new XP/level shows immediately
+      const [c, g] = await Promise.all([
+        apiClient.getChallenges().catch(() => null),
+        apiClient.getGamification(activeCourse?.id).catch(() => null),
+      ]);
+      if (c) setChallenges(c.challenges);
+      if (g) setGamification(g);
+    } catch {
+      /* claim failures are non-fatal; the button re-enables */
+    } finally {
+      setClaimingKey(null);
+    }
+  };
 
   const firstName = session.student.first_name?.trim() || '';
 
@@ -83,6 +106,13 @@ export default function HomePanel({ onNavigate }: HomePanelProps) {
         <div className="mt-5">
           <GamificationCard data={gamification} />
         </div>
+      )}
+
+      {/* Weekly missions */}
+      {challenges.length > 0 && (
+        <section className="mt-6">
+          <MissionsCard challenges={challenges} claimingKey={claimingKey} onClaim={handleClaim} />
+        </section>
       )}
 
       {/* Upcoming events strip: next test / deadline / field event */}

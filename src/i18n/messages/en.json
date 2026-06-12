@@ -151,7 +151,16 @@
     },
     "leaderboardTitle": "Leaderboard · {course}",
     "you": "you",
-    "yourRank": "You're #{rank} of {total} · {xp} XP"
+    "yourRank": "You're #{rank} of {total} · {xp} XP",
+    "missionsTitle": "Weekly Missions",
+    "claim": "Claim +{xp} XP",
+    "mission": {
+      "weekly_questions": "Ask the tutor 10 questions",
+      "weekly_quizzes": "Complete 3 quizzes",
+      "weekly_flashcards": "Review 2 flashcard decks",
+      "weekly_plan": "Generate a study plan",
+      "weekly_streak": "Keep a 5-day streak"
+    }
   },
   "chat": {
     "inputPlaceholder": "Type your question...",
