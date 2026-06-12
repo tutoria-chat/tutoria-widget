@@ -1,78 +1,70 @@
 /**
- * ENEM / Vestibular practice tab: pick a knowledge area, answer a simulado of
- * ENEM-style multiple-choice questions, then see the score with per-question
- * explanations. Questions come from a global pool generated once per area.
+ * ENEM / Vestibular practice tab. The course defines the knowledge area, so the
+ * student never picks one or presses "generate": the panel auto-loads the
+ * course's area, the server auto-provisions the question pool on first open, and
+ * we poll until it's ready. Questions come from a global pool per area.
  */
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { CheckCircle2, GraduationCap, Loader2, Sparkles, XCircle } from 'lucide-react';
 import { apiClient, type EnemArea, type EnemQuestion, type EnemSubmitResult } from '../../lib/api-client';
 import { useTranslations } from '../../i18n';
 
-const AREAS: EnemArea[] = ['linguagens', 'matematica', 'natureza', 'humanas'];
-const AREA_EMOJI: Record<EnemArea, string> = {
-  linguagens: '📖',
-  matematica: '➗',
-  natureza: '🔬',
-  humanas: '🌎',
-};
 const LETTERS = ['A', 'B', 'C', 'D', 'E'];
 
-type Phase = 'pick' | 'loading' | 'generating' | 'quiz' | 'result' | 'error';
+type Phase = 'loading' | 'generating' | 'quiz' | 'result' | 'error' | 'unconfigured';
 
-export default function EnemPanel() {
+export default function EnemPanel({ area }: { area: string | null }) {
   const t = useTranslations('enem');
 
-  const [phase, setPhase] = useState<Phase>('pick');
-  const [area, setArea] = useState<EnemArea | null>(null);
+  const [phase, setPhase] = useState<Phase>('loading');
   const [questions, setQuestions] = useState<EnemQuestion[]>([]);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [result, setResult] = useState<EnemSubmitResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const pollGenerate = async (a: EnemArea, attempt = 0) => {
-    try {
-      const res = await apiClient.getEnemQuestions(a, 10);
-      if (res.status === 'ready' && res.questions.length > 0) {
-        setQuestions(res.questions);
-        setAnswers({});
-        setResult(null);
-        setPhase('quiz');
-      } else if (res.status === 'generating' && attempt < 40) {
-        setTimeout(() => pollGenerate(a, attempt + 1), 3000);
-      } else {
+  const load = useCallback(
+    async (attempt = 0) => {
+      if (!area) {
+        setPhase('unconfigured');
+        return;
+      }
+      try {
+        const res = await apiClient.getEnemQuestions(area as EnemArea, 10);
+        if (res.status === 'ready' && res.questions.length > 0) {
+          setQuestions(res.questions);
+          setAnswers({});
+          setResult(null);
+          setPhase('quiz');
+        } else if (res.status === 'generating' && attempt < 40) {
+          // The server auto-provisions the pool on first open — just keep polling.
+          setPhase('generating');
+          pollTimer.current = setTimeout(() => load(attempt + 1), 3000);
+        } else {
+          setPhase('error');
+        }
+      } catch {
         setPhase('error');
       }
-    } catch {
-      setPhase('error');
-    }
-  };
+    },
+    [area],
+  );
 
-  const pickArea = async (a: EnemArea) => {
-    setArea(a);
+  // Auto-load the course's area on mount / whenever it changes.
+  useEffect(() => {
     setPhase('loading');
-    try {
-      const res = await apiClient.getEnemQuestions(a, 10);
-      if (res.status === 'ready' && res.questions.length > 0) {
-        setQuestions(res.questions);
-        setAnswers({});
-        setResult(null);
-        setPhase('quiz');
-      } else {
-        setPhase('generating');
-        await apiClient.generateEnem(a).catch(() => {});
-        pollGenerate(a);
-      }
-    } catch {
-      setPhase('error');
-    }
-  };
+    load();
+    return () => {
+      if (pollTimer.current) clearTimeout(pollTimer.current);
+    };
+  }, [load]);
 
   const submit = async () => {
     if (!area || submitting) return;
     setSubmitting(true);
     try {
       const res = await apiClient.submitEnem(
-        area,
+        area as EnemArea,
         Object.entries(answers).map(([qid, idx]) => ({ question_id: Number(qid), selected_index: idx })),
       );
       setResult(res);
@@ -84,12 +76,9 @@ export default function EnemPanel() {
     }
   };
 
-  const reset = () => {
-    setPhase('pick');
-    setArea(null);
-    setQuestions([]);
-    setAnswers({});
-    setResult(null);
+  const newSimulado = () => {
+    setPhase('loading');
+    load();
   };
 
   const allAnswered = questions.length > 0 && questions.every((q) => answers[q.id] !== undefined);
@@ -105,28 +94,11 @@ export default function EnemPanel() {
         </div>
         <div>
           <h2 className="text-xl font-bold text-foreground">{t('title')}</h2>
-          <p className="text-xs text-muted-foreground">{t('subtitle')}</p>
+          <p className="text-xs text-muted-foreground">
+            {area ? t(`area.${area as EnemArea}`) : t('subtitle')}
+          </p>
         </div>
       </div>
-
-      {/* Area picker */}
-      {phase === 'pick' && (
-        <div className="mt-6">
-          <p className="mb-3 text-sm text-muted-foreground">{t('pickArea')}</p>
-          <div className="grid grid-cols-2 gap-3">
-            {AREAS.map((a) => (
-              <button
-                key={a}
-                onClick={() => pickArea(a)}
-                className="rounded-2xl border border-border bg-card p-4 text-center transition-all hover:border-primary/40 hover:shadow"
-              >
-                <p className="text-3xl">{AREA_EMOJI[a]}</p>
-                <p className="mt-2 text-sm font-semibold">{t(`area.${a}`)}</p>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       {(phase === 'loading' || phase === 'generating') && (
         <div className="mt-16 text-center">
@@ -136,11 +108,17 @@ export default function EnemPanel() {
         </div>
       )}
 
+      {phase === 'unconfigured' && (
+        <div className="mt-16 text-center">
+          <p className="text-sm text-muted-foreground">{t('unconfigured')}</p>
+        </div>
+      )}
+
       {phase === 'error' && (
         <div className="mt-16 text-center">
           <p className="text-sm text-destructive">{t('error')}</p>
-          <button onClick={reset} className="mt-4 rounded-xl border border-border px-4 py-2 text-sm hover:bg-muted">
-            {t('backToAreas')}
+          <button onClick={newSimulado} className="mt-4 rounded-xl border border-border px-4 py-2 text-sm hover:bg-muted">
+            {t('retry')}
           </button>
         </div>
       )}
@@ -150,7 +128,7 @@ export default function EnemPanel() {
         <div className="mt-6 space-y-5">
           {phase === 'result' && result && (
             <div className="rounded-2xl bg-gradient-to-br from-[#5e17eb]/10 via-transparent to-[#5ce1e6]/10 p-5 text-center ring-1 ring-[#5e17eb]/15">
-              <p className="text-sm text-muted-foreground">{area && t(`area.${area}`)}</p>
+              <p className="text-sm text-muted-foreground">{area && t(`area.${area as EnemArea}`)}</p>
               <p className="mt-1 text-3xl font-bold text-foreground">
                 {result.score}/{result.total}
               </p>
@@ -219,17 +197,12 @@ export default function EnemPanel() {
               {allAnswered ? t('finish') : t('answerAll')}
             </button>
           ) : (
-            <div className="flex gap-2">
-              <button onClick={reset} className="flex-1 rounded-xl border border-border px-4 py-2.5 text-sm font-medium hover:bg-muted">
-                {t('backToAreas')}
-              </button>
-              <button
-                onClick={() => area && pickArea(area)}
-                className="flex-1 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
-              >
-                {t('newSimulado')}
-              </button>
-            </div>
+            <button
+              onClick={newSimulado}
+              className="w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              {t('newSimulado')}
+            </button>
           )}
         </div>
       )}

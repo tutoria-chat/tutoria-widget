@@ -186,6 +186,8 @@
     "generatingTitle": "Preparando seu simulado...",
     "generatingHint": "Gerando questões para esta área. Leva alguns segundos (só na primeira vez).",
     "error": "Não foi possível carregar o simulado.",
+    "retry": "Tentar novamente",
+    "unconfigured": "Seu professor ainda não definiu uma área do ENEM para este curso.",
     "backToAreas": "Voltar às áreas",
     "answerAll": "Responda todas as questões",
     "finish": "Finalizar simulado",

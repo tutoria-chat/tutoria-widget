@@ -186,6 +186,8 @@
     "generatingTitle": "Preparing your mock exam...",
     "generatingHint": "Generating questions for this area. Takes a few seconds (first time only).",
     "error": "Could not load the mock exam.",
+    "retry": "Try again",
+    "unconfigured": "Your instructor hasn't set an ENEM area for this course yet.",
     "backToAreas": "Back to areas",
     "answerAll": "Answer all questions",
     "finish": "Finish exam",

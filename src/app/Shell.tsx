@@ -74,6 +74,8 @@ export default function Shell({
   const [branding, setBranding] = useState<{ primary?: string | null; secondary?: string | null }>({});
   // ENEM/Vestibular tab is opt-in per course (default off) — universities hide it.
   const [enableEnem, setEnableEnem] = useState(false);
+  // The course's ENEM area drives the simulado (no student picker).
+  const [enemArea, setEnemArea] = useState<string | null>(null);
   useEffect(() => {
     let cancelled = false;
     const isDefault = activeModuleId === session.default_module_id;
@@ -86,6 +88,7 @@ export default function Shell({
             secondary: info?.appearance?.secondary_color ?? null,
           });
           setEnableEnem(!!info?.enable_enem);
+          setEnemArea(info?.enem_area ?? null);
         }
       })
       .catch(() => {
@@ -229,7 +232,7 @@ export default function Shell({
             {activePanel === 'home' && <HomePanel onNavigate={setActivePanel} />}
             {activePanel === 'plan' && <StudyPlanPanel key={`plan-${activeCourse?.id ?? 0}`} />}
             {activePanel === 'flashcards' && <FlashcardsPanel key={`fc-${activeModuleId}`} />}
-            {activePanel === 'enem' && <EnemPanel />}
+            {activePanel === 'enem' && <EnemPanel area={enemArea} />}
             {activePanel === 'chat' && <ChatPanel key={`chat-${activeModuleId}`} streaming={streaming} />}
             {activePanel === 'quizzes' && (
               <QuizzesPanel key={`quiz-${activeModuleId}`} onOpenChat={() => setActivePanel('chat')} />
