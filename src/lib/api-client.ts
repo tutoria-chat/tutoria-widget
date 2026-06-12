@@ -330,6 +330,31 @@ export interface GamificationData {
   longest_streak: number;
   badges: Array<{ key: string; earned_at: string | null }>;
   title: { tier: string; course_id: number; course_name: string; course_xp: number } | null;
+  displayed_title?: TitleDescriptor | null;
+}
+
+export interface TitleDescriptor {
+  key: string;
+  type: 'track' | 'global' | 'hidden';
+  track?: string;
+  tier?: string;
+}
+
+export interface TitleDto {
+  key: string;
+  type: 'track' | 'global' | 'hidden';
+  track?: string;
+  tier?: string;
+  threshold?: number;
+  progress?: number;
+  metric?: string;
+  earned: boolean;
+  hidden: boolean;
+}
+
+export interface TitlesResponse {
+  displayed: string | null;
+  titles: TitleDto[];
 }
 
 export interface EvolutionWeek {
@@ -593,6 +618,18 @@ export class WidgetAPIClient {
 
   async getLeaderboard(courseId: number, limit = 10): Promise<LeaderboardData> {
     return this.sessionJson(`/api/widget/leaderboard?course_id=${courseId}&limit=${limit}`);
+  }
+
+  async getInstitutionLeaderboard(limit = 20): Promise<Omit<LeaderboardData, 'course_id' | 'course_name'>> {
+    return this.sessionJson(`/api/widget/leaderboard/institution?limit=${limit}`);
+  }
+
+  async getTitles(): Promise<TitlesResponse> {
+    return this.sessionJson('/api/widget/titles');
+  }
+
+  async equipTitle(key: string | null): Promise<{ displayed: string | null }> {
+    return this.sessionJson('/api/widget/titles/equip', { method: 'POST', body: { key } });
   }
 
   async getChallenges(): Promise<{ challenges: ChallengeDto[] }> {

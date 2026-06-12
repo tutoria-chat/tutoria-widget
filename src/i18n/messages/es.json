@@ -192,6 +192,32 @@
     "newSimulado": "Nuevo simulacro",
     "scorePct": "{pct}% de acierto"
   },
+  "titles": {
+    "track": {
+      "math": "Matemáticas",
+      "programming": "Programación",
+      "science": "Ciencias",
+      "health": "Salud",
+      "business": "Negocios",
+      "language": "Lenguas",
+      "humanities": "Humanidades"
+    },
+    "trackTitle": {
+      "aprendiz": "Aprendiz de {area}",
+      "mestre": "Maestro de {area}",
+      "lenda": "Leyenda de {area}"
+    },
+    "trackTip": {
+      "aprendiz": "Acumula {threshold} XP en {area}",
+      "mestre": "Acumula {threshold} XP en {area}",
+      "lenda": "Acumula {threshold} XP en {area}"
+    },
+    "special": {
+      "veterano": { "name": "Veterano", "tip": "Alcanza el nivel {threshold}" },
+      "imortal": { "name": "Inmortal", "tip": "Mantén una racha de {threshold} días" },
+      "transcendente": { "name": "Trascendente", "tip": "¡Supera tus límites de estudio para lograrlo!" }
+    }
+  },
   "progress": {
     "title": "Mi Progreso",
     "xpThisWeek": "XP esta semana",
@@ -199,6 +225,12 @@
     "evolutionTitle": "Evolución (8 semanas)",
     "noXpYet": "¡Empieza a estudiar para ver tu evolución aquí!",
     "byDisciplineTitle": "XP por asignatura",
+    "titlesTitle": "Títulos",
+    "equip": "Mostrar",
+    "equipped": "En exhibición",
+    "boardCourse": "Curso",
+    "boardInstitution": "Institución",
+    "boardInstitutionTitle": "Ranking de la Institución",
     "goalsTitle": "Mis Metas",
     "addGoal": "Nueva meta",
     "cancel": "Cancelar",

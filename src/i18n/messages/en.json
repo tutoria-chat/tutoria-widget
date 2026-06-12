@@ -192,6 +192,32 @@
     "newSimulado": "New mock exam",
     "scorePct": "{pct}% correct"
   },
+  "titles": {
+    "track": {
+      "math": "Mathematics",
+      "programming": "Programming",
+      "science": "Sciences",
+      "health": "Health",
+      "business": "Business",
+      "language": "Languages",
+      "humanities": "Humanities"
+    },
+    "trackTitle": {
+      "aprendiz": "{area} Apprentice",
+      "mestre": "{area} Master",
+      "lenda": "{area} Legend"
+    },
+    "trackTip": {
+      "aprendiz": "Earn {threshold} XP in {area}",
+      "mestre": "Earn {threshold} XP in {area}",
+      "lenda": "Earn {threshold} XP in {area}"
+    },
+    "special": {
+      "veterano": { "name": "Veteran", "tip": "Reach level {threshold}" },
+      "imortal": { "name": "Immortal", "tip": "Keep a {threshold}-day streak" },
+      "transcendente": { "name": "Transcendent", "tip": "Surpass your studying limits to achieve this!" }
+    }
+  },
   "progress": {
     "title": "My Progress",
     "xpThisWeek": "XP this week",
@@ -199,6 +225,12 @@
     "evolutionTitle": "Evolution (8 weeks)",
     "noXpYet": "Start studying to see your evolution here!",
     "byDisciplineTitle": "XP by discipline",
+    "titlesTitle": "Titles",
+    "equip": "Display",
+    "equipped": "Displayed",
+    "boardCourse": "Course",
+    "boardInstitution": "Institution",
+    "boardInstitutionTitle": "Institution Ranking",
     "goalsTitle": "My Goals",
     "addGoal": "New goal",
     "cancel": "Cancel",

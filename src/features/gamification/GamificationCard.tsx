@@ -8,6 +8,7 @@ import { Flame, Trophy, Crown, Target, Check, Loader2 } from 'lucide-react';
 import type { GamificationData, LeaderboardData, ChallengeDto } from '../../lib/api-client';
 import { useTranslations } from '../../i18n';
 import { TierEmblem, type Tier } from './TierEmblem';
+import { titleName } from './TitlesShowcase';
 
 // FFXIV Crystalline-Conflict-style tiers → gradient + emblem.
 export const TIER_STYLE: Record<string, { gradient: string; emoji: string }> = {
@@ -32,6 +33,7 @@ export const BADGE_EMOJI: Record<string, string> = {
 
 export function GamificationCard({ data }: { data: GamificationData }) {
   const t = useTranslations('gamification');
+  const tRoot = useTranslations();
   const tier = TIER_STYLE[data.tier] ?? TIER_STYLE.bronze;
   const pct = data.level_xp_needed > 0
     ? Math.min(100, Math.round((data.level_xp / data.level_xp_needed) * 100))
@@ -79,15 +81,20 @@ export function GamificationCard({ data }: { data: GamificationData }) {
           </p>
         </div>
 
-        {/* Academic title (top discipline) */}
-        {data.title && (
+        {/* Academic title: the equipped one (if any) overrides the auto-computed */}
+        {data.displayed_title ? (
+          <div className="mt-3 flex items-center gap-2 rounded-xl bg-primary/5 px-3 py-2">
+            <Crown className="h-4 w-4 shrink-0 text-primary" />
+            <span className="text-sm font-medium text-foreground">{titleName(tRoot, data.displayed_title)}</span>
+          </div>
+        ) : data.title ? (
           <div className="mt-3 flex items-center gap-2 rounded-xl bg-primary/5 px-3 py-2">
             <Crown className="h-4 w-4 shrink-0 text-primary" />
             <span className="text-sm font-medium text-foreground">
               {t(`titleByTier.${data.title.tier}`, { course: data.title.course_name })}
             </span>
           </div>
-        )}
+        ) : null}
 
         {/* Badges */}
         {data.badges.length > 0 && (
@@ -190,7 +197,9 @@ export function MissionsCard({
   );
 }
 
-export function Leaderboard({ data }: { data: LeaderboardData }) {
+type LeaderboardLike = Omit<LeaderboardData, 'course_id' | 'course_name'> & { course_name?: string };
+
+export function Leaderboard({ data, heading }: { data: LeaderboardLike; heading?: string }) {
   const t = useTranslations('gamification');
   if (data.entries.length === 0) return null;
 
@@ -201,7 +210,7 @@ export function Leaderboard({ data }: { data: LeaderboardData }) {
       <div className="flex items-center gap-2">
         <Trophy className="h-4 w-4 text-primary" />
         <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          {t('leaderboardTitle', { course: data.course_name })}
+          {heading ?? t('leaderboardTitle', { course: data.course_name ?? '' })}
         </h3>
       </div>
       <div className="mt-3 space-y-1.5">

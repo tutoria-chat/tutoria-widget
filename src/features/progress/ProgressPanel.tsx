@@ -20,10 +20,13 @@ import {
   type GamificationData,
   type ProgressEvolution,
   type GoalDto,
+  type TitleDto,
+  type LeaderboardData,
 } from '../../lib/api-client';
 import { useApp } from '../../app/AppContext';
 import { useTranslations } from '../../i18n';
-import { GamificationCard } from '../gamification/GamificationCard';
+import { GamificationCard, Leaderboard } from '../gamification/GamificationCard';
+import TitlesShowcase from '../gamification/TitlesShowcase';
 
 const GOAL_METRICS = ['level', 'xp', 'streak', 'quizzes', 'questions', 'flashcards'] as const;
 
@@ -34,6 +37,12 @@ export default function ProgressPanel() {
   const [gamification, setGamification] = useState<GamificationData | null>(null);
   const [evolution, setEvolution] = useState<ProgressEvolution | null>(null);
   const [goals, setGoals] = useState<GoalDto[]>([]);
+  const [titles, setTitles] = useState<TitleDto[]>([]);
+  const [displayedTitle, setDisplayedTitle] = useState<string | null>(null);
+  const [equipping, setEquipping] = useState<string | null>(null);
+  const [courseBoard, setCourseBoard] = useState<LeaderboardData | null>(null);
+  const [instBoard, setInstBoard] = useState<Awaited<ReturnType<typeof apiClient.getInstitutionLeaderboard>> | null>(null);
+  const [board, setBoard] = useState<'course' | 'institution'>('course');
   const [loading, setLoading] = useState(true);
 
   const [adding, setAdding] = useState(false);
@@ -42,14 +51,34 @@ export default function ProgressPanel() {
   const [busy, setBusy] = useState(false);
 
   const reload = async () => {
-    const [g, e, gl] = await Promise.all([
+    const [g, e, gl, ti, inst, cb] = await Promise.all([
       apiClient.getGamification(activeCourse?.id).catch(() => null),
       apiClient.getProgressEvolution().catch(() => null),
       apiClient.getGoals().catch(() => null),
+      apiClient.getTitles().catch(() => null),
+      apiClient.getInstitutionLeaderboard(20).catch(() => null),
+      activeCourse?.id ? apiClient.getLeaderboard(activeCourse.id, 5).catch(() => null) : Promise.resolve(null),
     ]);
     if (g) setGamification(g);
     if (e) setEvolution(e);
     if (gl) setGoals(gl.goals);
+    if (ti) { setTitles(ti.titles); setDisplayedTitle(ti.displayed); }
+    if (inst) setInstBoard(inst);
+    if (cb) setCourseBoard(cb);
+  };
+
+  const handleEquip = async (key: string | null) => {
+    setEquipping(key ?? '__clear__');
+    try {
+      const res = await apiClient.equipTitle(key);
+      setDisplayedTitle(res.displayed);
+      const g = await apiClient.getGamification(activeCourse?.id).catch(() => null);
+      if (g) setGamification(g);
+    } catch {
+      /* equip only succeeds on earned titles; ignore */
+    } finally {
+      setEquipping(null);
+    }
   };
 
   useEffect(() => {
@@ -105,6 +134,37 @@ export default function ProgressPanel() {
         <div className="mt-5">
           <GamificationCard data={gamification} />
         </div>
+      )}
+
+      {/* Academic titles showcase */}
+      <TitlesShowcase titles={titles} displayed={displayedTitle} equipping={equipping} onEquip={handleEquip} />
+
+      {/* Leaderboards: course (top 5) + institution (top 20) */}
+      {(courseBoard || instBoard) && (
+        <section className="mt-6">
+          <div className="mb-3 flex gap-2">
+            {courseBoard && (
+              <button
+                onClick={() => setBoard('course')}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${board === 'course' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}`}
+              >
+                {t('boardCourse')}
+              </button>
+            )}
+            {instBoard && (
+              <button
+                onClick={() => setBoard('institution')}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${board === 'institution' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}`}
+              >
+                {t('boardInstitution')}
+              </button>
+            )}
+          </div>
+          {board === 'course' && courseBoard && <Leaderboard data={courseBoard} />}
+          {board === 'institution' && instBoard && (
+            <Leaderboard data={instBoard} heading={t('boardInstitutionTitle')} />
+          )}
+        </section>
       )}
 
       {/* This-week-vs-last-week comparison */}
