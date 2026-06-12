@@ -123,7 +123,15 @@
     "previous": "Anterior",
     "next": "Siguiente",
     "newRound": "Nueva ronda (cartas mezcladas)",
-    "difficulty": { "easy": "Fácil", "medium": "Medio", "hard": "Difícil" }
+    "difficulty": { "easy": "Fácil", "medium": "Medio", "hard": "Difícil" },
+    "review": "Repasar ({count})",
+    "exitReview": "Salir",
+    "showAnswer": "Mostrar respuesta",
+    "newCard": "Nueva",
+    "reviewDoneTitle": "¡Todo al día! 🎉",
+    "reviewDoneHint": "Has repasado todas las cartas pendientes. Vuelve mañana para la próxima tanda.",
+    "backToCards": "Volver a los flashcards",
+    "grade": { "again": "Fallé", "hard": "Difícil", "good": "Bien", "easy": "Fácil" }
   },
   "gamification": {
     "level": "Nivel {level}",

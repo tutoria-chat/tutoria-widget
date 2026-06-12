@@ -3,8 +3,8 @@
  * module's content, shared by all students). Click to flip, arrows to move.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Layers, Loader2, RotateCcw, Sparkles } from 'lucide-react';
-import { apiClient, type FlashcardDto } from '../../lib/api-client';
+import { ArrowLeft, CalendarClock, CheckCircle2, ChevronLeft, ChevronRight, Layers, Loader2, RotateCcw, Sparkles } from 'lucide-react';
+import { apiClient, type FlashcardDto, type DueFlashcard, type ReviewGrade } from '../../lib/api-client';
 import { useApp } from '../../app/AppContext';
 import { useTranslations } from '../../i18n';
 
@@ -27,8 +27,61 @@ export default function FlashcardsPanel() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const reviewReported = useRef(false);
 
+  // Spaced-repetition review mode
+  const [mode, setMode] = useState<'browse' | 'review'>('browse');
+  const [dueCount, setDueCount] = useState(0);
+  const [dueCards, setDueCards] = useState<DueFlashcard[]>([]);
+  const [reviewIdx, setReviewIdx] = useState(0);
+  const [reviewFlipped, setReviewFlipped] = useState(false);
+  const [reviewDone, setReviewDone] = useState(false);
+  const [grading, setGrading] = useState(false);
+
   const isDefault = activeModuleId === session.default_module_id;
   const moduleParam = isDefault ? undefined : activeModuleId;
+
+  // How many cards are due for spaced review (drives the header badge)
+  useEffect(() => {
+    if (status !== 'ready') return;
+    apiClient.getDueCount(moduleToken, moduleParam).then((r) => setDueCount(r.due)).catch(() => {});
+  }, [status, moduleToken, moduleParam]);
+
+  const enterReview = async () => {
+    try {
+      const res = await apiClient.getDueFlashcards(moduleToken, moduleParam, 20);
+      setDueCards(res.cards);
+      setReviewIdx(0);
+      setReviewFlipped(false);
+      setReviewDone(res.cards.length === 0);
+      setMode('review');
+    } catch {
+      /* ignore — stay in browse */
+    }
+  };
+
+  const gradeCard = async (grade: ReviewGrade) => {
+    const c = dueCards[reviewIdx];
+    if (!c || grading) return;
+    setGrading(true);
+    try {
+      await apiClient.reviewFlashcard(c.id, grade);
+    } catch {
+      /* keep going; a failed grade just won't reschedule */
+    } finally {
+      setGrading(false);
+      if (reviewIdx + 1 >= dueCards.length) {
+        setReviewDone(true);
+        setDueCount(0);
+      } else {
+        setReviewIdx((i) => i + 1);
+        setReviewFlipped(false);
+      }
+    }
+  };
+
+  const exitReview = () => {
+    setMode('browse');
+    apiClient.getDueCount(moduleToken, moduleParam).then((r) => setDueCount(r.due)).catch(() => {});
+  };
 
   // Award XP the first time the student reaches the end of a deck this session
   // (server-side daily cap prevents farming). Fire-and-forget.
@@ -98,14 +151,35 @@ export default function FlashcardsPanel() {
 
   return (
     <div className="flex h-full flex-col overflow-y-auto p-6">
-      <div className="flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#5e17eb] to-[#5ce1e6] text-white shadow-lg shadow-[#5e17eb]/25">
-          <Layers className="h-5 w-5" />
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#5e17eb] to-[#5ce1e6] text-white shadow-lg shadow-[#5e17eb]/25">
+            <Layers className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-foreground">{t('title')}</h2>
+            <p className="text-xs text-muted-foreground">{t('subtitle')}</p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-xl font-bold text-foreground">{t('title')}</h2>
-          <p className="text-xs text-muted-foreground">{t('subtitle')}</p>
-        </div>
+
+        {status === 'ready' && mode === 'browse' && dueCount > 0 && (
+          <button
+            onClick={enterReview}
+            className="flex shrink-0 items-center gap-1.5 rounded-full bg-gradient-to-r from-[#5e17eb] to-[#7c3aed] px-3.5 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+          >
+            <CalendarClock className="h-4 w-4" />
+            {t('review', { count: dueCount })}
+          </button>
+        )}
+        {mode === 'review' && (
+          <button
+            onClick={exitReview}
+            className="flex shrink-0 items-center gap-1.5 rounded-full border border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {t('exitReview')}
+          </button>
+        )}
       </div>
 
       <div className="flex flex-1 flex-col items-center justify-center py-6">
@@ -136,7 +210,7 @@ export default function FlashcardsPanel() {
           <p className="text-sm text-destructive">{t('loadError')}</p>
         )}
 
-        {status === 'ready' && card && (
+        {status === 'ready' && mode === 'browse' && card && (
           <div className="w-full max-w-md">
             {/* Card */}
             <button
@@ -209,6 +283,82 @@ export default function FlashcardsPanel() {
               </button>
             )}
           </div>
+        )}
+
+        {/* ── Spaced-repetition review mode ── */}
+        {status === 'ready' && mode === 'review' && (
+          reviewDone ? (
+            <div className="max-w-sm text-center">
+              <CheckCircle2 className="mx-auto h-10 w-10 text-green-500" />
+              <p className="mt-3 text-lg font-semibold">{t('reviewDoneTitle')}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{t('reviewDoneHint')}</p>
+              <button
+                onClick={exitReview}
+                className="mt-4 rounded-xl border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
+              >
+                {t('backToCards')}
+              </button>
+            </div>
+          ) : (
+            dueCards[reviewIdx] && (
+              <div className="w-full max-w-md">
+                <p className="mb-2 text-center text-xs text-muted-foreground">
+                  {reviewIdx + 1} / {dueCards.length}
+                </p>
+                <button
+                  onClick={() => setReviewFlipped((f) => !f)}
+                  className="group relative block min-h-[240px] w-full rounded-2xl border border-border bg-card p-6 text-left shadow-lg transition-transform hover:scale-[1.01]"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wide text-primary">
+                      {reviewFlipped ? t('backLabel') : t('frontLabel')}
+                    </span>
+                    {dueCards[reviewIdx].is_new && (
+                      <span className="rounded-full bg-[#5ce1e6]/20 px-2 py-0.5 text-[11px] font-medium text-[#0e7490] dark:text-[#5ce1e6]">
+                        {t('newCard')}
+                      </span>
+                    )}
+                  </div>
+                  <p className={`mt-5 leading-relaxed ${reviewFlipped ? 'text-base text-foreground' : 'text-lg font-semibold text-foreground'}`}>
+                    {reviewFlipped ? dueCards[reviewIdx].back : dueCards[reviewIdx].front}
+                  </p>
+                  {!reviewFlipped && (
+                    <p className="absolute bottom-4 left-6 right-6 flex items-center gap-1.5 text-xs text-muted-foreground opacity-70">
+                      <RotateCcw className="h-3 w-3" />
+                      {t('flipHint')}
+                    </p>
+                  )}
+                </button>
+
+                {reviewFlipped ? (
+                  <div className="mt-4 grid grid-cols-4 gap-2">
+                    {([
+                      ['again', 'bg-red-500/10 text-red-700 dark:text-red-400 hover:bg-red-500/20'],
+                      ['hard', 'bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20'],
+                      ['good', 'bg-green-500/10 text-green-700 dark:text-green-400 hover:bg-green-500/20'],
+                      ['easy', 'bg-[#5ce1e6]/15 text-[#0e7490] dark:text-[#5ce1e6] hover:bg-[#5ce1e6]/25'],
+                    ] as const).map(([grade, cls]) => (
+                      <button
+                        key={grade}
+                        onClick={() => gradeCard(grade)}
+                        disabled={grading}
+                        className={`rounded-xl px-2 py-3 text-sm font-medium transition-colors disabled:opacity-50 ${cls}`}
+                      >
+                        {t(`grade.${grade}`)}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setReviewFlipped(true)}
+                    className="mt-4 w-full rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+                  >
+                    {t('showAnswer')}
+                  </button>
+                )}
+              </div>
+            )
+          )
         )}
       </div>
     </div>

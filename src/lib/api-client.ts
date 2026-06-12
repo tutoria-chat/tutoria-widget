@@ -271,6 +271,18 @@ export interface FlashcardsResponse {
   cards: FlashcardDto[];
 }
 
+export interface DueFlashcard extends FlashcardDto {
+  is_new: boolean;
+}
+
+export interface DueFlashcardsResponse {
+  total_due: number;
+  new_count: number;
+  cards: DueFlashcard[];
+}
+
+export type ReviewGrade = 'again' | 'hard' | 'good' | 'easy';
+
 export interface GamificationReward {
   xp_gained: number;
   total_xp: number;
@@ -606,6 +618,24 @@ export class WidgetAPIClient {
     });
     if (!response.ok) throw new Error(`Failed to load flashcards: ${response.status}`);
     return response.json();
+  }
+
+  async getDueFlashcards(moduleToken: string, moduleId?: number, limit = 20): Promise<DueFlashcardsResponse> {
+    const url = `${this.baseUrl}/api/widget/flashcards/due?module_token=${encodeURIComponent(moduleToken)}${this.moduleParam(moduleId)}&limit=${limit}`;
+    const response = await robustFetch(url, { method: 'GET', headers: this.sessionHeaders(), timeout: 15000, retries: 1 });
+    if (!response.ok) throw new Error(`Failed to load due cards: ${response.status}`);
+    return response.json();
+  }
+
+  async getDueCount(moduleToken: string, moduleId?: number): Promise<{ due: number }> {
+    const url = `${this.baseUrl}/api/widget/flashcards/due-count?module_token=${encodeURIComponent(moduleToken)}${this.moduleParam(moduleId)}`;
+    const response = await robustFetch(url, { method: 'GET', headers: this.sessionHeaders(), timeout: 15000, retries: 1 });
+    if (!response.ok) throw new Error(`Failed to load due count: ${response.status}`);
+    return response.json();
+  }
+
+  async reviewFlashcard(flashcardId: number, grade: ReviewGrade): Promise<{ interval_days: number; due_at: string; reward: GamificationReward }> {
+    return this.sessionJson(`/api/widget/flashcards/${flashcardId}/review`, { method: 'POST', body: { grade } });
   }
 
   async generateFlashcards(moduleToken: string, moduleId?: number): Promise<{ status: string }> {

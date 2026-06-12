@@ -123,7 +123,15 @@
     "previous": "Anterior",
     "next": "Próxima",
     "newRound": "Nova rodada (cartas embaralhadas)",
-    "difficulty": { "easy": "Fácil", "medium": "Médio", "hard": "Difícil" }
+    "difficulty": { "easy": "Fácil", "medium": "Médio", "hard": "Difícil" },
+    "review": "Revisar ({count})",
+    "exitReview": "Sair",
+    "showAnswer": "Mostrar resposta",
+    "newCard": "Nova",
+    "reviewDoneTitle": "Tudo em dia! 🎉",
+    "reviewDoneHint": "Você revisou todas as cartas devidas. Volte amanhã para a próxima leva.",
+    "backToCards": "Voltar aos flashcards",
+    "grade": { "again": "Errei", "hard": "Difícil", "good": "Bom", "easy": "Fácil" }
   },
   "gamification": {
     "level": "Nível {level}",

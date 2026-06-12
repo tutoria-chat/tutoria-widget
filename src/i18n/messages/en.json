@@ -123,7 +123,15 @@
     "previous": "Previous",
     "next": "Next",
     "newRound": "New round (shuffled cards)",
-    "difficulty": { "easy": "Easy", "medium": "Medium", "hard": "Hard" }
+    "difficulty": { "easy": "Easy", "medium": "Medium", "hard": "Hard" },
+    "review": "Review ({count})",
+    "exitReview": "Exit",
+    "showAnswer": "Show answer",
+    "newCard": "New",
+    "reviewDoneTitle": "All caught up! 🎉",
+    "reviewDoneHint": "You've reviewed every due card. Come back tomorrow for the next batch.",
+    "backToCards": "Back to flashcards",
+    "grade": { "again": "Again", "hard": "Hard", "good": "Good", "easy": "Easy" }
   },
   "gamification": {
     "level": "Level {level}",
