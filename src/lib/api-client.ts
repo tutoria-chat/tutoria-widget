@@ -218,6 +218,17 @@ export interface StudyPlanDto {
   created_at: string | null;
 }
 
+export interface UpcomingEvent {
+  id: number;
+  title: string;
+  event_type: string;
+  course_id: number;
+  course_name: string;
+  starts_at: string;
+  date: string;
+  days_until: number;
+}
+
 export interface HomeData {
   student: { id: number; first_name: string };
   today: string;
@@ -229,6 +240,7 @@ export interface HomeData {
     focus: string;
     tasks: StudyPlanTask[];
   }>;
+  upcoming_events: UpcomingEvent[];
   week_plans: Array<{
     plan_id: number;
     course_id: number;

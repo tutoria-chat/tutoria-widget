@@ -7,11 +7,15 @@ import {
   ArrowRight,
   Brain,
   CalendarCheck,
+  CalendarClock,
+  FileText,
   Layers,
   Loader2,
+  MapPin,
   MessageCircle,
   Sparkles,
 } from 'lucide-react';
+import type { UpcomingEvent } from '../../lib/api-client';
 import { apiClient, type HomeData } from '../../lib/api-client';
 import { useApp } from '../../app/AppContext';
 import { useTranslations } from '../../i18n';
@@ -50,6 +54,7 @@ export default function HomePanel({ onNavigate }: HomePanelProps) {
   const todayTasks = data?.today_tasks ?? [];
   const recentQuizzes = data?.recent_quizzes ?? [];
   const weekPlans = data?.week_plans ?? [];
+  const upcomingEvents = data?.upcoming_events ?? [];
 
   return (
     <div className="h-full overflow-y-auto p-6">
@@ -60,6 +65,23 @@ export default function HomePanel({ onNavigate }: HomePanelProps) {
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
       </div>
+
+      {/* Upcoming events strip: next test / deadline / field event */}
+      {upcomingEvents.length > 0 && (
+        <section className="mt-5">
+          <div className="flex items-center gap-2">
+            <CalendarClock className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              {t('upcomingTitle')}
+            </h3>
+          </div>
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+            {upcomingEvents.map((event) => (
+              <EventChip key={event.id} event={event} label={whenLabel(event.days_until, t)} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Today's plan */}
       <section className="mt-6">
@@ -180,6 +202,43 @@ export default function HomePanel({ onNavigate }: HomePanelProps) {
           />
         </div>
       </section>
+    </div>
+  );
+}
+
+const EVENT_ICONS: Record<string, React.ReactNode> = {
+  test: <FileText className="h-4 w-4" />,
+  assignment: <CalendarCheck className="h-4 w-4" />,
+  field_event: <MapPin className="h-4 w-4" />,
+  holiday: <Sparkles className="h-4 w-4" />,
+};
+
+function whenLabel(daysUntil: number, t: (key: string, vars?: Record<string, string | number>) => string): string {
+  if (daysUntil <= 0) return t('eventToday');
+  if (daysUntil === 1) return t('eventTomorrow');
+  return t('eventInDays', { days: daysUntil });
+}
+
+function EventChip({ event, label }: { event: UpcomingEvent; label: string }) {
+  const urgent = event.days_until <= 2;
+  return (
+    <div
+      className={`flex min-w-[180px] shrink-0 flex-col gap-1 rounded-xl border p-3 ${
+        urgent
+          ? 'border-amber-300 bg-amber-50 dark:border-amber-800/60 dark:bg-amber-950/20'
+          : 'border-border bg-card'
+      }`}
+    >
+      <div className="flex items-center gap-1.5 text-primary">
+        {EVENT_ICONS[event.event_type] ?? <CalendarClock className="h-4 w-4" />}
+        <span className={`text-[11px] font-bold uppercase tracking-wide ${urgent ? 'text-amber-600 dark:text-amber-400' : 'text-primary'}`}>
+          {label}
+        </span>
+      </div>
+      <p className="truncate text-sm font-semibold text-foreground" title={event.title}>
+        {event.title}
+      </p>
+      <p className="truncate text-xs text-muted-foreground">{event.course_name}</p>
     </div>
   );
 }
