@@ -1278,6 +1278,40 @@ export class WidgetAPIClient {
   }
 
   /**
+   * Submit quiz results — persists the attempt (DynamoDB analytics) and awards
+   * gamification XP for completing the quiz. Sends the widget session token so
+   * the attempt is tied to the logged-in student.
+   */
+  async submitQuiz(params: {
+    moduleToken: string;
+    moduleId?: number | null;
+    quizId: number;
+    answers: Array<{
+      questionNumber: number;
+      selectedAnswer: string;
+      correctAnswer: string;
+      isCorrect: boolean;
+      conceptsCovered: string;
+      difficulty: string;
+    }>;
+  }): Promise<{ reward?: { xp_gained?: number; leveled_up?: boolean; new_badges?: string[] } }> {
+    const url =
+      `${this.baseUrl}/api/widget/quiz/submit?module_token=${encodeURIComponent(params.moduleToken)}` +
+      `&quiz_id=${params.quizId}${this.moduleParam(params.moduleId ?? undefined)}`;
+    const response = await robustFetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...this.sessionHeaders() },
+      body: JSON.stringify(params.answers),
+      timeout: 15000,
+      retries: 1,
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to submit quiz: ${response.status}`);
+    }
+    return await response.json();
+  }
+
+  /**
    * Check if the module requires student verification (matricula)
    */
   async requiresVerification(moduleToken: string): Promise<{ requires_verification: boolean; course_name: string; tutor_language?: string }> {

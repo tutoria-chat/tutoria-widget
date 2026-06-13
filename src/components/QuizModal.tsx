@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { X, CheckCircle2, XCircle, Trophy, ArrowRight, Loader2, Brain } from 'lucide-react';
 import { useTranslations } from '@/i18n';
@@ -22,6 +22,15 @@ interface ShuffledOption {
   explanation: string | null;
 }
 
+export interface QuizSubmitAnswer {
+  questionNumber: number;
+  selectedAnswer: string;
+  correctAnswer: string;
+  isCorrect: boolean;
+  conceptsCovered: string;
+  difficulty: string;
+}
+
 interface QuizModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -29,11 +38,13 @@ interface QuizModalProps {
   moduleName: string;
   isLoading: boolean;
   onSendResult?: (summary: string) => void;
+  /** Fires once when the quiz finishes — persists the attempt + awards XP. */
+  onComplete?: (quizId: number, answers: QuizSubmitAnswer[]) => void;
 }
 
 type QuizState = 'intro' | 'question' | 'feedback' | 'results';
 
-export default function QuizModal({ isOpen, onClose, questions, moduleName, isLoading, onSendResult }: QuizModalProps) {
+export default function QuizModal({ isOpen, onClose, questions, moduleName, isLoading, onSendResult, onComplete }: QuizModalProps) {
   const t = useTranslations('quizModal');
   const tCommon = useTranslations('common');
   const [quizState, setQuizState] = useState<QuizState>('intro');
@@ -41,6 +52,7 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [score, setScore] = useState(0);
   const [answers, setAnswers] = useState<{ question: number; selected: string; correct: string; isCorrect: boolean }[]>([]);
+  const submittedRef = useRef(false);
 
   // Pre-compute shuffled options for every question when the question list changes.
   const shuffledData = useMemo(() => {
@@ -80,6 +92,7 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
       setSelectedAnswer(null);
       setScore(0);
       setAnswers([]);
+      submittedRef.current = false;
     }
   }, [isOpen]);
 
@@ -142,6 +155,22 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
       setQuizState('question');
     } else {
       setQuizState('results');
+      // Persist the attempt + award XP, exactly once per run.
+      if (!submittedRef.current && onComplete && answers.length > 0) {
+        submittedRef.current = true;
+        const payload: QuizSubmitAnswer[] = answers.map((ans) => {
+          const q = questions[ans.question - 1];
+          return {
+            questionNumber: ans.question,
+            selectedAnswer: ans.selected,
+            correctAnswer: ans.correct,
+            isCorrect: ans.isCorrect,
+            conceptsCovered: (q?.concepts_covered ?? []).join(','),
+            difficulty: q?.difficulty ?? 'medium',
+          };
+        });
+        onComplete(questions[0]?.id ?? 0, payload);
+      }
     }
   };
 

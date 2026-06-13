@@ -130,6 +130,12 @@ export default function QuizzesPanel({ onOpenChat }: { onOpenChat: () => void })
         questions={quizQuestions}
         moduleName={activeModule?.name ?? 'Quiz'}
         isLoading={quizLoading}
+        onComplete={(quizId, quizAnswers) => {
+          // Persist the attempt + award XP (fire-and-forget; never blocks the UI).
+          apiClient
+            .submitQuiz({ moduleToken, moduleId: moduleIdParam, quizId, answers: quizAnswers })
+            .catch((e) => console.error('[Quiz] submit failed:', e));
+        }}
         onSendResult={(summary) => {
           // Stage the result as a ready-to-send chat draft and jump to chat
           setChatDraft(activeModuleId, summary);
