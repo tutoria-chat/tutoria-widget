@@ -62,6 +62,7 @@
       "assignments": "Actividades",
       "files": "Materiales",
       "progress": "Mi Progreso",
+      "titles": "Títulos",
       "settings": "Ajustes"
     }
   },
@@ -220,6 +221,10 @@
       "imortal": { "name": "Inmortal", "tip": "Mantén una racha de {threshold} días" },
       "transcendente": { "name": "Trascendente", "tip": "¡Supera tus límites de estudio para lograrlo!" }
     }
+  },
+  "titlesPanel": {
+    "title": "Títulos",
+    "subtitle": "Tus títulos alcanzables — equipa uno para lucirlo en tu perfil."
   },
   "progress": {
     "title": "Mi Progreso",

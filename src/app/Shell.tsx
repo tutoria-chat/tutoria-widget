@@ -15,6 +15,7 @@ import {
   Settings as SettingsIcon,
   TrendingUp,
   GraduationCap,
+  Crown,
 } from 'lucide-react';
 import { useApp } from './AppContext';
 import { apiClient } from '../lib/api-client';
@@ -29,6 +30,7 @@ import StudyPlanPanel from '../features/plan/StudyPlanPanel';
 import FlashcardsPanel from '../features/flashcards/FlashcardsPanel';
 import ProgressPanel from '../features/progress/ProgressPanel';
 import EnemPanel from '../features/enem/EnemPanel';
+import TitlesPanel from '../features/titles/TitlesPanel';
 
 type Theme = 'light' | 'dark' | 'system';
 export type PanelKey =
@@ -41,6 +43,7 @@ export type PanelKey =
   | 'assignments'
   | 'files'
   | 'progress'
+  | 'titles'
   | 'settings';
 
 interface ShellProps {
@@ -120,6 +123,7 @@ export default function Shell({
       items.push({ key: 'files', label: t('nav.files'), icon: <FolderOpen className="w-5 h-5" /> });
     }
     items.push({ key: 'progress', label: t('nav.progress'), icon: <TrendingUp className="w-5 h-5" /> });
+    items.push({ key: 'titles', label: t('nav.titles'), icon: <Crown className="w-5 h-5" /> });
     items.push({ key: 'settings', label: t('nav.settings'), icon: <SettingsIcon className="w-5 h-5" /> });
     return items;
   }, [context.features, enableEnem, t]);
@@ -242,6 +246,7 @@ export default function Shell({
             )}
             {activePanel === 'files' && <FilesPanel key={`files-${activeModuleId}`} apiBaseUrl={apiBaseUrl} />}
             {activePanel === 'progress' && <ProgressPanel key={`progress-${activeCourse?.id ?? 0}`} />}
+            {activePanel === 'titles' && <TitlesPanel />}
             {activePanel === 'settings' && <SettingsPanel theme={theme} onThemeChange={onThemeChange} />}
           </div>
         </main>
