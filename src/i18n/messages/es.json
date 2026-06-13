@@ -223,6 +223,14 @@
       "transcendente": { "name": "Trascendente", "tip": "¡Supera tus límites de estudio para lograrlo!" },
       "hidden_leaves": { "name": "Estudiante de la Aldea de la Hoja", "tip": "Si estudias con los brazos apuntando hacia atrás, quizás llegues." },
       "standing_student": { "name": "Estudiante Standing", "tip": "Si tan solo pudieras verte de pie, llegarías." },
+      "cursed_student": { "name": "Estudiante Maldito", "tip": "Expande tu dominio del conocimiento para desbloquearlo." },
+      "force_scholar": { "name": "Erudito de la Fuerza", "tip": "Confía en tus sentimientos — déjate llevar y la respuesta llegará." },
+      "study_striker": { "name": "Goleador del Estudio", "tip": "Encuentra el fondo de la red desde el área de estudio." },
+      "study_gains": { "name": "Estudiante Fitness", "tip": "Sin dolor no hay ganancias de conocimiento — ¡una repetición más!" },
+      "dedicado": { "name": "Dedicado", "tip": "Mantén una racha de {threshold} días" },
+      "incansavel": { "name": "Incansable", "tip": "Mantén una racha de {threshold} días" },
+      "centuriao": { "name": "Centurión", "tip": "Acumula {threshold} XP en total" },
+      "erudito": { "name": "Erudito", "tip": "Alcanza el nivel {threshold}" },
       "the_one": { "name": "El Elegido" }
     }
   },

@@ -15,6 +15,7 @@ import { useApp } from '../../app/AppContext';
 import { useTranslations, type Translator } from '../../i18n';
 import { titleName } from './TitlesShowcase';
 import { playAchievementSound } from '../../lib/achievementSound';
+import { burstConfetti } from '../../lib/confetti';
 
 const storageKey = (sid: number | string) => `tutoria-earned-titles-${sid}`;
 
@@ -56,6 +57,7 @@ export default function TitleWatcher() {
         try { localStorage.setItem(storageKey(studentId), JSON.stringify(earnedKeys)); } catch {}
         setToasts((prev) => [...prev, ...fresh]);
         playAchievementSound();
+        burstConfetti();
         fresh.forEach((f) => setTimeout(() => dismiss(f.key), 7000));
       }
     } catch {

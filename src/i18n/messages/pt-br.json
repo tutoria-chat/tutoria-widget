@@ -223,6 +223,14 @@
       "transcendente": { "name": "Transcendente", "tip": "Supere seus limites de estudo para conquistar este!" },
       "hidden_leaves": { "name": "Estudante da Vila da Folha", "tip": "Se você estudar com os braços apontando para trás, talvez chegue lá." },
       "standing_student": { "name": "Estudante Standing", "tip": "Se ao menos você pudesse se ver parado, você chegaria lá." },
+      "cursed_student": { "name": "Estudante Amaldiçoado", "tip": "Expanda seu domínio do conhecimento para desbloquear." },
+      "force_scholar": { "name": "Erudito da Força", "tip": "Confie nos seus sentimentos — relaxe, e a resposta virá." },
+      "study_striker": { "name": "Artilheiro dos Estudos", "tip": "Mande pro fundo das redes a partir da área dos estudos." },
+      "study_gains": { "name": "Estudante Marombeiro", "tip": "Sem dor, sem ganhos de conhecimento — mais uma repetição!" },
+      "dedicado": { "name": "Dedicado", "tip": "Mantenha uma sequência de {threshold} dias" },
+      "incansavel": { "name": "Incansável", "tip": "Mantenha uma sequência de {threshold} dias" },
+      "centuriao": { "name": "Centurião", "tip": "Acumule {threshold} XP no total" },
+      "erudito": { "name": "Erudito", "tip": "Alcance o nível {threshold}" },
       "the_one": { "name": "O Escolhido" }
     }
   },

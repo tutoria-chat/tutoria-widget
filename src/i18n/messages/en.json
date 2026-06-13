@@ -223,6 +223,14 @@
       "transcendente": { "name": "Transcendent", "tip": "Surpass your studying limits to achieve this!" },
       "hidden_leaves": { "name": "Student of the Hidden Leaves", "tip": "If you study with your arms pointing backwards, you might just get there." },
       "standing_student": { "name": "Standing Student", "tip": "If only you could see yourself standing still, you'd get there." },
+      "cursed_student": { "name": "Cursed Student", "tip": "Expand your domain of knowledge to unlock this." },
+      "force_scholar": { "name": "Force Scholar", "tip": "Trust your feelings — let go, and the answer will come to you." },
+      "study_striker": { "name": "Study Striker", "tip": "Find the back of the net from inside the study box." },
+      "study_gains": { "name": "Swole Scholar", "tip": "No pain, no knowledge gains — one more rep!" },
+      "dedicado": { "name": "Dedicated", "tip": "Keep a {threshold}-day streak" },
+      "incansavel": { "name": "Relentless", "tip": "Keep a {threshold}-day streak" },
+      "centuriao": { "name": "Centurion", "tip": "Earn {threshold} total XP" },
+      "erudito": { "name": "Scholar", "tip": "Reach level {threshold}" },
       "the_one": { "name": "The One" }
     }
   },
