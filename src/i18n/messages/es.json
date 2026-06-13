@@ -188,6 +188,7 @@
     "error": "No se pudo cargar el simulacro.",
     "retry": "Intentar de nuevo",
     "unconfigured": "Tu profesor aún no ha definido un área del ENEM para este curso.",
+    "emptyBank": "Aún no hay simulacro disponible para esta área — vuelve pronto.",
     "backToAreas": "Volver a las áreas",
     "answerAll": "Responde todas las preguntas",
     "finish": "Finalizar simulacro",

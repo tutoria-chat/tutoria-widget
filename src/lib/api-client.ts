@@ -288,6 +288,8 @@ export type EnemArea = 'linguagens' | 'matematica' | 'natureza' | 'humanas';
 export interface EnemQuestion {
   id: number;
   statement: string;
+  supporting_text?: string | null;
+  has_image?: boolean;
   options: string[];
   correct_index: number;
   explanation?: string | null;

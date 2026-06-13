@@ -188,6 +188,7 @@
     "error": "Não foi possível carregar o simulado.",
     "retry": "Tentar novamente",
     "unconfigured": "Seu professor ainda não definiu uma área do ENEM para este curso.",
+    "emptyBank": "Ainda não há simulado disponível para esta área — volte em breve.",
     "backToAreas": "Voltar às áreas",
     "answerAll": "Responda todas as questões",
     "finish": "Finalizar simulado",

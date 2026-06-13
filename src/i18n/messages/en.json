@@ -188,6 +188,7 @@
     "error": "Could not load the mock exam.",
     "retry": "Try again",
     "unconfigured": "Your instructor hasn't set an ENEM area for this course yet.",
+    "emptyBank": "No mock exam is available for this area yet — check back soon.",
     "backToAreas": "Back to areas",
     "answerAll": "Answer all questions",
     "finish": "Finish exam",

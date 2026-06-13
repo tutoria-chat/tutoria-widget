@@ -11,7 +11,7 @@ import { useTranslations } from '../../i18n';
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E'];
 
-type Phase = 'loading' | 'generating' | 'quiz' | 'result' | 'error' | 'unconfigured';
+type Phase = 'loading' | 'generating' | 'quiz' | 'result' | 'error' | 'unconfigured' | 'empty';
 
 export default function EnemPanel({ area }: { area: string | null }) {
   const t = useTranslations('enem');
@@ -37,9 +37,13 @@ export default function EnemPanel({ area }: { area: string | null }) {
           setResult(null);
           setPhase('quiz');
         } else if (res.status === 'generating' && attempt < 40) {
-          // The server auto-provisions the pool on first open — just keep polling.
+          // If a school opted into AI generation, the server provisions the pool
+          // on first open — just keep polling until it's ready.
           setPhase('generating');
           pollTimer.current = setTimeout(() => load(attempt + 1), 3000);
+        } else if (res.status === 'none') {
+          // Official bank not loaded for this area yet.
+          setPhase('empty');
         } else {
           setPhase('error');
         }
@@ -114,6 +118,12 @@ export default function EnemPanel({ area }: { area: string | null }) {
         </div>
       )}
 
+      {phase === 'empty' && (
+        <div className="mt-16 text-center">
+          <p className="text-sm text-muted-foreground">{t('emptyBank')}</p>
+        </div>
+      )}
+
       {phase === 'error' && (
         <div className="mt-16 text-center">
           <p className="text-sm text-destructive">{t('error')}</p>
@@ -143,6 +153,11 @@ export default function EnemPanel({ area }: { area: string | null }) {
             const chosen = answers[q.id];
             return (
               <div key={q.id} className="rounded-xl border border-border bg-card p-4">
+                {q.supporting_text && (
+                  <p className="mb-2 whitespace-pre-line rounded-lg bg-muted/40 p-2.5 text-xs leading-relaxed text-muted-foreground">
+                    {q.supporting_text}
+                  </p>
+                )}
                 <p className="text-sm font-medium">
                   <span className="text-primary">{qi + 1}.</span> {q.statement}
                 </p>
