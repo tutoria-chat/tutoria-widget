@@ -219,7 +219,9 @@
     "special": {
       "veterano": { "name": "Veterano", "tip": "Alcanza el nivel {threshold}" },
       "imortal": { "name": "Inmortal", "tip": "Mantén una racha de {threshold} días" },
-      "transcendente": { "name": "Trascendente", "tip": "¡Supera tus límites de estudio para lograrlo!" }
+      "transcendente": { "name": "Trascendente", "tip": "¡Supera tus límites de estudio para lograrlo!" },
+      "hidden_leaves": { "name": "Estudiante de la Aldea de la Hoja", "tip": "Si estudias con los brazos apuntando hacia atrás, quizás llegues." },
+      "standing_student": { "name": "Estudiante Standing", "tip": "Si tan solo pudieras verte de pie, llegarías." }
     }
   },
   "titlesPanel": {

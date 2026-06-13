@@ -219,7 +219,9 @@
     "special": {
       "veterano": { "name": "Veteran", "tip": "Reach level {threshold}" },
       "imortal": { "name": "Immortal", "tip": "Keep a {threshold}-day streak" },
-      "transcendente": { "name": "Transcendent", "tip": "Surpass your studying limits to achieve this!" }
+      "transcendente": { "name": "Transcendent", "tip": "Surpass your studying limits to achieve this!" },
+      "hidden_leaves": { "name": "Student of the Hidden Leaves", "tip": "If you study with your arms pointing backwards, you might just get there." },
+      "standing_student": { "name": "Standing Student", "tip": "If only you could see yourself standing still, you'd get there." }
     }
   },
   "titlesPanel": {

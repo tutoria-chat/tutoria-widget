@@ -12,7 +12,7 @@ import { useTranslations } from '../../i18n';
 /** Display name for a title (descriptor or full dto). Hidden+unearned → "???". */
 export function titleName(t: Translator, td: TitleDescriptor | TitleDto): string {
   const earned = 'earned' in td ? td.earned : true;
-  if (td.type === 'hidden') return earned ? t('titles.special.transcendente.name') : '???';
+  if (td.type === 'hidden') return earned ? t(`titles.special.${td.key}.name`) : '???';
   if (td.type === 'track' && td.track && td.tier) {
     return t(`titles.trackTitle.${td.tier}`, { area: t(`titles.track.${td.track}`) });
   }
@@ -20,7 +20,7 @@ export function titleName(t: Translator, td: TitleDescriptor | TitleDto): string
 }
 
 function titleTip(t: Translator, td: TitleDto): string {
-  if (td.type === 'hidden') return t('titles.special.transcendente.tip');
+  if (td.type === 'hidden') return t(`titles.special.${td.key}.tip`);
   if (td.type === 'track' && td.track && td.tier) {
     return t(`titles.trackTip.${td.tier}`, {
       threshold: td.threshold ?? 0,
