@@ -337,19 +337,21 @@ export interface GamificationData {
 
 export interface TitleDescriptor {
   key: string;
-  type: 'track' | 'global' | 'hidden';
+  type: 'track' | 'global' | 'hidden' | 'champion';
   track?: string;
   tier?: string;
+  label?: string | null;
 }
 
 export interface TitleDto {
   key: string;
-  type: 'track' | 'global' | 'hidden';
+  type: 'track' | 'global' | 'hidden' | 'champion';
   track?: string;
   tier?: string;
   threshold?: number;
   progress?: number;
   metric?: string;
+  label?: string | null;
   earned: boolean;
   hidden: boolean;
 }
