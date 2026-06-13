@@ -31,6 +31,7 @@ import FlashcardsPanel from '../features/flashcards/FlashcardsPanel';
 import ProgressPanel from '../features/progress/ProgressPanel';
 import EnemPanel from '../features/enem/EnemPanel';
 import TitlesPanel from '../features/titles/TitlesPanel';
+import TitleWatcher from '../features/gamification/TitleWatcher';
 
 type Theme = 'light' | 'dark' | 'system';
 export type PanelKey =
@@ -151,6 +152,8 @@ export default function Shell({
 
   return (
     <div className="flex flex-col h-full bg-background text-foreground">
+      {/* Celebrates newly-earned titles with a toast + sound */}
+      <TitleWatcher />
       <style>
         {`
           .dynamic-button-color { background-color: ${sendBgColor}; color: ${sendTextColor}; }

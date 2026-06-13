@@ -188,6 +188,8 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
       });
     } finally {
       setIsLoading(false);
+      // Nudge the title watcher — a question may have unlocked XP / a title.
+      try { window.dispatchEvent(new Event('tutoria:gamification')); } catch { /* SSR */ }
     }
   };
 

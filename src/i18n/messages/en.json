@@ -197,6 +197,7 @@
     "scorePct": "{pct}% correct"
   },
   "titles": {
+    "unlockedToast": "New title unlocked!",
     "track": {
       "math": "Mathematics",
       "programming": "Programming",

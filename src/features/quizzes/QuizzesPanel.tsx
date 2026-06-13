@@ -134,7 +134,11 @@ export default function QuizzesPanel({ onOpenChat }: { onOpenChat: () => void })
           // Persist the attempt + award XP (fire-and-forget; never blocks the UI).
           apiClient
             .submitQuiz({ moduleToken, moduleId: moduleIdParam, quizId, answers: quizAnswers })
-            .catch((e) => console.error('[Quiz] submit failed:', e));
+            .catch((e) => console.error('[Quiz] submit failed:', e))
+            // Nudge the title watcher — finishing a quiz may unlock a title.
+            .finally(() => {
+              try { window.dispatchEvent(new Event('tutoria:gamification')); } catch { /* SSR */ }
+            });
         }}
         onSendResult={(summary) => {
           // Stage the result as a ready-to-send chat draft and jump to chat

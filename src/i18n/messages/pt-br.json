@@ -197,6 +197,7 @@
     "scorePct": "{pct}% de acerto"
   },
   "titles": {
+    "unlockedToast": "Novo título desbloqueado!",
     "track": {
       "math": "Matemática",
       "programming": "Programação",
