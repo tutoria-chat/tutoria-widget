@@ -593,6 +593,7 @@ export class WidgetAPIClient {
     style: string;
     preferences?: string;
     daily_reminder: boolean;
+    language?: string;
   }): Promise<StudyPlanDto> {
     return this.sessionJson('/api/widget/study-plans', { method: 'POST', body });
   }

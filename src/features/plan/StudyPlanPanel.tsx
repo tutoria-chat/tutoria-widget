@@ -14,12 +14,13 @@ import {
 } from 'lucide-react';
 import { apiClient, type StudyPlanDto } from '../../lib/api-client';
 import { useApp } from '../../app/AppContext';
-import { useTranslations } from '../../i18n';
+import { useTranslations, useI18n } from '../../i18n';
 
 const STYLES = ['light', 'balanced', 'intensive'] as const;
 
 export default function StudyPlanPanel() {
   const t = useTranslations('plan');
+  const { locale } = useI18n();
   const { activeCourse } = useApp();
 
   const [loading, setLoading] = useState(true);
@@ -60,6 +61,7 @@ export default function StudyPlanPanel() {
         style,
         preferences: preferences.trim() || undefined,
         daily_reminder: dailyReminder,
+        language: locale,
       });
       setPlan(newPlan);
     } catch (err: any) {
