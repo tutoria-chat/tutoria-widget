@@ -62,6 +62,19 @@ function isValidHexColor(value: string): string {
   return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(candidate) ? candidate : '';
 }
 
+/** Apply an opacity percent (0–100) to a #hex color → rgba(). Non-hex passes through. */
+function withOpacity(color: string, opacityPercent: number): string {
+  if (opacityPercent >= 100 || !color.startsWith('#')) return color;
+  let hex = color.slice(1);
+  if (hex.length === 3) hex = hex.split('').map((c) => c + c).join('');
+  if (hex.length !== 6) return color;
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+  const a = Math.max(0, Math.min(100, opacityPercent)) / 100;
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
+}
+
 export default function Shell({
   apiBaseUrl,
   streaming,
@@ -76,6 +89,8 @@ export default function Shell({
 
   // University branding from the module info (primary/secondary colors)
   const [branding, setBranding] = useState<{ primary?: string | null; secondary?: string | null }>({});
+  // Chat bubble opacity (0–100, % ); 100 = fully opaque.
+  const [bubbleOpacity, setBubbleOpacity] = useState(100);
   // ENEM/Vestibular tab is opt-in per course (default off) — universities hide it.
   const [enableEnem, setEnableEnem] = useState(false);
   // The course's ENEM area drives the simulado (no student picker).
@@ -93,6 +108,9 @@ export default function Shell({
           });
           setEnableEnem(!!info?.enable_enem);
           setEnemArea(info?.enem_area ?? null);
+          setBubbleOpacity(
+            typeof info?.appearance?.bubble_opacity === 'number' ? info.appearance.bubble_opacity : 100,
+          );
         }
       })
       .catch(() => {
@@ -158,8 +176,8 @@ export default function Shell({
         {`
           .dynamic-button-color { background-color: ${sendBgColor}; color: ${sendTextColor}; }
           .dynamic-button-color:hover { background-color: ${sendBgColor}; color: ${sendTextColor}; opacity: 0.9; }
-          .dynamic-agent-message-color { background-color: ${agentMsgColor || 'var(--muted)'}; }
-          .dynamic-user-message-color { background-color: ${userMsgBgColor}; color: ${userMsgTextColor}; }
+          .dynamic-agent-message-color { background-color: ${withOpacity(agentMsgColor || 'var(--muted)', bubbleOpacity)}; }
+          .dynamic-user-message-color { background-color: ${withOpacity(userMsgBgColor, bubbleOpacity)}; color: ${userMsgTextColor}; }
         `}
       </style>
 
