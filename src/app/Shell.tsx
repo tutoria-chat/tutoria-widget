@@ -237,7 +237,9 @@ export default function Shell({
               the visible cue that the context switched (WhatsApp model) */}
           <div key={`${activePanel}-${activeModuleId}`} className="erwin-fade-up h-full">
             {activePanel === 'home' && <HomePanel onNavigate={setActivePanel} />}
-            {activePanel === 'plan' && <StudyPlanPanel key={`plan-${activeCourse?.id ?? 0}`} />}
+            {activePanel === 'plan' && (
+              <StudyPlanPanel key={`plan-${activeCourse?.id ?? 0}`} onOpenChat={() => setActivePanel('chat')} />
+            )}
             {activePanel === 'flashcards' && <FlashcardsPanel key={`fc-${activeModuleId}`} />}
             {activePanel === 'enem' && <EnemPanel area={enemArea} />}
             {activePanel === 'chat' && <ChatPanel key={`chat-${activeModuleId}`} streaming={streaming} />}

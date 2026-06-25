@@ -9,6 +9,7 @@ import {
   BellOff,
   CalendarCheck,
   Loader2,
+  MessageCircle,
   Sparkles,
   Target,
 } from 'lucide-react';
@@ -18,10 +19,30 @@ import { useTranslations, useI18n } from '../../i18n';
 
 const STYLES = ['light', 'balanced', 'intensive'] as const;
 
-export default function StudyPlanPanel() {
+interface StudyPlanPanelProps {
+  /** Switch to the chat panel (a seeded draft is staged first). */
+  onOpenChat?: () => void;
+}
+
+export default function StudyPlanPanel({ onOpenChat }: StudyPlanPanelProps) {
   const t = useTranslations('plan');
   const { locale } = useI18n();
-  const { activeCourse } = useApp();
+  const { activeCourse, activeModuleId, context, setChatDraft } = useApp();
+
+  const chatEnabled = !!context.features.chat;
+
+  // Seed the chat with this day's plan and jump to it ("Chat now").
+  const startChatForDay = (day: StudyPlanDto['days'][number]) => {
+    if (!onOpenChat) return;
+    const tasks = day.tasks.map((tk) => `- ${tk.description}`).join('\n');
+    const prompt = t('chatNowPrompt', {
+      title: day.title,
+      focus: day.focus || '',
+      tasks: tasks || '—',
+    }).trim();
+    setChatDraft(activeModuleId, prompt);
+    onOpenChat();
+  };
 
   const [loading, setLoading] = useState(true);
   const [plan, setPlan] = useState<StudyPlanDto | null>(null);
@@ -249,6 +270,16 @@ export default function StudyPlanPanel() {
                     ))
                   )}
                 </ul>
+
+                {chatEnabled && onOpenChat && day.tasks.length > 0 && (
+                  <button
+                    onClick={() => startChatForDay(day)}
+                    className="mt-3 flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+                  >
+                    <MessageCircle className="h-3.5 w-3.5" />
+                    {t('chatNow')}
+                  </button>
+                )}
               </div>
             ))}
           </div>

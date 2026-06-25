@@ -109,7 +109,9 @@
     "reminderOn": "Daily reminder ON — you'll get each day's tasks at 7am. Tap to turn off.",
     "reminderOff": "Daily reminder off. Tap to get each day's tasks by email at 7am.",
     "restDay": "Rest day 🌴",
-    "nextPlanNote": "A new plan unlocks every Monday."
+    "nextPlanNote": "A new plan unlocks every Monday.",
+    "chatNow": "Chat now",
+    "chatNowPrompt": "I want to study today's content — {title}. {focus}\n\nToday's tasks:\n{tasks}\n\nCan you help me get started and answer my questions?"
   },
   "flashcards": {
     "title": "Flashcards",

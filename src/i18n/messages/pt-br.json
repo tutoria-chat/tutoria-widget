@@ -109,7 +109,9 @@
     "reminderOn": "Lembrete diário ativado — você recebe as tarefas de cada dia às 7h. Toque para desativar.",
     "reminderOff": "Lembrete diário desativado. Toque para receber as tarefas de cada dia por e-mail às 7h.",
     "restDay": "Dia de descanso 🌴",
-    "nextPlanNote": "Um novo plano fica disponível toda segunda-feira."
+    "nextPlanNote": "Um novo plano fica disponível toda segunda-feira.",
+    "chatNow": "Conversar agora",
+    "chatNowPrompt": "Quero estudar o conteúdo de hoje — {title}. {focus}\n\nTarefas de hoje:\n{tasks}\n\nVocê pode me ajudar a começar e tirar minhas dúvidas?"
   },
   "flashcards": {
     "title": "Flashcards",
