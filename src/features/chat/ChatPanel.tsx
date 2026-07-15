@@ -354,7 +354,7 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
           <p className="text-[15px] text-muted-foreground mt-2 max-w-md">{t('emptySubtitle')}</p>
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto space-y-4 w-full px-4 py-4 scrollbar scrollbar-w-2 scrollbar-thumb-rounded-full scrollbar-track-rounded-full scrollbar-thumb-border">
+        <div className="flex-1 min-h-0 overflow-y-auto space-y-4 w-full px-4 py-4 scrollbar scrollbar-w-2 scrollbar-thumb-rounded-full scrollbar-track-rounded-full scrollbar-thumb-border">
           {thread.messages.map((msg, idx) => (
             <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div
