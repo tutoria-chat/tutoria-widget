@@ -51,7 +51,7 @@ function isRetryable(error: any, status?: number): boolean {
   }
 
   // Timeout errors
-  if (error.name === 'AbortError') {
+  if (error?.name === 'AbortError') {
     return true;
   }
 
@@ -122,9 +122,11 @@ export async function robustFetch(
 
       // Check if we should retry based on status
       lastStatus = response.status;
-      if (!isRetryable(null, response.status)) {
-        console.warn(`[API] Non-retryable status ${response.status}, returning response`);
-        return response; // Return non-retryable error responses
+      if (!isRetryable(null, response.status) || attempt === maxRetries) {
+        // Non-retryable status, or retries exhausted: hand the response back so
+        // callers can read the body (e.g. localized 429 quota messages).
+        console.warn(`[API] Returning non-ok response (status ${response.status})`);
+        return response;
       }
 
       console.warn(`[API] Retryable status ${response.status}, will retry`);
@@ -157,8 +159,281 @@ export async function robustFetch(
 /**
  * API client for widget endpoints
  */
+export interface SessionStudent {
+  id: number;
+  name: string;
+  first_name: string;
+  language_preference: string;
+  theme_preference: string;
+}
+
+export interface WidgetSession {
+  session_token: string;
+  student: SessionStudent;
+  default_module_id: number;
+  university_id: number;
+  university_name: string;
+}
+
+export interface SessionModule {
+  id: number;
+  name: string;
+  description?: string | null;
+  semester?: number | null;
+  year?: number | null;
+  tutor_language: string;
+}
+
+export interface SessionCourse {
+  id: number;
+  name: string;
+  code: string;
+  modules: SessionModule[];
+}
+
+export interface StudyPlanTask {
+  description: string;
+  duration_min?: number;
+  module_id?: number;
+}
+
+export interface StudyPlanDay {
+  date: string;
+  title: string;
+  focus: string;
+  tasks: StudyPlanTask[];
+}
+
+export interface StudyPlanDto {
+  id: number;
+  course_id: number;
+  course_name?: string;
+  week_start: string | null;
+  style: string;
+  overview: string;
+  days: StudyPlanDay[];
+  weak_concepts: Array<{ concept: string; success_rate: number; attempts: number }>;
+  language: string;
+  daily_reminder_opt_in: boolean;
+  created_at: string | null;
+}
+
+export interface UpcomingEvent {
+  id: number;
+  title: string;
+  event_type: string;
+  course_id: number;
+  course_name: string;
+  starts_at: string;
+  date: string;
+  days_until: number;
+}
+
+export interface HomeData {
+  student: { id: number; first_name: string };
+  today: string;
+  today_tasks: Array<{
+    plan_id: number;
+    course_id: number;
+    course_name: string;
+    title: string;
+    focus: string;
+    tasks: StudyPlanTask[];
+  }>;
+  upcoming_events: UpcomingEvent[];
+  week_plans: Array<{
+    plan_id: number;
+    course_id: number;
+    course_name: string;
+    style: string;
+    daily_reminder_opt_in: boolean;
+  }>;
+  recent_quizzes: Array<{
+    quiz_id: number;
+    module_id: number;
+    date: string;
+    correct: number;
+    total: number;
+  }>;
+}
+
+export interface FlashcardDto {
+  id: number;
+  front: string;
+  back: string;
+  concept?: string | null;
+  difficulty: string;
+}
+
+export interface FlashcardsResponse {
+  status: 'ready' | 'generating' | 'none';
+  total: number;
+  cards: FlashcardDto[];
+}
+
+export interface DueFlashcard extends FlashcardDto {
+  is_new: boolean;
+}
+
+export interface DueFlashcardsResponse {
+  total_due: number;
+  new_count: number;
+  cards: DueFlashcard[];
+}
+
+export type ReviewGrade = 'again' | 'hard' | 'good' | 'easy';
+
+export type EnemArea = 'linguagens' | 'matematica' | 'natureza' | 'humanas';
+
+export interface EnemQuestion {
+  id: number;
+  statement: string;
+  supporting_text?: string | null;
+  has_image?: boolean;
+  options: string[];
+  correct_index: number;
+  explanation?: string | null;
+  difficulty: string;
+}
+
+export interface EnemQuestionsResponse {
+  status: 'ready' | 'generating' | 'none';
+  area: EnemArea;
+  total: number;
+  questions: EnemQuestion[];
+}
+
+export interface EnemSubmitResult {
+  area: EnemArea;
+  score: number;
+  total: number;
+  results: Array<{ question_id: number; correct: boolean; correct_index: number; explanation?: string | null }>;
+  reward: GamificationReward;
+}
+
+export interface GamificationReward {
+  xp_gained: number;
+  total_xp: number;
+  level: number;
+  tier: string;
+  leveled_up: boolean;
+  streak: number;
+  new_badges: string[];
+}
+
+export interface GamificationData {
+  total_xp: number;
+  level: number;
+  tier: string;
+  level_xp: number;
+  level_xp_needed: number;
+  next_level: number;
+  streak: number;
+  longest_streak: number;
+  badges: Array<{ key: string; earned_at: string | null }>;
+  title: { tier: string; course_id: number; course_name: string; course_xp: number } | null;
+  displayed_title?: TitleDescriptor | null;
+}
+
+export interface TitleDescriptor {
+  key: string;
+  type: 'track' | 'global' | 'hidden' | 'champion';
+  track?: string;
+  tier?: string;
+  label?: string | null;
+}
+
+export interface TitleDto {
+  key: string;
+  type: 'track' | 'global' | 'hidden' | 'champion';
+  track?: string;
+  tier?: string;
+  threshold?: number;
+  progress?: number;
+  metric?: string;
+  label?: string | null;
+  earned: boolean;
+  hidden: boolean;
+}
+
+export interface TitlesResponse {
+  displayed: string | null;
+  titles: TitleDto[];
+}
+
+export interface EvolutionWeek {
+  week_start: string;
+  xp: number;
+  activities: number;
+}
+
+export interface ProgressEvolution {
+  weeks: EvolutionWeek[];
+  comparison: {
+    this_week: { xp: number; activities: number };
+    last_week: { xp: number; activities: number };
+    xp_delta: number;
+    activities_delta: number;
+  };
+  by_course: Array<{ course_id: number; course_name: string; xp: number }>;
+}
+
+export interface GoalDto {
+  id: number;
+  metric: string;
+  target: number;
+  progress: number;
+  completed: boolean;
+  course_id: number | null;
+  course_name: string | null;
+  created_at: string | null;
+}
+
+export interface ChallengeDto {
+  key: string;
+  target: number;
+  progress: number;
+  xp: number;
+  status: 'in_progress' | 'claimable' | 'claimed';
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  name: string;
+  xp: number;
+  is_me: boolean;
+}
+
+export interface LeaderboardData {
+  course_id: number;
+  course_name: string;
+  entries: LeaderboardEntry[];
+  my_rank: number | null;
+  my_xp: number;
+  total_ranked: number;
+}
+
+export interface DirectLoginResponse {
+  status: 'ok' | 'first_access' | 'choose_university';
+  session?: WidgetSession | null;
+  universities: Array<{ id: number; name: string }>;
+}
+
+export interface SessionContext {
+  student: SessionStudent;
+  default_module_id: number;
+  courses: SessionCourse[];
+  features: {
+    chat: boolean;
+    files: boolean;
+    quizzes: boolean;
+    assignments: boolean;
+  };
+}
+
 export class WidgetAPIClient {
   private baseUrl: string;
+  private sessionToken: string | null = null;
 
   constructor(baseUrl?: string) {
     // Fallback chain for API URL
@@ -171,15 +446,387 @@ export class WidgetAPIClient {
     console.log('[API Client] Initialized with base URL:', this.baseUrl);
   }
 
+  /** Attach the widget session JWT to subsequent requests (companion mode). */
+  setSessionToken(token: string | null) {
+    this.sessionToken = token;
+  }
+
+  /** Authorization header for the widget session, when one is active. */
+  private sessionHeaders(): Record<string, string> {
+    return this.sessionToken ? { Authorization: `Bearer ${this.sessionToken}` } : {};
+  }
+
+  /** Append &module_id= when targeting a non-default module. */
+  private moduleParam(moduleId?: number | null): string {
+    return moduleId ? `&module_id=${moduleId}` : '';
+  }
+
+  /**
+   * Open a widget session: verify matricula against the module token's course.
+   * On success the session token is stored on the client for subsequent calls.
+   */
+  async createSession(moduleToken: string, matricula: string): Promise<WidgetSession> {
+    const url = `${this.baseUrl}/api/widget/session?module_token=${encodeURIComponent(moduleToken)}`;
+    const response = await robustFetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ matricula }),
+      timeout: 15000,
+      retries: 2,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      let detail = '';
+      try { detail = JSON.parse(errorText).detail || ''; } catch { /* ignore */ }
+      if (response.status === 401) {
+        throw new Error(detail || 'MATRICULA_NOT_FOUND');
+      }
+      throw new Error(detail || `Session failed: ${response.status}`);
+    }
+
+    const session: WidgetSession = await response.json();
+    this.setSessionToken(session.session_token);
+    return session;
+  }
+
+  /**
+   * Direct (tokenless) login: matricula + email + password.
+   * On status "ok" the session token is stored for subsequent calls.
+   */
+  async directLogin(payload: {
+    email: string;
+    matricula: string;
+    password?: string;
+    university_id?: number;
+  }): Promise<DirectLoginResponse> {
+    const response = await robustFetch(`${this.baseUrl}/api/widget/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      timeout: 15000,
+      retries: 1,
+    });
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      let detail = '';
+      try { detail = JSON.parse(errorText).detail || ''; } catch { /* ignore */ }
+      if (response.status === 401) throw new Error(detail || 'INVALID_CREDENTIALS');
+      throw new Error(detail || `Login failed: ${response.status}`);
+    }
+    const result: DirectLoginResponse = await response.json();
+    if (result.status === 'ok' && result.session) {
+      this.setSessionToken(result.session.session_token);
+    }
+    return result;
+  }
+
+  /** First-access password creation; logs the student in on success. */
+  async setFirstPassword(payload: {
+    email: string;
+    matricula: string;
+    password: string;
+    university_id?: number;
+  }): Promise<DirectLoginResponse> {
+    const response = await robustFetch(`${this.baseUrl}/api/widget/login/set-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      timeout: 15000,
+      retries: 1,
+    });
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      let detail = '';
+      try { detail = JSON.parse(errorText).detail || ''; } catch { /* ignore */ }
+      throw new Error(detail || `Set password failed: ${response.status}`);
+    }
+    const result: DirectLoginResponse = await response.json();
+    if (result.status === 'ok' && result.session) {
+      this.setSessionToken(result.session.session_token);
+    }
+    return result;
+  }
+
+  /** Change (or set) the student's password — the only editable profile field. */
+  async changePassword(currentPassword: string | null, newPassword: string): Promise<void> {
+    const response = await robustFetch(`${this.baseUrl}/api/widget/me/password`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...this.sessionHeaders() },
+      body: JSON.stringify({
+        current_password: currentPassword || null,
+        new_password: newPassword,
+      }),
+      timeout: 15000,
+      retries: 0,
+    });
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      let detail = '';
+      try { detail = JSON.parse(errorText).detail || ''; } catch { /* ignore */ }
+      if (response.status === 401) throw new Error(detail || 'WRONG_CURRENT_PASSWORD');
+      throw new Error(detail || `Password change failed: ${response.status}`);
+    }
+  }
+
+  // ─── Study plans, home & flashcards ─────────────────────────────────────
+
+  private async sessionJson<T>(path: string, init?: { method?: string; body?: unknown }): Promise<T> {
+    const response = await robustFetch(`${this.baseUrl}${path}`, {
+      method: init?.method || 'GET',
+      headers: { 'Content-Type': 'application/json', ...this.sessionHeaders() },
+      body: init?.body !== undefined ? JSON.stringify(init.body) : undefined,
+      timeout: 60000, // plan generation can take a while
+      retries: 0,
+    });
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      let detail = '';
+      try { detail = JSON.parse(errorText).detail || ''; } catch { /* ignore */ }
+      if (response.status === 401) throw new Error('SESSION_EXPIRED');
+      if (response.status === 409) throw new Error(detail || 'QUOTA_REACHED');
+      throw new Error(detail || `Request failed: ${response.status}`);
+    }
+    return response.json();
+  }
+
+  async createStudyPlan(body: {
+    course_id: number;
+    style: string;
+    preferences?: string;
+    daily_reminder: boolean;
+    language?: string;
+  }): Promise<StudyPlanDto> {
+    return this.sessionJson('/api/widget/study-plans', { method: 'POST', body });
+  }
+
+  async getStudyPlans(courseId?: number): Promise<{ week_start: string; plans: StudyPlanDto[] }> {
+    const query = courseId ? `?course_id=${courseId}` : '';
+    return this.sessionJson(`/api/widget/study-plans${query}`);
+  }
+
+  async updatePlanReminder(planId: number, optIn: boolean): Promise<void> {
+    await this.sessionJson(`/api/widget/study-plans/${planId}/reminder`, {
+      method: 'PATCH',
+      body: { opt_in: optIn },
+    });
+  }
+
+  async getHome(): Promise<HomeData> {
+    return this.sessionJson('/api/widget/home');
+  }
+
+  async getGamification(courseId?: number): Promise<GamificationData> {
+    const query = courseId ? `?course_id=${courseId}` : '';
+    return this.sessionJson(`/api/widget/gamification${query}`);
+  }
+
+  async getLeaderboard(courseId: number, limit = 10): Promise<LeaderboardData> {
+    return this.sessionJson(`/api/widget/leaderboard?course_id=${courseId}&limit=${limit}`);
+  }
+
+  async getInstitutionLeaderboard(limit = 20): Promise<Omit<LeaderboardData, 'course_id' | 'course_name'>> {
+    return this.sessionJson(`/api/widget/leaderboard/institution?limit=${limit}`);
+  }
+
+  async getTitles(): Promise<TitlesResponse> {
+    return this.sessionJson('/api/widget/titles');
+  }
+
+  async equipTitle(key: string | null): Promise<{ displayed: string | null }> {
+    return this.sessionJson('/api/widget/titles/equip', { method: 'POST', body: { key } });
+  }
+
+  async getChallenges(): Promise<{ challenges: ChallengeDto[] }> {
+    return this.sessionJson('/api/widget/challenges');
+  }
+
+  async getEnemQuestions(area: EnemArea, count = 10): Promise<EnemQuestionsResponse> {
+    return this.sessionJson(`/api/widget/enem/questions?area=${area}&count=${count}`);
+  }
+
+  async generateEnem(area: EnemArea): Promise<{ status: string }> {
+    return this.sessionJson(`/api/widget/enem/generate?area=${area}`, { method: 'POST' });
+  }
+
+  async submitEnem(area: EnemArea, answers: Array<{ question_id: number; selected_index: number }>): Promise<EnemSubmitResult> {
+    return this.sessionJson('/api/widget/enem/submit', { method: 'POST', body: { area, answers } });
+  }
+
+  async getProgressEvolution(): Promise<ProgressEvolution> {
+    return this.sessionJson('/api/widget/progress/evolution');
+  }
+
+  async getGoals(): Promise<{ goals: GoalDto[] }> {
+    return this.sessionJson('/api/widget/goals');
+  }
+
+  async createGoal(metric: string, target: number, courseId?: number): Promise<GoalDto> {
+    return this.sessionJson('/api/widget/goals', {
+      method: 'POST',
+      body: { metric, target, course_id: courseId },
+    });
+  }
+
+  async deleteGoal(goalId: number): Promise<void> {
+    await this.sessionJson(`/api/widget/goals/${goalId}`, { method: 'DELETE' });
+  }
+
+  async claimChallenge(key: string): Promise<{ status: string; reward: GamificationReward | null }> {
+    return this.sessionJson(`/api/widget/challenges/${encodeURIComponent(key)}/claim`, { method: 'POST' });
+  }
+
+  async reportFlashcardsReviewed(moduleToken: string, moduleId?: number): Promise<{ reward: GamificationReward }> {
+    const url = `${this.baseUrl}/api/widget/flashcards/reviewed?module_token=${encodeURIComponent(moduleToken)}${this.moduleParam(moduleId)}`;
+    const response = await robustFetch(url, {
+      method: 'POST',
+      headers: this.sessionHeaders(),
+      timeout: 15000,
+      retries: 0,
+    });
+    if (!response.ok) throw new Error(`Failed to report review: ${response.status}`);
+    return response.json();
+  }
+
+  async getFlashcards(moduleToken: string, moduleId?: number, count = 12): Promise<FlashcardsResponse> {
+    const url = `${this.baseUrl}/api/widget/flashcards?module_token=${encodeURIComponent(moduleToken)}${this.moduleParam(moduleId)}&count=${count}`;
+    const response = await robustFetch(url, {
+      method: 'GET',
+      headers: this.sessionHeaders(),
+      timeout: 15000,
+      retries: 1,
+    });
+    if (!response.ok) throw new Error(`Failed to load flashcards: ${response.status}`);
+    return response.json();
+  }
+
+  async getDueFlashcards(moduleToken: string, moduleId?: number, limit = 20): Promise<DueFlashcardsResponse> {
+    const url = `${this.baseUrl}/api/widget/flashcards/due?module_token=${encodeURIComponent(moduleToken)}${this.moduleParam(moduleId)}&limit=${limit}`;
+    const response = await robustFetch(url, { method: 'GET', headers: this.sessionHeaders(), timeout: 15000, retries: 1 });
+    if (!response.ok) throw new Error(`Failed to load due cards: ${response.status}`);
+    return response.json();
+  }
+
+  async getDueCount(moduleToken: string, moduleId?: number): Promise<{ due: number }> {
+    const url = `${this.baseUrl}/api/widget/flashcards/due-count?module_token=${encodeURIComponent(moduleToken)}${this.moduleParam(moduleId)}`;
+    const response = await robustFetch(url, { method: 'GET', headers: this.sessionHeaders(), timeout: 15000, retries: 1 });
+    if (!response.ok) throw new Error(`Failed to load due count: ${response.status}`);
+    return response.json();
+  }
+
+  async reviewFlashcard(flashcardId: number, grade: ReviewGrade): Promise<{ interval_days: number; due_at: string; reward: GamificationReward }> {
+    return this.sessionJson(`/api/widget/flashcards/${flashcardId}/review`, { method: 'POST', body: { grade } });
+  }
+
+  async generateFlashcards(moduleToken: string, moduleId?: number): Promise<{ status: string }> {
+    const url = `${this.baseUrl}/api/widget/flashcards/generate?module_token=${encodeURIComponent(moduleToken)}${this.moduleParam(moduleId)}`;
+    const response = await robustFetch(url, {
+      method: 'POST',
+      headers: this.sessionHeaders(),
+      timeout: 15000,
+      retries: 0,
+    });
+    if (!response.ok) throw new Error(`Failed to start generation: ${response.status}`);
+    return response.json();
+  }
+
+  /**
+   * Fetch the student's enrolled courses/modules and the side-panel feature flags.
+   */
+  async getSessionContext(moduleToken: string): Promise<SessionContext> {
+    const url = `${this.baseUrl}/api/widget/session/context?module_token=${encodeURIComponent(moduleToken)}`;
+    const response = await robustFetch(url, {
+      method: 'GET',
+      headers: this.sessionHeaders(),
+      timeout: 15000,
+      retries: 2,
+    });
+    if (!response.ok) {
+      if (response.status === 401) throw new Error('SESSION_EXPIRED');
+      throw new Error(`Failed to load session context: ${response.status}`);
+    }
+    return response.json();
+  }
+
+  /** Sliding session renewal. Returns the refreshed session payload. */
+  async refreshSession(): Promise<WidgetSession> {
+    const url = `${this.baseUrl}/api/widget/session/refresh`;
+    const response = await robustFetch(url, {
+      method: 'POST',
+      headers: this.sessionHeaders(),
+      timeout: 15000,
+      retries: 1,
+    });
+    if (!response.ok) throw new Error('SESSION_EXPIRED');
+    const session: WidgetSession = await response.json();
+    this.setSessionToken(session.session_token);
+    return session;
+  }
+
+  /** Update the verified student's UI preferences. */
+  async updatePreferences(prefs: { language?: string; theme?: string }): Promise<SessionStudent> {
+    const url = `${this.baseUrl}/api/widget/me/preferences`;
+    const response = await robustFetch(url, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...this.sessionHeaders() },
+      body: JSON.stringify(prefs),
+      timeout: 15000,
+      retries: 1,
+    });
+    if (!response.ok) {
+      if (response.status === 401) throw new Error('SESSION_EXPIRED');
+      throw new Error(`Failed to update preferences: ${response.status}`);
+    }
+    return response.json();
+  }
+
+  /** List the student's past conversations for a module (90-day window). */
+  async getConversations(moduleToken: string, moduleId?: number): Promise<{
+    conversations: Array<{
+      conversation_id: string;
+      preview: string;
+      last_message_at: number;
+      message_count: number;
+    }>;
+  }> {
+    const url = `${this.baseUrl}/api/widget/conversations?module_token=${encodeURIComponent(moduleToken)}${this.moduleParam(moduleId)}`;
+    const response = await robustFetch(url, {
+      method: 'GET',
+      headers: this.sessionHeaders(),
+      timeout: 15000,
+      retries: 1,
+    });
+    if (!response.ok) throw new Error(`Failed to load conversations: ${response.status}`);
+    return response.json();
+  }
+
+  /** Restore a past conversation's messages (ownership enforced server-side). */
+  async getConversationMessages(moduleToken: string, conversationId: string): Promise<{
+    conversation_id: string;
+    module_id: number | null;
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+  }> {
+    const url = `${this.baseUrl}/api/widget/conversations/${encodeURIComponent(conversationId)}/messages?module_token=${encodeURIComponent(moduleToken)}`;
+    const response = await robustFetch(url, {
+      method: 'GET',
+      headers: this.sessionHeaders(),
+      timeout: 15000,
+      retries: 1,
+    });
+    if (!response.ok) throw new Error(`Failed to load conversation: ${response.status}`);
+    return response.json();
+  }
+
   /**
    * Fetch module information
    */
-  async getModuleInfo(moduleToken: string): Promise<any> {
-    const url = `${this.baseUrl}/api/widget/info?module_token=${encodeURIComponent(moduleToken)}`;
+  async getModuleInfo(moduleToken: string, moduleId?: number): Promise<any> {
+    const url = `${this.baseUrl}/api/widget/info?module_token=${encodeURIComponent(moduleToken)}${this.moduleParam(moduleId)}`;
 
     try {
       const response = await robustFetch(url, {
         method: 'GET',
+        headers: this.sessionHeaders(),
         timeout: 15000, // 15 seconds for info requests
         retries: 2, // 2 retries for metadata
       });
@@ -203,12 +850,13 @@ export class WidgetAPIClient {
   /**
    * Fetch module files
    */
-  async getModuleFiles(moduleToken: string): Promise<any[]> {
-    const url = `${this.baseUrl}/api/widget/files?module_token=${encodeURIComponent(moduleToken)}`;
+  async getModuleFiles(moduleToken: string, moduleId?: number): Promise<any[]> {
+    const url = `${this.baseUrl}/api/widget/files?module_token=${encodeURIComponent(moduleToken)}${this.moduleParam(moduleId)}`;
 
     try {
       const response = await robustFetch(url, {
         method: 'GET',
+        headers: this.sessionHeaders(),
         timeout: 15000,
         retries: 2,
       });
@@ -233,6 +881,7 @@ export class WidgetAPIClient {
     message: string;
     studentId?: string;
     conversationId?: string | null;
+    moduleId?: number | null;
     verificationToken?: string;
     authToken?: string;
   }): Promise<any> {
@@ -240,6 +889,7 @@ export class WidgetAPIClient {
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      ...this.sessionHeaders(),
     };
     if (params.authToken) {
       headers['Authorization'] = `Bearer ${params.authToken}`;
@@ -253,6 +903,7 @@ export class WidgetAPIClient {
           message: params.message,
           student_id: params.studentId,
           conversation_id: params.conversationId,
+          module_id: params.moduleId ?? null,
           verification_token: params.verificationToken,
         }),
         timeout: 60000, // 60 seconds for AI responses
@@ -308,9 +959,10 @@ export class WidgetAPIClient {
     message: string;
     studentId?: string;
     conversationId?: string | null;
+    moduleId?: number | null;
     verificationToken?: string;
     authToken?: string;
-  }): AsyncGenerator<{ type: 'chunk' | 'done' | 'error' | 'connected'; content?: string; conversationId?: string; error?: string }, void, unknown> {
+  }): AsyncGenerator<{ type: 'chunk' | 'done' | 'error' | 'connected' | 'formatted'; content?: string; conversationId?: string; error?: string }, void, unknown> {
     const url = `${this.baseUrl}/api/widget/chat/stream?module_token=${encodeURIComponent(params.moduleToken)}`;
 
     // Use AbortController with 120s timeout for streaming requests
@@ -319,6 +971,7 @@ export class WidgetAPIClient {
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      ...this.sessionHeaders(),
     };
     if (params.authToken) {
       headers['Authorization'] = `Bearer ${params.authToken}`;
@@ -332,6 +985,7 @@ export class WidgetAPIClient {
           message: params.message,
           student_id: params.studentId,
           conversation_id: params.conversationId,
+          module_id: params.moduleId ?? null,
           verification_token: params.verificationToken,
         }),
         signal: controller.signal,
@@ -598,9 +1252,10 @@ export class WidgetAPIClient {
     moduleToken: string;
     difficulty?: 'easy' | 'medium' | 'hard';
     count?: number;
+    moduleId?: number;
   }): Promise<{ quizzes: any[]; total_available: number; count: number; module_name: string; available_difficulties: string[] }> {
     const count = params.count ?? 5;
-    let url = `${this.baseUrl}/api/widget/quizzes?module_token=${encodeURIComponent(params.moduleToken)}&count=${count}`;
+    let url = `${this.baseUrl}/api/widget/quizzes?module_token=${encodeURIComponent(params.moduleToken)}&count=${count}${this.moduleParam(params.moduleId)}`;
     if (params.difficulty) {
       url += `&difficulty=${params.difficulty}`;
     }
@@ -608,6 +1263,7 @@ export class WidgetAPIClient {
     try {
       const response = await robustFetch(url, {
         method: 'GET',
+        headers: this.sessionHeaders(),
         timeout: 15000,
         retries: 2,
       });
@@ -625,9 +1281,43 @@ export class WidgetAPIClient {
   }
 
   /**
+   * Submit quiz results — persists the attempt (DynamoDB analytics) and awards
+   * gamification XP for completing the quiz. Sends the widget session token so
+   * the attempt is tied to the logged-in student.
+   */
+  async submitQuiz(params: {
+    moduleToken: string;
+    moduleId?: number | null;
+    quizId: number;
+    answers: Array<{
+      questionNumber: number;
+      selectedAnswer: string;
+      correctAnswer: string;
+      isCorrect: boolean;
+      conceptsCovered: string;
+      difficulty: string;
+    }>;
+  }): Promise<{ reward?: { xp_gained?: number; leveled_up?: boolean; new_badges?: string[] } }> {
+    const url =
+      `${this.baseUrl}/api/widget/quiz/submit?module_token=${encodeURIComponent(params.moduleToken)}` +
+      `&quiz_id=${params.quizId}${this.moduleParam(params.moduleId ?? undefined)}`;
+    const response = await robustFetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...this.sessionHeaders() },
+      body: JSON.stringify(params.answers),
+      timeout: 15000,
+      retries: 1,
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to submit quiz: ${response.status}`);
+    }
+    return await response.json();
+  }
+
+  /**
    * Check if the module requires student verification (matricula)
    */
-  async requiresVerification(moduleToken: string): Promise<{ requires_verification: boolean; course_name: string }> {
+  async requiresVerification(moduleToken: string): Promise<{ requires_verification: boolean; course_name: string; tutor_language?: string }> {
     const url = `${this.baseUrl}/api/widget/requires-verification?module_token=${encodeURIComponent(moduleToken)}`;
 
     try {
@@ -712,6 +1402,7 @@ export class WidgetAPIClient {
     try {
       const response = await robustFetch(url, {
         method: 'GET',
+        headers: this.sessionHeaders(),
         timeout: 15000,
         retries: 2,
       });
@@ -739,6 +1430,7 @@ export class WidgetAPIClient {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...this.sessionHeaders(),
         },
         body: JSON.stringify({
           student_id: studentId,
@@ -763,19 +1455,69 @@ export class WidgetAPIClient {
   /**
    * Health check - verify API is reachable
    */
-  async getAssignments(moduleToken: string): Promise<any[]> {
-    const url = `${this.baseUrl}/api/widget/assignments?module_token=${encodeURIComponent(moduleToken)}`;
-    const response = await robustFetch(url, { method: 'GET', timeout: 10000, retries: 1 });
+  async getAssignments(moduleToken: string, moduleId?: number): Promise<any[]> {
+    const url = `${this.baseUrl}/api/widget/assignments?module_token=${encodeURIComponent(moduleToken)}${this.moduleParam(moduleId)}`;
+    const response = await robustFetch(url, { method: 'GET', headers: this.sessionHeaders(), timeout: 10000, retries: 1 });
     if (!response.ok) throw new Error(`Failed to fetch assignments: ${response.status}`);
     return response.json();
   }
 
-  async getAssignmentDownloadUrl(moduleToken: string, assignmentId: number): Promise<string> {
-    const url = `${this.baseUrl}/api/widget/assignments/${assignmentId}/download?module_token=${encodeURIComponent(moduleToken)}`;
-    const response = await robustFetch(url, { method: 'GET', timeout: 10000, retries: 1 });
+  async getAssignmentDownloadUrl(moduleToken: string, assignmentId: number, moduleId?: number): Promise<string> {
+    const url = `${this.baseUrl}/api/widget/assignments/${assignmentId}/download?module_token=${encodeURIComponent(moduleToken)}${this.moduleParam(moduleId)}`;
+    const response = await robustFetch(url, { method: 'GET', headers: this.sessionHeaders(), timeout: 10000, retries: 1 });
     if (!response.ok) throw new Error(`Failed to get download URL: ${response.status}`);
     const data = await response.json();
     return data.download_url;
+  }
+
+  /**
+   * Submit work for async AI feedback (companion widget). Returns immediately;
+   * poll getSubmissionFeedback() for the result.
+   */
+  async submitAssignmentFeedbackAsync(params: {
+    moduleToken: string;
+    assignmentId: number;
+    file: File;
+    conversationId?: string;
+    moduleId?: number;
+  }): Promise<{ submission_id: number; conversation_id: string; status: string }> {
+    const formData = new FormData();
+    formData.append('assignment_id', String(params.assignmentId));
+    formData.append('file', params.file);
+    formData.append('background', 'true');
+    if (params.conversationId) formData.append('conversation_id', params.conversationId);
+    if (params.moduleId) formData.append('module_id', String(params.moduleId));
+
+    const url = `${this.baseUrl}/api/widget/assignments/get-feedback?module_token=${encodeURIComponent(params.moduleToken)}`;
+    const response = await robustFetch(url, {
+      method: 'POST',
+      headers: this.sessionHeaders(),
+      body: formData,
+      timeout: 60000,
+      retries: 0,
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ detail: 'Failed to submit work' }));
+      throw new Error(err.detail || 'Failed to submit work');
+    }
+    return response.json();
+  }
+
+  /** Poll the status/result of an async feedback submission. */
+  async getSubmissionFeedback(moduleToken: string, submissionId: number): Promise<{
+    submission_id: number;
+    status: 'processing' | 'completed' | 'failed' | string;
+    feedback: string | null;
+  }> {
+    const url = `${this.baseUrl}/api/widget/assignments/submissions/${submissionId}?module_token=${encodeURIComponent(moduleToken)}`;
+    const response = await robustFetch(url, {
+      method: 'GET',
+      headers: this.sessionHeaders(),
+      timeout: 15000,
+      retries: 1,
+    });
+    if (!response.ok) throw new Error(`Failed to poll feedback: ${response.status}`);
+    return response.json();
   }
 
   async submitAssignmentFeedback(params: {
@@ -784,6 +1526,7 @@ export class WidgetAPIClient {
     file: File;
     studentId?: string;
     conversationId?: string;
+    moduleId?: number;
     verificationToken?: string;
   }): Promise<{ response: string; conversation_id: string; message_id?: string }> {
     const formData = new FormData();
@@ -791,11 +1534,13 @@ export class WidgetAPIClient {
     formData.append('file', params.file);
     if (params.studentId) formData.append('student_id', params.studentId);
     if (params.conversationId) formData.append('conversation_id', params.conversationId);
+    if (params.moduleId) formData.append('module_id', String(params.moduleId));
     if (params.verificationToken) formData.append('verification_token', params.verificationToken);
 
     const url = `${this.baseUrl}/api/widget/assignments/get-feedback?module_token=${encodeURIComponent(params.moduleToken)}`;
     const response = await robustFetch(url, {
       method: 'POST',
+      headers: this.sessionHeaders(),
       body: formData,
       timeout: 120000,
       retries: 0,

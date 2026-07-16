@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Shield, Loader2, AlertCircle, ExternalLink } from 'lucide-react';
-import { WidgetAPIClient } from '@/lib/api-client';
+import { apiClient as sharedApiClient } from '@/lib/api-client';
+import { useTranslations } from '@/i18n';
 
 interface ConsentGateProps {
   moduleToken: string;
@@ -24,6 +25,7 @@ type GateState = 'loading' | 'form' | 'submitting' | 'error';
  * - openai_cross_border_transfer: Disclosure that data is sent to OpenAI (US servers)
  */
 export default function ConsentGate({ moduleToken, apiBaseUrl, studentId, onConsented }: ConsentGateProps) {
+  const t = useTranslations('consent');
   const [state, setState] = useState<GateState>('loading');
   const [loadError, setLoadError] = useState('');
 
@@ -51,10 +53,10 @@ export default function ConsentGate({ moduleToken, apiBaseUrl, studentId, onCons
         // sessionStorage may be unavailable
       }
 
-      // Call API to check consent status
+      // Call API to check consent status. Use the SHARED client: it carries the
+      // widget session JWT, required when moduleToken is the "session" sentinel.
       try {
-        const apiClient = new WidgetAPIClient(apiBaseUrl);
-        const result = await apiClient.checkConsentStatus(moduleToken, studentId);
+        const result = await sharedApiClient.checkConsentStatus(moduleToken, studentId);
 
         if (result.has_all_consents) {
           // Already consented, cache and pass through
@@ -84,8 +86,7 @@ export default function ConsentGate({ moduleToken, apiBaseUrl, studentId, onCons
     setState('submitting');
 
     try {
-      const apiClient = new WidgetAPIClient(apiBaseUrl);
-      await apiClient.recordConsent(moduleToken, studentId, [
+      await sharedApiClient.recordConsent(moduleToken, studentId, [
         'lgpd_privacy_policy',
         'ai_data_processing',
         'openai_cross_border_transfer',
@@ -118,7 +119,7 @@ export default function ConsentGate({ moduleToken, apiBaseUrl, studentId, onCons
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4 p-6">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">Verificando consentimento...</p>
+        <p className="text-sm text-muted-foreground">{t('checking')}</p>
       </div>
     );
   }
@@ -131,11 +132,11 @@ export default function ConsentGate({ moduleToken, apiBaseUrl, studentId, onCons
           <AlertCircle className="w-7 h-7 text-destructive" />
         </div>
         <div>
-          <p className="font-semibold text-foreground">Erro</p>
+          <p className="font-semibold text-foreground">{t('errorTitle')}</p>
           <p className="text-sm text-muted-foreground mt-1 max-w-xs">{loadError}</p>
         </div>
         <Button variant="outline" size="sm" onClick={handleRetry}>
-          Tentar novamente
+          {t('retry')}
         </Button>
       </div>
     );
@@ -151,10 +152,8 @@ export default function ConsentGate({ moduleToken, apiBaseUrl, studentId, onCons
             <Shield className="w-7 h-7 text-primary" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-foreground">Aviso de Privacidade</h2>
-            <p className="text-xs text-muted-foreground mt-1">
-              Conforme a Lei Geral de Protecao de Dados (LGPD)
-            </p>
+            <h2 className="text-lg font-bold text-foreground">{t('title')}</h2>
+            <p className="text-xs text-muted-foreground mt-1">{t('subtitle')}</p>
           </div>
         </div>
 
@@ -162,33 +161,31 @@ export default function ConsentGate({ moduleToken, apiBaseUrl, studentId, onCons
         <div className="space-y-3 text-sm text-muted-foreground">
           <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2.5">
             <p className="font-medium text-foreground text-xs uppercase tracking-wide">
-              Este tutor utiliza inteligencia artificial
+              {t('aiTitle')}
             </p>
-            <p className="text-xs leading-relaxed">
-              As respostas sao geradas por IA com base nos materiais do curso.
-              Podem conter imprecisoes e nao substituem o professor.
-            </p>
+            <p className="text-xs leading-relaxed">{t('aiBody')}</p>
           </div>
 
           <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2.5">
             <p className="font-medium text-foreground text-xs uppercase tracking-wide">
-              Coleta e uso de dados
+              {t('dataTitle')}
             </p>
             <ul className="text-xs space-y-1.5 leading-relaxed">
-              <li>• Suas perguntas e interacoes sao registradas para fins educacionais</li>
-              <li>• Seus dados podem ser visualizados pelo professor da disciplina</li>
-              <li>• Os dados sao processados pela OpenAI (servidores nos EUA)</li>
+              <li>• {t('dataItem1')}</li>
+              <li>• {t('dataItem2')}</li>
+              <li>• {t('dataItem3')}</li>
+              <li>• {t('dataItem4')}</li>
             </ul>
           </div>
 
           <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2.5">
             <p className="font-medium text-foreground text-xs uppercase tracking-wide">
-              Seus direitos (LGPD)
+              {t('rightsTitle')}
             </p>
             <ul className="text-xs space-y-1.5 leading-relaxed">
-              <li>• Voce pode solicitar a exportacao dos seus dados a qualquer momento</li>
-              <li>• Voce pode solicitar a exclusao dos seus dados</li>
-              <li>• Entre em contato com a instituicao para exercer seus direitos</li>
+              <li>• {t('rightsItem1')}</li>
+              <li>• {t('rightsItem2')}</li>
+              <li>• {t('rightsItem3')}</li>
             </ul>
           </div>
         </div>
@@ -203,15 +200,13 @@ export default function ConsentGate({ moduleToken, apiBaseUrl, studentId, onCons
             {state === 'submitting' ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Registrando...
+                {t('submitting')}
               </>
             ) : (
-              'Li e concordo com os termos'
+              t('accept')
             )}
           </Button>
-          <p className="text-[10px] text-center text-muted-foreground">
-            Ao continuar, voce consente com o processamento de dados conforme descrito acima.
-          </p>
+          <p className="text-[10px] text-center text-muted-foreground">{t('footnote')}</p>
         </div>
       </div>
     </div>

@@ -4,11 +4,12 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { X, ClipboardList, Upload, Loader2, Calendar, ArrowLeft } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
+import { useTranslations } from '@/i18n';
 
 interface Assignment {
   id: number;
   title: string;
-  description?: string;
+  description?: string | null;
   due_date: string;
   original_file_name: string;
   file_size_bytes: number;
@@ -20,9 +21,22 @@ interface AssignmentFeedbackModalProps {
   verificationToken?: string;
   studentId?: string;
   conversationId?: string;
+  moduleId?: number;
   apiBaseUrl?: string;
   onClose: () => void;
   onFeedbackReceived: (response: string, conversationId: string) => void;
+  /**
+   * Companion-widget background mode: submit asynchronously and return
+   * immediately with the job info instead of waiting for the AI response.
+   * When set, onFeedbackReceived is NOT called.
+   */
+  onJobStarted?: (job: {
+    submissionId: number;
+    conversationId: string;
+    assignmentTitle: string;
+  }) => void;
+  /** Skip the selection step and go straight to upload for this assignment. */
+  initialAssignment?: Assignment | null;
 }
 
 type Step = 'select' | 'upload' | 'loading';
@@ -32,29 +46,34 @@ export default function AssignmentFeedbackModal({
   verificationToken,
   studentId,
   conversationId,
+  moduleId,
   onClose,
   onFeedbackReceived,
+  onJobStarted,
+  initialAssignment,
 }: AssignmentFeedbackModalProps) {
-  const [step, setStep] = useState<Step>('select');
+  const t = useTranslations('feedbackModal');
+  const [step, setStep] = useState<Step>(initialAssignment ? 'upload' : 'select');
   const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [loadingAssignments, setLoadingAssignments] = useState(true);
-  const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
+  const [loadingAssignments, setLoadingAssignments] = useState(!initialAssignment);
+  const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(initialAssignment ?? null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
+    if (initialAssignment) return; // selection step is skipped — no list needed
     const load = async () => {
       try {
-        const data = await apiClient.getAssignments(moduleToken);
+        const data = await apiClient.getAssignments(moduleToken, moduleId);
         setAssignments(data);
       } catch (err) {
-        setErrorMsg('Não foi possível carregar as atividades.');
+        setErrorMsg(t('loadError'));
       } finally {
         setLoadingAssignments(false);
       }
     };
     load();
-  }, [moduleToken]);
+  }, [moduleToken, moduleId, initialAssignment]);
 
   const handleSelectAssignment = (a: Assignment) => {
     setSelectedAssignment(a);
@@ -66,7 +85,7 @@ export default function AssignmentFeedbackModal({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
     if (file && file.size > 20 * 1024 * 1024) {
-      setErrorMsg('Arquivo muito grande. Máximo 20 MB.');
+      setErrorMsg(t('fileTooLarge'));
       return;
     }
     setErrorMsg(null);
@@ -78,18 +97,37 @@ export default function AssignmentFeedbackModal({
     setStep('loading');
     setErrorMsg(null);
     try {
+      if (onJobStarted) {
+        // Background mode: enqueue and hand the job back immediately
+        const job = await apiClient.submitAssignmentFeedbackAsync({
+          moduleToken,
+          assignmentId: selectedAssignment.id,
+          file: selectedFile,
+          conversationId,
+          moduleId,
+        });
+        onJobStarted({
+          submissionId: job.submission_id,
+          conversationId: job.conversation_id,
+          assignmentTitle: selectedAssignment.title,
+        });
+        onClose();
+        return;
+      }
+
       const result = await apiClient.submitAssignmentFeedback({
         moduleToken,
         assignmentId: selectedAssignment.id,
         file: selectedFile,
         studentId,
         conversationId,
+        moduleId,
         verificationToken,
       });
       onFeedbackReceived(result.response, result.conversation_id);
       onClose();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Erro ao solicitar feedback.';
+      const msg = err instanceof Error ? err.message : t('submitError');
       setErrorMsg(msg);
       setStep('upload');
     }
@@ -111,14 +149,14 @@ export default function AssignmentFeedbackModal({
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b shrink-0">
           <div className="flex items-center gap-2">
-            {step === 'upload' && (
+            {step === 'upload' && !initialAssignment && (
               <button onClick={() => setStep('select')} className="text-muted-foreground hover:text-foreground mr-1">
                 <ArrowLeft className="w-4 h-4" />
               </button>
             )}
             <ClipboardList className="w-5 h-5 text-primary" />
             <span className="font-semibold text-sm">
-              {step === 'select' ? 'Selecione uma Atividade' : step === 'upload' ? 'Enviar Trabalho' : 'Analisando...'}
+              {step === 'select' ? t('selectTitle') : step === 'upload' ? t('uploadTitle') : t('analyzingTitle')}
             </span>
           </div>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
@@ -131,8 +169,8 @@ export default function AssignmentFeedbackModal({
           {step === 'loading' && (
             <div className="flex flex-col items-center justify-center py-12 gap-3">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">Analisando seu trabalho...</p>
-              <p className="text-xs text-muted-foreground">Isso pode levar até 1 minuto.</p>
+              <p className="text-sm text-muted-foreground">{t('analyzingBody')}</p>
+              <p className="text-xs text-muted-foreground">{t('analyzingHint')}</p>
             </div>
           )}
 
@@ -143,7 +181,7 @@ export default function AssignmentFeedbackModal({
                   <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                 </div>
               ) : assignments.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">Nenhuma atividade disponível no momento.</p>
+                <p className="text-sm text-muted-foreground text-center py-8">{t('empty')}</p>
               ) : (
                 <div className="space-y-3">
                   {assignments.map((a) => (
@@ -159,7 +197,7 @@ export default function AssignmentFeedbackModal({
                       <div className="flex items-center gap-1 mt-2">
                         <Calendar className="w-3 h-3 text-muted-foreground" />
                         <span className={`text-xs ${isPastDue(a.due_date) ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
-                          Prazo: {formatDate(a.due_date)}{isPastDue(a.due_date) ? ' (expirado)' : ''}
+                          {t('due', { date: formatDate(a.due_date) })}{isPastDue(a.due_date) ? ` ${t('expired')}` : ''}
                         </span>
                       </div>
                     </button>
@@ -173,23 +211,23 @@ export default function AssignmentFeedbackModal({
           {step === 'upload' && selectedAssignment && (
             <div className="space-y-4">
               <div className="p-3 border rounded-lg bg-muted/30">
-                <p className="text-xs font-medium text-muted-foreground mb-0.5">Atividade selecionada</p>
+                <p className="text-xs font-medium text-muted-foreground mb-0.5">{t('selectedAssignment')}</p>
                 <p className="font-medium text-sm">{selectedAssignment.title}</p>
                 <div className="flex items-center gap-1 mt-1">
                   <Calendar className="w-3 h-3 text-muted-foreground" />
                   <span className={`text-xs ${isPastDue(selectedAssignment.due_date) ? 'text-destructive' : 'text-muted-foreground'}`}>
-                    Prazo: {formatDate(selectedAssignment.due_date)}
+                    {t('due', { date: formatDate(selectedAssignment.due_date) })}
                   </span>
                 </div>
               </div>
 
               <div>
-                <p className="text-sm font-medium mb-2">Envie seu trabalho</p>
-                <p className="text-xs text-muted-foreground mb-3">Aceita PDF, DOCX ou XLSX. Máximo 20 MB.</p>
+                <p className="text-sm font-medium mb-2">{t('uploadLabel')}</p>
+                <p className="text-xs text-muted-foreground mb-3">{t('uploadHint')}</p>
                 <label className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed rounded-xl cursor-pointer hover:border-primary hover:bg-muted/30 transition-colors">
                   <Upload className="w-6 h-6 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">
-                    {selectedFile ? selectedFile.name : 'Clique para selecionar arquivo'}
+                    {selectedFile ? selectedFile.name : t('selectFile')}
                   </span>
                   <input
                     type="file"
@@ -207,7 +245,7 @@ export default function AssignmentFeedbackModal({
                 disabled={!selectedFile}
                 onClick={handleSubmit}
               >
-                Solicitar Feedback
+                {t('submit')}
               </Button>
             </div>
           )}
