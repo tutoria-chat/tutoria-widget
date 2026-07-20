@@ -22,7 +22,8 @@ type GateState = 'loading' | 'form' | 'submitting' | 'error';
  * Consent types recorded:
  * - lgpd_privacy_policy: General data processing consent
  * - ai_data_processing: Consent for AI-powered tutoring
- * - openai_cross_border_transfer: Disclosure that data is sent to OpenAI (US servers)
+ * - openai_cross_border_transfer: Disclosure that data is sent to third-party AI provider APIs (servers abroad).
+ *   Note: the consent-key string is kept as-is for backend/record compatibility; only the user-facing wording changed.
  */
 export default function ConsentGate({ moduleToken, apiBaseUrl, studentId, onConsented }: ConsentGateProps) {
   const t = useTranslations('consent');

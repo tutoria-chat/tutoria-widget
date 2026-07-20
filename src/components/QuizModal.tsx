@@ -96,15 +96,16 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
     }
   }, [isOpen]);
 
-  // Close modal on Escape key
+  // Close modal on Escape key — disabled on the results screen, where the
+  // student is required to take their result to the tutor (no escape hatch).
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape' && quizState !== 'results') onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, quizState]);
 
   if (!isOpen) return null;
 
@@ -219,8 +220,12 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      {/* Backdrop — click-to-close is disabled on the results screen so the
+          student can't dismiss their result without going to the tutor. */}
+      <div
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={quizState === 'results' ? undefined : onClose}
+      />
 
       {/* Modal */}
       <div className="relative w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto bg-background border rounded-xl shadow-2xl">
@@ -230,9 +235,11 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
             <Brain className="w-5 h-5 text-primary" />
             <span className="font-semibold text-sm">{t('practice')}</span>
           </div>
-          <button onClick={onClose} className="p-1 rounded-md hover:bg-accent transition-colors">
-            <X className="w-4 h-4" />
-          </button>
+          {quizState !== 'results' && (
+            <button onClick={onClose} className="p-1 rounded-md hover:bg-accent transition-colors">
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         {/* Progress bar */}
@@ -492,11 +499,10 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
                 })}
               </div>
 
-              {/* Action buttons */}
+              {/* Action button — the only way out of the results screen is to
+                  take the result to the tutor. Close/cancel is intentionally
+                  removed so the student always follows up with the tutor. */}
               <div className="flex gap-2 pt-1">
-                <Button variant="outline" onClick={onClose} className="flex-1">
-                  {tCommon('close')}
-                </Button>
                 <Button
                   onClick={handleFinishAndShare}
                   className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"

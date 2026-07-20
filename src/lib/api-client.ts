@@ -1453,6 +1453,39 @@ export class WidgetAPIClient {
   }
 
   /**
+   * Export all personal data for a student (LGPD Art. 18 - Right to Portability).
+   * Returns the student profile, chat interactions, consents and course enrollments.
+   */
+  async exportStudentData(moduleToken: string, studentId: number): Promise<{
+    student: Record<string, any>;
+    retention_policy?: string;
+    interactions: any[];
+    consents: any[];
+    courses: any[];
+  }> {
+    const url = `${this.baseUrl}/api/widget/privacy/student/${studentId}/export-data?module_token=${encodeURIComponent(moduleToken)}`;
+
+    try {
+      const response = await robustFetch(url, {
+        method: 'GET',
+        headers: this.sessionHeaders(),
+        timeout: 30000,
+        retries: 2,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unknown error');
+        throw new Error(`Failed to export data: ${response.status} - ${errorText}`);
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      console.error('[API] exportStudentData failed:', error);
+      throw new Error(`Unable to export your data: ${error.message}`);
+    }
+  }
+
+  /**
    * Health check - verify API is reachable
    */
   async getAssignments(moduleToken: string, moduleId?: number): Promise<any[]> {

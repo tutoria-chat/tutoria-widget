@@ -4,8 +4,9 @@
  * stays under the institution's control).
  */
 import React, { useState } from 'react';
-import { Check, KeyRound, Loader2, Settings as SettingsIcon } from 'lucide-react';
+import { Check, Download, KeyRound, Loader2, Settings as SettingsIcon } from 'lucide-react';
 import { apiClient } from '../../lib/api-client';
+import { useApp } from '../../app/AppContext';
 import {
   LOCALE_NAMES,
   SUPPORTED_LOCALES,
@@ -107,6 +108,77 @@ export default function SettingsPanel({ theme, onThemeChange }: SettingsPanelPro
         </div>
 
         <PasswordSection />
+
+        <DataExportSection />
+      </div>
+    </div>
+  );
+}
+
+function DataExportSection() {
+  const t = useTranslations('settings');
+  const { moduleToken, session } = useApp();
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleExport = async () => {
+    setBusy(true);
+    setDone(false);
+    setError(null);
+    try {
+      const data = await apiClient.exportStudentData(moduleToken, session.student.id);
+
+      // Trigger a client-side JSON download of the student's personal data.
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `erwin-meus-dados-${session.student.id}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+
+      setDone(true);
+      setTimeout(() => setDone(false), 3000);
+    } catch {
+      setError(t('dataExport.error'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3 border-t border-border pt-6">
+      <div className="flex items-center gap-2">
+        <Download className="h-4 w-4 text-muted-foreground" />
+        <p className="text-sm font-medium">{t('dataExport.title')}</p>
+      </div>
+      <p className="text-xs text-muted-foreground">{t('dataExport.description')}</p>
+
+      <button
+        type="button"
+        onClick={handleExport}
+        disabled={busy}
+        className="flex w-full items-center justify-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-50"
+      >
+        {busy ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            {t('dataExport.exporting')}
+          </>
+        ) : (
+          <>
+            <Download className="h-4 w-4" />
+            {t('dataExport.button')}
+          </>
+        )}
+      </button>
+
+      <div className="h-5 text-sm">
+        {done && <span className="text-green-600 dark:text-green-400">{t('dataExport.done')}</span>}
+        {error && <span className="text-destructive">{error}</span>}
       </div>
     </div>
   );
