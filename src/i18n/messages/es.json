@@ -352,6 +352,14 @@
       "saving": "Guardando...",
       "saved": "¡Contraseña actualizada!",
       "wrongCurrent": "Contraseña actual incorrecta"
+    },
+    "dataExport": {
+      "title": "Mis datos",
+      "description": "Descarga una copia de tus datos personales (perfil, historial de conversaciones, consentimientos y asignaturas). Derecho a la portabilidad — LGPD, Art. 18.",
+      "button": "Exportar mis datos",
+      "exporting": "Preparando tus datos...",
+      "done": "¡Descarga iniciada!",
+      "error": "No se pudieron exportar tus datos. Inténtalo de nuevo."
     }
   },
   "quizModal": {
@@ -399,7 +407,7 @@
     "dataTitle": "Recolección y uso de datos",
     "dataItem1": "Tus preguntas e interacciones se registran con fines educativos",
     "dataItem2": "Tus datos pueden ser vistos por el profesor del curso",
-    "dataItem3": "Los datos son procesados por OpenAI (servidores en EE. UU.)",
+    "dataItem3": "Los datos son procesados por diversas APIs de proveedores de IA (servidores en el exterior)",
     "dataItem4": "Las conversaciones se retienen por 90 días y luego se eliminan automáticamente",
     "rightsTitle": "Tus derechos (LGPD)",
     "rightsItem1": "Puedes solicitar la exportación de tus datos en cualquier momento",
