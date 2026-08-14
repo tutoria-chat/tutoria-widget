@@ -21,9 +21,8 @@ import { useI18n, useTranslations } from '../../i18n';
 
 interface Assignment {
   id: number;
-  module_id: number;
-  module_name?: string | null;
-  is_own_module: boolean;
+  // Assignments are course-wide — there is no owning module any more.
+  course_id: number;
   title: string;
   description?: string | null;
   due_date: string;
@@ -212,9 +211,6 @@ export default function AssignmentsPanel({ onOpenChat }: { onOpenChat: () => voi
                     <p className="truncate text-base font-semibold transition-colors group-hover:text-primary">
                       {a.title}
                     </p>
-                    {a.module_name && (
-                      <p className="truncate text-xs text-muted-foreground">{a.module_name}</p>
-                    )}
                   </div>
                   <span
                     className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
@@ -264,9 +260,6 @@ export default function AssignmentsPanel({ onOpenChat }: { onOpenChat: () => voi
                 </div>
                 <div>
                   <h3 className="text-lg font-bold leading-tight">{detailTarget.title}</h3>
-                  {detailTarget.module_name && (
-                    <p className="text-xs text-muted-foreground">{detailTarget.module_name}</p>
-                  )}
                 </div>
               </div>
               <button
