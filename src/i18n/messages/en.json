@@ -22,7 +22,7 @@
     "genericError": "We could not verify your student ID. Please try again.",
     "helpText": "Your student ID is provided by your institution. If in doubt, ask your professor.",
     "staff": {
-      "toggle": "I'm staff (professor, manager or tutor)",
+      "toggle": "Professor, manager or tutor? Sign in here",
       "hide": "I'm a student",
       "passwordLabel": "Password",
       "invalid": "Invalid student ID or password."
@@ -97,7 +97,11 @@
     "title": "Study Plan",
     "intro": "Generate a personalized plan for this week, based on your quizzes, the course content and the calendar (tests and due dates).",
     "styleLabel": "How do you want to study this week?",
-    "style": { "light": "Light", "balanced": "Balanced", "intensive": "Intensive" },
+    "style": {
+      "light": "Light",
+      "balanced": "Balanced",
+      "intensive": "Intensive"
+    },
     "styleHint": {
       "light": "Few short tasks",
       "balanced": "Steady pace",
@@ -134,7 +138,11 @@
     "previous": "Previous",
     "next": "Next",
     "newRound": "New round (shuffled cards)",
-    "difficulty": { "easy": "Easy", "medium": "Medium", "hard": "Hard" },
+    "difficulty": {
+      "easy": "Easy",
+      "medium": "Medium",
+      "hard": "Hard"
+    },
     "review": "Review ({count})",
     "exitReview": "Exit",
     "showAnswer": "Show answer",
@@ -142,13 +150,22 @@
     "reviewDoneTitle": "All caught up! 🎉",
     "reviewDoneHint": "You've reviewed every due card. Come back tomorrow for the next batch.",
     "backToCards": "Back to flashcards",
-    "grade": { "again": "Again", "hard": "Hard", "good": "Good", "easy": "Easy" }
+    "grade": {
+      "again": "Again",
+      "hard": "Hard",
+      "good": "Good",
+      "easy": "Easy"
+    }
   },
   "gamification": {
     "level": "Level {level}",
     "tier": {
-      "bronze": "Bronze", "silver": "Silver", "gold": "Gold",
-      "platinum": "Platinum", "diamond": "Diamond", "crystal": "Crystal"
+      "bronze": "Bronze",
+      "silver": "Silver",
+      "gold": "Gold",
+      "platinum": "Platinum",
+      "diamond": "Diamond",
+      "crystal": "Crystal"
     },
     "toNextLevel": "{current}/{needed} XP to level {next}",
     "titleByTier": {
@@ -227,20 +244,61 @@
       "lenda": "Earn {threshold} XP in {area}"
     },
     "special": {
-      "veterano": { "name": "Veteran", "tip": "Reach level {threshold}" },
-      "imortal": { "name": "Immortal", "tip": "Keep a {threshold}-day streak" },
-      "transcendente": { "name": "Transcendent", "tip": "Surpass your studying limits to achieve this!" },
-      "hidden_leaves": { "name": "Student of the Hidden Leaves", "tip": "If you study with your arms pointing backwards, you might just get there." },
-      "standing_student": { "name": "Standing Student", "tip": "If only you could see yourself standing still, you'd get there." },
-      "cursed_student": { "name": "Cursed Student", "tip": "Expand your domain of knowledge to unlock this." },
-      "force_scholar": { "name": "Force Scholar", "tip": "Trust your feelings — let go, and the answer will come to you." },
-      "study_striker": { "name": "Study Striker", "tip": "Find the back of the net from inside the study box." },
-      "study_gains": { "name": "Swole Scholar", "tip": "No pain, no knowledge gains — one more rep!" },
-      "dedicado": { "name": "Dedicated", "tip": "Keep a {threshold}-day streak" },
-      "incansavel": { "name": "Relentless", "tip": "Keep a {threshold}-day streak" },
-      "centuriao": { "name": "Centurion", "tip": "Earn {threshold} total XP" },
-      "erudito": { "name": "Scholar", "tip": "Reach level {threshold}" },
-      "the_one": { "name": "The One" }
+      "veterano": {
+        "name": "Veteran",
+        "tip": "Reach level {threshold}"
+      },
+      "imortal": {
+        "name": "Immortal",
+        "tip": "Keep a {threshold}-day streak"
+      },
+      "transcendente": {
+        "name": "Transcendent",
+        "tip": "Surpass your studying limits to achieve this!"
+      },
+      "hidden_leaves": {
+        "name": "Student of the Hidden Leaves",
+        "tip": "If you study with your arms pointing backwards, you might just get there."
+      },
+      "standing_student": {
+        "name": "Standing Student",
+        "tip": "If only you could see yourself standing still, you'd get there."
+      },
+      "cursed_student": {
+        "name": "Cursed Student",
+        "tip": "Expand your domain of knowledge to unlock this."
+      },
+      "force_scholar": {
+        "name": "Force Scholar",
+        "tip": "Trust your feelings — let go, and the answer will come to you."
+      },
+      "study_striker": {
+        "name": "Study Striker",
+        "tip": "Find the back of the net from inside the study box."
+      },
+      "study_gains": {
+        "name": "Swole Scholar",
+        "tip": "No pain, no knowledge gains — one more rep!"
+      },
+      "dedicado": {
+        "name": "Dedicated",
+        "tip": "Keep a {threshold}-day streak"
+      },
+      "incansavel": {
+        "name": "Relentless",
+        "tip": "Keep a {threshold}-day streak"
+      },
+      "centuriao": {
+        "name": "Centurion",
+        "tip": "Earn {threshold} total XP"
+      },
+      "erudito": {
+        "name": "Scholar",
+        "tip": "Reach level {threshold}"
+      },
+      "the_one": {
+        "name": "The One"
+      }
     }
   },
   "titlesPanel": {
