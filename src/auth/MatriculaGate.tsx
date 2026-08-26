@@ -5,6 +5,7 @@
  * before any feature works. On success the parent receives the session payload.
  */
 import React, { useState } from 'react';
+import { GraduationCap } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { CardContent, CardTitle } from '../components/ui/card';
 import { apiClient, type WidgetSession } from '../lib/api-client';
@@ -109,13 +110,26 @@ export default function MatriculaGate({ moduleToken, courseName, onSession }: Ma
           </Button>
         </form>
 
-        <button
-          type="button"
-          onClick={() => setStaffMode((v) => !v)}
-          className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-        >
-          {staffMode ? t('staff.hide') : t('staff.toggle')}
-        </button>
+        {staffMode ? (
+          // Already in staff mode — a quiet way back to the student flow.
+          <button
+            type="button"
+            onClick={() => setStaffMode(false)}
+            className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          >
+            {t('staff.hide')}
+          </button>
+        ) : (
+          // Loud, unmissable call-to-action for staff.
+          <button
+            type="button"
+            onClick={() => setStaffMode(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-primary/50 bg-primary/10 px-4 py-3 text-sm font-bold text-primary transition-colors hover:bg-primary/20 focus:outline-none focus:ring-2 focus:ring-primary/40 dark:text-[#c4b5fd]"
+          >
+            <GraduationCap className="h-5 w-5 shrink-0" />
+            {t('staff.toggle')}
+          </button>
+        )}
 
         <p className="text-xs text-muted-foreground">{t('helpText')}</p>
       </div>

@@ -22,7 +22,7 @@
     "genericError": "No pudimos verificar tu matrícula. Inténtalo de nuevo.",
     "helpText": "Tu matrícula la proporciona tu institución. Si tienes dudas, consulta a tu profesor.",
     "staff": {
-      "toggle": "Soy del equipo (profesor, gestor o tutor)",
+      "toggle": "¿Profesor, gestor o tutor? Entra por aquí",
       "hide": "Soy estudiante",
       "passwordLabel": "Contraseña",
       "invalid": "Matrícula o contraseña inválida."
@@ -97,7 +97,11 @@
     "title": "Plan de Estudios",
     "intro": "Genera un plan personalizado para esta semana, basado en tus quizzes, el contenido del curso y el calendario (exámenes y entregas).",
     "styleLabel": "¿Cómo quieres estudiar esta semana?",
-    "style": { "light": "Ligero", "balanced": "Equilibrado", "intensive": "Intensivo" },
+    "style": {
+      "light": "Ligero",
+      "balanced": "Equilibrado",
+      "intensive": "Intensivo"
+    },
     "styleHint": {
       "light": "Pocas tareas cortas",
       "balanced": "Ritmo constante",
@@ -134,7 +138,11 @@
     "previous": "Anterior",
     "next": "Siguiente",
     "newRound": "Nueva ronda (cartas mezcladas)",
-    "difficulty": { "easy": "Fácil", "medium": "Medio", "hard": "Difícil" },
+    "difficulty": {
+      "easy": "Fácil",
+      "medium": "Medio",
+      "hard": "Difícil"
+    },
     "review": "Repasar ({count})",
     "exitReview": "Salir",
     "showAnswer": "Mostrar respuesta",
@@ -142,13 +150,22 @@
     "reviewDoneTitle": "¡Todo al día! 🎉",
     "reviewDoneHint": "Has repasado todas las cartas pendientes. Vuelve mañana para la próxima tanda.",
     "backToCards": "Volver a los flashcards",
-    "grade": { "again": "Fallé", "hard": "Difícil", "good": "Bien", "easy": "Fácil" }
+    "grade": {
+      "again": "Fallé",
+      "hard": "Difícil",
+      "good": "Bien",
+      "easy": "Fácil"
+    }
   },
   "gamification": {
     "level": "Nivel {level}",
     "tier": {
-      "bronze": "Bronce", "silver": "Plata", "gold": "Oro",
-      "platinum": "Platino", "diamond": "Diamante", "crystal": "Cristal"
+      "bronze": "Bronce",
+      "silver": "Plata",
+      "gold": "Oro",
+      "platinum": "Platino",
+      "diamond": "Diamante",
+      "crystal": "Cristal"
     },
     "toNextLevel": "{current}/{needed} XP para el nivel {next}",
     "titleByTier": {
@@ -227,20 +244,61 @@
       "lenda": "Acumula {threshold} XP en {area}"
     },
     "special": {
-      "veterano": { "name": "Veterano", "tip": "Alcanza el nivel {threshold}" },
-      "imortal": { "name": "Inmortal", "tip": "Mantén una racha de {threshold} días" },
-      "transcendente": { "name": "Trascendente", "tip": "¡Supera tus límites de estudio para lograrlo!" },
-      "hidden_leaves": { "name": "Estudiante de la Aldea de la Hoja", "tip": "Si estudias con los brazos apuntando hacia atrás, quizás llegues." },
-      "standing_student": { "name": "Estudiante Standing", "tip": "Si tan solo pudieras verte de pie, llegarías." },
-      "cursed_student": { "name": "Estudiante Maldito", "tip": "Expande tu dominio del conocimiento para desbloquearlo." },
-      "force_scholar": { "name": "Erudito de la Fuerza", "tip": "Confía en tus sentimientos — déjate llevar y la respuesta llegará." },
-      "study_striker": { "name": "Goleador del Estudio", "tip": "Encuentra el fondo de la red desde el área de estudio." },
-      "study_gains": { "name": "Estudiante Fitness", "tip": "Sin dolor no hay ganancias de conocimiento — ¡una repetición más!" },
-      "dedicado": { "name": "Dedicado", "tip": "Mantén una racha de {threshold} días" },
-      "incansavel": { "name": "Incansable", "tip": "Mantén una racha de {threshold} días" },
-      "centuriao": { "name": "Centurión", "tip": "Acumula {threshold} XP en total" },
-      "erudito": { "name": "Erudito", "tip": "Alcanza el nivel {threshold}" },
-      "the_one": { "name": "El Elegido" }
+      "veterano": {
+        "name": "Veterano",
+        "tip": "Alcanza el nivel {threshold}"
+      },
+      "imortal": {
+        "name": "Inmortal",
+        "tip": "Mantén una racha de {threshold} días"
+      },
+      "transcendente": {
+        "name": "Trascendente",
+        "tip": "¡Supera tus límites de estudio para lograrlo!"
+      },
+      "hidden_leaves": {
+        "name": "Estudiante de la Aldea de la Hoja",
+        "tip": "Si estudias con los brazos apuntando hacia atrás, quizás llegues."
+      },
+      "standing_student": {
+        "name": "Estudiante Standing",
+        "tip": "Si tan solo pudieras verte de pie, llegarías."
+      },
+      "cursed_student": {
+        "name": "Estudiante Maldito",
+        "tip": "Expande tu dominio del conocimiento para desbloquearlo."
+      },
+      "force_scholar": {
+        "name": "Erudito de la Fuerza",
+        "tip": "Confía en tus sentimientos — déjate llevar y la respuesta llegará."
+      },
+      "study_striker": {
+        "name": "Goleador del Estudio",
+        "tip": "Encuentra el fondo de la red desde el área de estudio."
+      },
+      "study_gains": {
+        "name": "Estudiante Fitness",
+        "tip": "Sin dolor no hay ganancias de conocimiento — ¡una repetición más!"
+      },
+      "dedicado": {
+        "name": "Dedicado",
+        "tip": "Mantén una racha de {threshold} días"
+      },
+      "incansavel": {
+        "name": "Incansable",
+        "tip": "Mantén una racha de {threshold} días"
+      },
+      "centuriao": {
+        "name": "Centurión",
+        "tip": "Acumula {threshold} XP en total"
+      },
+      "erudito": {
+        "name": "Erudito",
+        "tip": "Alcanza el nivel {threshold}"
+      },
+      "the_one": {
+        "name": "El Elegido"
+      }
     }
   },
   "titlesPanel": {
