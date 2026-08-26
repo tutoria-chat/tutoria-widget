@@ -246,15 +246,14 @@ export default function Shell({
       {/* Body: side nav + active panel */}
       <div className="flex flex-1 overflow-hidden max-sm:flex-col-reverse">
         {/*
-          Mobile nav is a horizontally-scrollable bottom bar so no tab (e.g.
-          Chat) can ever be clipped off-screen in a tiny embed — the bug that
-          started this. Items flex to fill when few, and scroll when many.
-          In compact mode the labels drop so the bar shrinks to icons.
+          Mobile: a horizontally-scrollable bottom bar. Inactive tabs are
+          icon-only squares; the active tab expands into a labelled pill on a
+          single line. This keeps every tab reachable (left-aligned so scroll
+          origin is never clipped) with a fixed height — no wrapping labels or
+          uneven rows on small phones. Desktop keeps the full labelled sidebar.
         */}
         <nav
-          className={`flex shrink-0 border-t border-border/60 max-sm:flex-nowrap max-sm:overflow-x-auto max-sm:scrollbar-none sm:w-56 sm:flex-col sm:border-r sm:border-t-0 sm:bg-sidebar sm:p-3 ${
-            compact ? 'gap-1 p-1.5' : 'gap-1.5 p-2.5'
-          }`}
+          className="flex shrink-0 border-t border-border/60 max-sm:flex-nowrap max-sm:items-center max-sm:justify-start max-sm:gap-1 max-sm:overflow-x-auto max-sm:scrollbar-none max-sm:px-2 max-sm:py-2 sm:w-56 sm:flex-col sm:gap-1.5 sm:border-r sm:border-t-0 sm:bg-sidebar sm:p-3"
           aria-label="Features"
         >
           {/* Wordmark (desktop sidebar) */}
@@ -265,29 +264,35 @@ export default function Shell({
             <p className="mt-0.5 text-[10px] uppercase tracking-widest text-muted-foreground">TutorIA</p>
           </div>
 
-          {navItems.map((item) => (
-            <button
-              key={item.key}
-              onClick={() => setActivePanel(item.key)}
-              title={item.label}
-              aria-label={item.label}
-              className={`flex items-center rounded-xl transition-all duration-200 max-sm:flex-1 max-sm:shrink-0 max-sm:flex-col max-sm:gap-0.5 sm:gap-3 sm:px-3.5 sm:py-2.5 sm:text-[15px] ${
-                compact
-                  ? 'max-sm:min-w-[2.5rem] max-sm:px-1 max-sm:py-1.5'
-                  : 'max-sm:min-w-[3.5rem] max-sm:px-2 max-sm:py-1.5 max-sm:text-[0.6875rem]'
-              } ${
-                activePanel === item.key
-                  ? 'bg-gradient-to-r from-primary/20 to-primary/5 font-semibold text-primary shadow-sm ring-1 ring-primary/25 dark:text-[#c4b5fd]'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground sm:hover:translate-x-0.5'
-              }`}
-            >
-              <span className="shrink-0">{item.icon}</span>
-              {/* Labels: always on desktop; on mobile only when not compact */}
-              <span className={compact ? 'sm:inline max-sm:hidden' : 'max-sm:leading-none'}>
-                {item.label}
-              </span>
-            </button>
-          ))}
+          {navItems.map((item) => {
+            const isActive = activePanel === item.key;
+            return (
+              <button
+                key={item.key}
+                onClick={() => setActivePanel(item.key)}
+                title={item.label}
+                aria-label={item.label}
+                aria-current={isActive ? 'page' : undefined}
+                className={`flex items-center justify-center rounded-xl transition-all duration-200 max-sm:h-10 max-sm:shrink-0 max-sm:gap-1.5 sm:w-full sm:justify-start sm:gap-3 sm:px-3.5 sm:py-2.5 sm:text-[15px] ${
+                  isActive ? 'max-sm:px-3' : 'max-sm:w-10'
+                } ${
+                  isActive
+                    ? 'bg-gradient-to-r from-primary/20 to-primary/5 font-semibold text-primary shadow-sm ring-1 ring-primary/25 dark:text-[#c4b5fd]'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground sm:hover:translate-x-0.5'
+                }`}
+              >
+                <span className="shrink-0">{item.icon}</span>
+                {/* Label: always on desktop; on mobile only for the active tab (as a pill) */}
+                <span
+                  className={`whitespace-nowrap sm:inline max-sm:text-[0.8125rem] max-sm:leading-none ${
+                    isActive ? 'max-sm:inline' : 'max-sm:hidden'
+                  }`}
+                >
+                  {item.label}
+                </span>
+              </button>
+            );
+          })}
 
           {/* University footer (desktop) */}
           <div className="mt-auto hidden px-2 pt-3 sm:block">
