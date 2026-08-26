@@ -16,8 +16,10 @@ import {
   TrendingUp,
   GraduationCap,
   Crown,
+  FlaskConical,
 } from 'lucide-react';
 import { useApp } from './AppContext';
+import { useResponsive } from './ResponsiveContext';
 import { apiClient } from '../lib/api-client';
 import { useTranslations } from '../i18n';
 import ChatPanel from '../features/chat/ChatPanel';
@@ -86,6 +88,7 @@ export default function Shell({
 }: ShellProps) {
   const t = useTranslations('shell');
   const { moduleToken, session, context, activeModuleId, activeCourse, switchModule } = useApp();
+  const { compact } = useResponsive();
 
   // University branding from the module info (primary/secondary colors)
   const [branding, setBranding] = useState<{ primary?: string | null; secondary?: string | null }>({});
@@ -181,15 +184,38 @@ export default function Shell({
         `}
       </style>
 
+      {/* Staff test-mode banner: nothing done here counts toward student stats */}
+      {session.is_staff && (
+        <div
+          className={`flex items-center gap-2 border-b border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 ${
+            compact ? 'px-3 py-1 text-[0.6875rem]' : 'px-5 py-1.5 text-xs'
+          }`}
+          role="status"
+        >
+          <FlaskConical className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate font-medium">{t('staffBanner')}</span>
+        </div>
+      )}
+
       {/* Top bar: avatar + greeting + module selector */}
-      <header className="flex items-center justify-between gap-3 border-b border-border/60 px-5 py-3.5">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#5e17eb] to-[#5ce1e6] text-base font-bold text-white shadow-lg shadow-[#5e17eb]/25">
+      <header
+        className={`flex items-center justify-between gap-2 border-b border-border/60 ${
+          compact ? 'px-3 py-2' : 'px-5 py-3.5 sm:gap-3'
+        }`}
+      >
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <div
+            className={`flex shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#5e17eb] to-[#5ce1e6] font-bold text-white shadow-lg shadow-[#5e17eb]/25 ${
+              compact ? 'h-8 w-8 text-sm' : 'h-10 w-10 text-base'
+            }`}
+          >
             {(session.student.first_name?.[0] || 'E').toUpperCase()}
           </div>
           <div className="min-w-0">
-            <p className="truncate text-lg font-semibold leading-tight">{greeting}</p>
-            {activeCourse && (
+            <p className={`truncate font-semibold leading-tight ${compact ? 'text-sm' : 'text-lg'}`}>
+              {greeting}
+            </p>
+            {activeCourse && !compact && (
               <p className="truncate text-xs text-muted-foreground">
                 {activeCourse.name} · {session.university_name}
               </p>
@@ -201,7 +227,9 @@ export default function Shell({
           value={activeModuleId}
           onChange={(e) => switchModule(Number(e.target.value))}
           aria-label={t('moduleSelector')}
-          className="max-w-[240px] truncate rounded-lg border border-border bg-card px-3 py-2 text-sm shadow-sm transition-colors hover:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/40"
+          className={`min-w-0 max-w-[45%] shrink truncate rounded-lg border border-border bg-card shadow-sm transition-colors hover:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/40 sm:max-w-[240px] ${
+            compact ? 'px-2 py-1 text-xs' : 'px-3 py-2 text-sm'
+          }`}
         >
           {context.courses.map((course) => (
             <optgroup key={course.id} label={course.name}>
@@ -217,8 +245,15 @@ export default function Shell({
 
       {/* Body: side nav + active panel */}
       <div className="flex flex-1 overflow-hidden max-sm:flex-col-reverse">
+        {/*
+          Mobile: a horizontally-scrollable bottom bar. Inactive tabs are
+          icon-only squares; the active tab expands into a labelled pill on a
+          single line. This keeps every tab reachable (left-aligned so scroll
+          origin is never clipped) with a fixed height — no wrapping labels or
+          uneven rows on small phones. Desktop keeps the full labelled sidebar.
+        */}
         <nav
-          className="flex shrink-0 gap-1.5 border-t border-border/60 p-3 max-sm:justify-around sm:w-56 sm:flex-col sm:border-r sm:border-t-0 sm:bg-sidebar"
+          className="flex shrink-0 border-t border-border/60 max-sm:flex-nowrap max-sm:items-center max-sm:justify-start max-sm:gap-1 max-sm:overflow-x-auto max-sm:scrollbar-none max-sm:px-2 max-sm:py-2 sm:w-56 sm:flex-col sm:gap-1.5 sm:border-r sm:border-t-0 sm:bg-sidebar sm:p-3"
           aria-label="Features"
         >
           {/* Wordmark (desktop sidebar) */}
@@ -229,20 +264,35 @@ export default function Shell({
             <p className="mt-0.5 text-[10px] uppercase tracking-widest text-muted-foreground">TutorIA</p>
           </div>
 
-          {navItems.map((item) => (
-            <button
-              key={item.key}
-              onClick={() => setActivePanel(item.key)}
-              className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[15px] transition-all duration-200 max-sm:flex-col max-sm:gap-0.5 max-sm:px-2 max-sm:py-1.5 max-sm:text-xs ${
-                activePanel === item.key
-                  ? 'bg-gradient-to-r from-primary/20 to-primary/5 font-semibold text-primary shadow-sm ring-1 ring-primary/25 dark:text-[#c4b5fd]'
-                  : 'text-muted-foreground hover:translate-x-0.5 hover:bg-muted hover:text-foreground max-sm:hover:translate-x-0'
-              }`}
-            >
-              {item.icon}
-              <span>{item.label}</span>
-            </button>
-          ))}
+          {navItems.map((item) => {
+            const isActive = activePanel === item.key;
+            return (
+              <button
+                key={item.key}
+                onClick={() => setActivePanel(item.key)}
+                title={item.label}
+                aria-label={item.label}
+                aria-current={isActive ? 'page' : undefined}
+                className={`flex items-center justify-center rounded-xl transition-all duration-200 max-sm:h-10 max-sm:shrink-0 max-sm:gap-1.5 sm:w-full sm:justify-start sm:gap-3 sm:px-3.5 sm:py-2.5 sm:text-[15px] ${
+                  isActive ? 'max-sm:px-3' : 'max-sm:w-10'
+                } ${
+                  isActive
+                    ? 'bg-gradient-to-r from-primary/20 to-primary/5 font-semibold text-primary shadow-sm ring-1 ring-primary/25 dark:text-[#c4b5fd]'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground sm:hover:translate-x-0.5'
+                }`}
+              >
+                <span className="shrink-0">{item.icon}</span>
+                {/* Label: always on desktop; on mobile only for the active tab (as a pill) */}
+                <span
+                  className={`whitespace-nowrap sm:inline max-sm:text-[0.8125rem] max-sm:leading-none ${
+                    isActive ? 'max-sm:inline' : 'max-sm:hidden'
+                  }`}
+                >
+                  {item.label}
+                </span>
+              </button>
+            );
+          })}
 
           {/* University footer (desktop) */}
           <div className="mt-auto hidden px-2 pt-3 sm:block">

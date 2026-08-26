@@ -173,6 +173,8 @@ export interface WidgetSession {
   default_module_id: number;
   university_id: number;
   university_name: string;
+  /** True when a staff member (professor/gestor/tutor) is testing the widget. */
+  is_staff?: boolean;
 }
 
 export interface SessionModule {
@@ -465,12 +467,14 @@ export class WidgetAPIClient {
    * Open a widget session: verify matricula against the module token's course.
    * On success the session token is stored on the client for subsequent calls.
    */
-  async createSession(moduleToken: string, matricula: string): Promise<WidgetSession> {
+  async createSession(moduleToken: string, matricula: string, password?: string): Promise<WidgetSession> {
     const url = `${this.baseUrl}/api/widget/session?module_token=${encodeURIComponent(moduleToken)}`;
     const response = await robustFetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ matricula }),
+      // Password is only sent (and only required) when the matricula belongs to
+      // staff testing the widget; students verify with matricula alone.
+      body: JSON.stringify(password ? { matricula, password } : { matricula }),
       timeout: 15000,
       retries: 2,
     });

@@ -9,6 +9,7 @@ import ConsentGate from '../components/ConsentGate';
 import MatriculaGate from '../auth/MatriculaGate';
 import LoginGate from '../auth/LoginGate';
 import { AppProvider } from './AppContext';
+import { ResponsiveProvider } from './ResponsiveContext';
 import Shell, { type PanelKey } from './Shell';
 import {
   apiClient,
@@ -284,7 +285,11 @@ export default function CompanionApp({ apiBaseUrl }: CompanionAppProps) {
 
   return (
     <I18nProvider initialLocale={resolveInitialLocale()}>
-      <CompanionAppInner apiBaseUrl={resolvedBaseUrl} />
+      <ResponsiveProvider>
+        <div className="tutoria-viewport">
+          <CompanionAppInner apiBaseUrl={resolvedBaseUrl} />
+        </div>
+      </ResponsiveProvider>
     </I18nProvider>
   );
 }

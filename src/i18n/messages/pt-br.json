@@ -21,6 +21,12 @@
     "notEnrolled": "Matrícula não encontrada para este curso.",
     "genericError": "Não foi possível verificar sua matrícula. Tente novamente.",
     "helpText": "Sua matrícula é fornecida pela sua instituição. Em caso de dúvida, fale com seu professor.",
+    "staff": {
+      "toggle": "Sou da equipe (professor, gestor ou tutor)",
+      "hide": "Sou estudante",
+      "passwordLabel": "Senha",
+      "invalid": "Matrícula ou senha inválida."
+    },
     "login": {
       "title": "Entrar no Erwin",
       "subtitle": "Use os dados fornecidos pela sua instituição de ensino",
@@ -47,6 +53,7 @@
   "shell": {
     "greeting": "Olá, {name}!",
     "greetingAnonymous": "Olá!",
+    "staffBanner": "Modo teste — sua atividade não conta para as estatísticas.",
     "courseSelector": "Disciplina",
     "moduleSelector": "Módulo",
     "switchingModule": "Trocando de módulo...",
@@ -340,6 +347,18 @@
     "themeSystem": "Sistema",
     "saved": "Preferências salvas!",
     "saveError": "Não foi possível salvar suas preferências.",
+    "display": {
+      "title": "Exibição",
+      "zoom": "Tamanho da interface",
+      "reset": "Redefinir",
+      "layout": "Layout",
+      "compactAuto": "Automático",
+      "compactOn": "Compacto",
+      "compactOff": "Confortável",
+      "hint": "O modo automático simplifica a interface quando o espaço é muito pequeno.",
+      "compactActive": "Modo compacto ativo — ideal para telas pequenas.",
+      "lockedHint": "O layout foi definido pela sua instituição."
+    },
     "password": {
       "title": "Senha de acesso",
       "description": "Com uma senha você pode entrar no Erwin diretamente, sem o link da sua instituição. Deixe o campo de senha atual em branco se ainda não tiver uma.",

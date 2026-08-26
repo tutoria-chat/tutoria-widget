@@ -162,6 +162,31 @@
   }
 }
 
+/*
+ * Tiny-embed safety net. Hosts sometimes drop the widget into a box far
+ * shorter than the UI needs, which used to clip content dead (a selected panel
+ * would render nothing, quiz difficulty buttons past the first were
+ * unreachable). This makes the widget fall back to a scrollable viewport with
+ * a minimum usable height instead of silently clipping.
+ *
+ * The floor is in rem, so the root-font auto-scaling in ResponsiveContext
+ * shrinks it in lockstep — heavy shrink lowers the height we demand, and only
+ * when even the scaled floor can't fit does the outer scrollbar appear.
+ */
+.tutoria-viewport {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.tutoria-viewport > * {
+  min-height: max(100%, 24rem);
+}
+
+/* Hide the WebKit scrollbar where `scrollbar-none` is applied (mobile nav). */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 /* Subtle entrance for panel content */
 @keyframes erwin-fade-up {
   from { opacity: 0; transform: translateY(6px); }

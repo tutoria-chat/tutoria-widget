@@ -21,6 +21,12 @@
     "notEnrolled": "Student ID not found for this course.",
     "genericError": "We could not verify your student ID. Please try again.",
     "helpText": "Your student ID is provided by your institution. If in doubt, ask your professor.",
+    "staff": {
+      "toggle": "I'm staff (professor, manager or tutor)",
+      "hide": "I'm a student",
+      "passwordLabel": "Password",
+      "invalid": "Invalid student ID or password."
+    },
     "login": {
       "title": "Sign in to Erwin",
       "subtitle": "Use the credentials provided by your institution",
@@ -47,6 +53,7 @@
   "shell": {
     "greeting": "Hello, {name}!",
     "greetingAnonymous": "Hello there!",
+    "staffBanner": "Test mode — your activity doesn't count toward statistics.",
     "courseSelector": "Course",
     "moduleSelector": "Module",
     "switchingModule": "Switching module...",
@@ -340,6 +347,18 @@
     "themeSystem": "System",
     "saved": "Preferences saved!",
     "saveError": "Could not save your preferences.",
+    "display": {
+      "title": "Display",
+      "zoom": "Interface size",
+      "reset": "Reset",
+      "layout": "Layout",
+      "compactAuto": "Automatic",
+      "compactOn": "Compact",
+      "compactOff": "Comfortable",
+      "hint": "Automatic mode simplifies the interface when space is very tight.",
+      "compactActive": "Compact mode active — best for small screens.",
+      "lockedHint": "The layout was set by your institution."
+    },
     "password": {
       "title": "Access password",
       "description": "With a password you can sign in to Erwin directly, without your institution's link. Leave the current password blank if you don't have one yet.",

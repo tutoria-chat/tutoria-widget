@@ -4,9 +4,10 @@
  * stays under the institution's control).
  */
 import React, { useState } from 'react';
-import { Check, Download, KeyRound, Loader2, Settings as SettingsIcon } from 'lucide-react';
+import { Check, Download, KeyRound, Loader2, Maximize2, Settings as SettingsIcon } from 'lucide-react';
 import { apiClient } from '../../lib/api-client';
 import { useApp } from '../../app/AppContext';
+import { useResponsive, USER_SCALE_MIN, USER_SCALE_MAX } from '../../app/ResponsiveContext';
 import {
   LOCALE_NAMES,
   SUPPORTED_LOCALES,
@@ -107,9 +108,92 @@ export default function SettingsPanel({ theme, onThemeChange }: SettingsPanelPro
           {error && <span className="text-destructive">{error}</span>}
         </div>
 
+        <DisplaySection optionClass={optionClass} />
+
         <PasswordSection />
 
         <DataExportSection />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Display controls: a zoom slider (scales the whole rem-based UI) and a
+ * compact-layout switch. Lets a student rescue a too-small embed without any
+ * host-side change; the host can still hard-set both via ?scale= / ?ui=.
+ */
+function DisplaySection({ optionClass }: { optionClass: (selected: boolean) => string }) {
+  const t = useTranslations('settings');
+  const { userScale, setUserScale, compactPref, setCompactPref, compact, compactLocked } =
+    useResponsive();
+
+  const pct = Math.round(userScale * 100);
+  const compactOptions: { value: 'auto' | 'on' | 'off'; label: string }[] = [
+    { value: 'auto', label: t('display.compactAuto') },
+    { value: 'on', label: t('display.compactOn') },
+    { value: 'off', label: t('display.compactOff') },
+  ];
+
+  return (
+    <div className="space-y-4 border-t border-border pt-6">
+      <div className="flex items-center gap-2">
+        <Maximize2 className="h-4 w-4 text-muted-foreground" />
+        <p className="text-sm font-medium">{t('display.title')}</p>
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <label htmlFor="ui-scale" className="text-sm">
+            {t('display.zoom')}
+          </label>
+          <span className="text-xs tabular-nums text-muted-foreground">{pct}%</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <input
+            id="ui-scale"
+            type="range"
+            min={USER_SCALE_MIN}
+            max={USER_SCALE_MAX}
+            step={0.05}
+            value={userScale}
+            onChange={(e) => setUserScale(parseFloat(e.target.value))}
+            className="h-2 w-full cursor-pointer appearance-none rounded-full bg-muted accent-primary"
+            aria-label={t('display.zoom')}
+          />
+          {pct !== 100 && (
+            <button
+              type="button"
+              onClick={() => setUserScale(1)}
+              className="shrink-0 text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+            >
+              {t('display.reset')}
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-sm">{t('display.layout')}</p>
+        {compactOptions.map((option) => (
+          <button
+            key={option.value}
+            className={optionClass(compactPref === option.value)}
+            onClick={() => setCompactPref(option.value)}
+            disabled={compactLocked}
+            title={compactLocked ? t('display.lockedHint') : undefined}
+          >
+            <span className={compactLocked ? 'opacity-50' : ''}>{option.label}</span>
+            {compactPref === option.value && <Check className="h-4 w-4 text-primary" />}
+          </button>
+        ))}
+        <p className="text-xs text-muted-foreground">
+          {compactLocked
+            ? t('display.lockedHint')
+            : compact
+              ? t('display.compactActive')
+              : t('display.hint')}
+        </p>
       </div>
     </div>
   );
