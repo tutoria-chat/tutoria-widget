@@ -16,8 +16,10 @@ import {
   TrendingUp,
   GraduationCap,
   Crown,
+  FlaskConical,
 } from 'lucide-react';
 import { useApp } from './AppContext';
+import { useResponsive } from './ResponsiveContext';
 import { apiClient } from '../lib/api-client';
 import { useTranslations } from '../i18n';
 import ChatPanel from '../features/chat/ChatPanel';
@@ -86,6 +88,7 @@ export default function Shell({
 }: ShellProps) {
   const t = useTranslations('shell');
   const { moduleToken, session, context, activeModuleId, activeCourse, switchModule } = useApp();
+  const { compact } = useResponsive();
 
   // University branding from the module info (primary/secondary colors)
   const [branding, setBranding] = useState<{ primary?: string | null; secondary?: string | null }>({});
@@ -181,15 +184,38 @@ export default function Shell({
         `}
       </style>
 
+      {/* Staff test-mode banner: nothing done here counts toward student stats */}
+      {session.is_staff && (
+        <div
+          className={`flex items-center gap-2 border-b border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 ${
+            compact ? 'px-3 py-1 text-[0.6875rem]' : 'px-5 py-1.5 text-xs'
+          }`}
+          role="status"
+        >
+          <FlaskConical className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate font-medium">{t('staffBanner')}</span>
+        </div>
+      )}
+
       {/* Top bar: avatar + greeting + module selector */}
-      <header className="flex items-center justify-between gap-3 border-b border-border/60 px-5 py-3.5">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#5e17eb] to-[#5ce1e6] text-base font-bold text-white shadow-lg shadow-[#5e17eb]/25">
+      <header
+        className={`flex items-center justify-between gap-2 border-b border-border/60 ${
+          compact ? 'px-3 py-2' : 'px-5 py-3.5 sm:gap-3'
+        }`}
+      >
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <div
+            className={`flex shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#5e17eb] to-[#5ce1e6] font-bold text-white shadow-lg shadow-[#5e17eb]/25 ${
+              compact ? 'h-8 w-8 text-sm' : 'h-10 w-10 text-base'
+            }`}
+          >
             {(session.student.first_name?.[0] || 'E').toUpperCase()}
           </div>
           <div className="min-w-0">
-            <p className="truncate text-lg font-semibold leading-tight">{greeting}</p>
-            {activeCourse && (
+            <p className={`truncate font-semibold leading-tight ${compact ? 'text-sm' : 'text-lg'}`}>
+              {greeting}
+            </p>
+            {activeCourse && !compact && (
               <p className="truncate text-xs text-muted-foreground">
                 {activeCourse.name} · {session.university_name}
               </p>
@@ -201,7 +227,9 @@ export default function Shell({
           value={activeModuleId}
           onChange={(e) => switchModule(Number(e.target.value))}
           aria-label={t('moduleSelector')}
-          className="max-w-[240px] truncate rounded-lg border border-border bg-card px-3 py-2 text-sm shadow-sm transition-colors hover:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/40"
+          className={`min-w-0 max-w-[45%] shrink truncate rounded-lg border border-border bg-card shadow-sm transition-colors hover:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/40 sm:max-w-[240px] ${
+            compact ? 'px-2 py-1 text-xs' : 'px-3 py-2 text-sm'
+          }`}
         >
           {context.courses.map((course) => (
             <optgroup key={course.id} label={course.name}>
@@ -217,8 +245,16 @@ export default function Shell({
 
       {/* Body: side nav + active panel */}
       <div className="flex flex-1 overflow-hidden max-sm:flex-col-reverse">
+        {/*
+          Mobile nav is a horizontally-scrollable bottom bar so no tab (e.g.
+          Chat) can ever be clipped off-screen in a tiny embed — the bug that
+          started this. Items flex to fill when few, and scroll when many.
+          In compact mode the labels drop so the bar shrinks to icons.
+        */}
         <nav
-          className="flex shrink-0 gap-1.5 border-t border-border/60 p-3 max-sm:justify-around sm:w-56 sm:flex-col sm:border-r sm:border-t-0 sm:bg-sidebar"
+          className={`flex shrink-0 border-t border-border/60 max-sm:flex-nowrap max-sm:overflow-x-auto max-sm:scrollbar-none sm:w-56 sm:flex-col sm:border-r sm:border-t-0 sm:bg-sidebar sm:p-3 ${
+            compact ? 'gap-1 p-1.5' : 'gap-1.5 p-2.5'
+          }`}
           aria-label="Features"
         >
           {/* Wordmark (desktop sidebar) */}
@@ -233,14 +269,23 @@ export default function Shell({
             <button
               key={item.key}
               onClick={() => setActivePanel(item.key)}
-              className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[15px] transition-all duration-200 max-sm:flex-col max-sm:gap-0.5 max-sm:px-2 max-sm:py-1.5 max-sm:text-xs ${
+              title={item.label}
+              aria-label={item.label}
+              className={`flex items-center rounded-xl transition-all duration-200 max-sm:flex-1 max-sm:shrink-0 max-sm:flex-col max-sm:gap-0.5 sm:gap-3 sm:px-3.5 sm:py-2.5 sm:text-[15px] ${
+                compact
+                  ? 'max-sm:min-w-[2.5rem] max-sm:px-1 max-sm:py-1.5'
+                  : 'max-sm:min-w-[3.5rem] max-sm:px-2 max-sm:py-1.5 max-sm:text-[0.6875rem]'
+              } ${
                 activePanel === item.key
                   ? 'bg-gradient-to-r from-primary/20 to-primary/5 font-semibold text-primary shadow-sm ring-1 ring-primary/25 dark:text-[#c4b5fd]'
-                  : 'text-muted-foreground hover:translate-x-0.5 hover:bg-muted hover:text-foreground max-sm:hover:translate-x-0'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground sm:hover:translate-x-0.5'
               }`}
             >
-              {item.icon}
-              <span>{item.label}</span>
+              <span className="shrink-0">{item.icon}</span>
+              {/* Labels: always on desktop; on mobile only when not compact */}
+              <span className={compact ? 'sm:inline max-sm:hidden' : 'max-sm:leading-none'}>
+                {item.label}
+              </span>
             </button>
           ))}
 

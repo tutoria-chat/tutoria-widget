@@ -15,6 +15,7 @@ import { Button } from '../../components/ui/button';
 import { Textarea } from '../../components/ui/textarea';
 import { apiClient } from '../../lib/api-client';
 import { useApp } from '../../app/AppContext';
+import { useResponsive } from '../../app/ResponsiveContext';
 import { useI18n, useTranslations } from '../../i18n';
 
 interface ConversationSummary {
@@ -45,6 +46,7 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
   } = useApp();
 
   const { locale } = useI18n();
+  const { compact } = useResponsive();
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   // Flipped when the server can't stream (e.g. 501) — we fall back permanently
@@ -344,14 +346,20 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
       )}
 
       {thread.messages.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
-          <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#5e17eb] to-[#5ce1e6] shadow-xl shadow-[#5e17eb]/30">
-            <Sparkles className="h-8 w-8 text-white" />
+        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col items-center justify-center text-center px-6 py-4">
+          <div
+            className={`flex items-center justify-center rounded-2xl bg-gradient-to-br from-[#5e17eb] to-[#5ce1e6] shadow-xl shadow-[#5e17eb]/30 ${
+              compact ? 'mb-3 h-11 w-11' : 'mb-5 h-16 w-16'
+            }`}
+          >
+            <Sparkles className={compact ? 'h-6 w-6 text-white' : 'h-8 w-8 text-white'} />
           </div>
-          <h2 className="text-2xl font-bold text-foreground">
+          <h2 className={`font-bold text-foreground ${compact ? 'text-lg' : 'text-2xl'}`}>
             {t('emptyTitle', { moduleName })}
           </h2>
-          <p className="text-[15px] text-muted-foreground mt-2 max-w-md">{t('emptySubtitle')}</p>
+          <p className={`text-muted-foreground mt-2 max-w-md ${compact ? 'text-xs' : 'text-[15px]'}`}>
+            {t('emptySubtitle')}
+          </p>
         </div>
       ) : (
         <div className="flex-1 min-h-0 overflow-y-auto space-y-4 w-full px-4 py-4 scrollbar scrollbar-w-2 scrollbar-thumb-rounded-full scrollbar-track-rounded-full scrollbar-thumb-border">
@@ -403,7 +411,7 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
         </div>
       )}
 
-      <div className="w-full px-4 pb-4 pt-2 sm:max-w-4xl mx-auto">
+      <div className={`w-full sm:max-w-4xl mx-auto ${compact ? 'px-2 pb-2 pt-1' : 'px-4 pb-4 pt-2'}`}>
         <form onSubmit={handleSend} className="w-full">
           <Textarea
             ref={textareaRef}
@@ -411,12 +419,15 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
             onChange={handleInput}
             onKeyDown={handleKeyDown}
             placeholder={t('inputPlaceholder')}
-            className="w-full resize-none overflow-y-auto !text-base placeholder:text-base min-h-20 max-h-40 scrollbar scrollbar-w-2 scrollbar-thumb-rounded-full scrollbar-track-rounded-full scrollbar-thumb-border"
+            className={`w-full resize-none overflow-y-auto !text-base placeholder:text-base max-h-40 scrollbar scrollbar-w-2 scrollbar-thumb-rounded-full scrollbar-track-rounded-full scrollbar-thumb-border ${
+              compact ? 'min-h-11' : 'min-h-16'
+            }`}
           />
-          <div className="flex flex-row items-center justify-end w-full mt-3">
+          <div className={`flex flex-row items-center justify-end w-full ${compact ? 'mt-1.5' : 'mt-3'}`}>
             <Button
               type="submit"
               disabled={isLoading || !input.trim()}
+              size={compact ? 'sm' : 'default'}
               className="dynamic-button-color max-w-40 rounded-full flex gap-2 items-center"
             >
               {tCommon('send')}

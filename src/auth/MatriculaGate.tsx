@@ -19,6 +19,9 @@ interface MatriculaGateProps {
 export default function MatriculaGate({ moduleToken, courseName, onSession }: MatriculaGateProps) {
   const t = useTranslations('gate');
   const [matricula, setMatricula] = useState('');
+  const [password, setPassword] = useState('');
+  // Staff (professor/gestor/tutor) reveal a password field to test the widget.
+  const [staffMode, setStaffMode] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,11 +33,17 @@ export default function MatriculaGate({ moduleToken, courseName, onSession }: Ma
     setIsVerifying(true);
     setError(null);
     try {
-      const session = await apiClient.createSession(moduleToken, value);
+      const session = await apiClient.createSession(
+        moduleToken,
+        value,
+        staffMode && password ? password : undefined,
+      );
       onSession(session);
     } catch (err: any) {
       const message: string = err?.message || '';
-      if (message === 'MATRICULA_NOT_FOUND' || message.includes('não encontrada') || message.includes('not found')) {
+      if (message.includes('senha') || message.toLowerCase().includes('password')) {
+        setError(t('staff.invalid'));
+      } else if (message === 'MATRICULA_NOT_FOUND' || message.includes('não encontrada') || message.includes('not found')) {
         setError(message.includes('curso') ? t('notEnrolled') : t('notFound'));
       } else {
         setError(t('genericError'));
@@ -73,6 +82,22 @@ export default function MatriculaGate({ moduleToken, courseName, onSession }: Ma
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
 
+          {staffMode && (
+            <div>
+              <label className="block text-left text-sm font-medium mb-1" htmlFor="staff-password">
+                {t('staff.passwordLabel')}
+              </label>
+              <input
+                id="staff-password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+          )}
+
           {error && (
             <p className="text-sm text-destructive text-left" role="alert">
               {error}
@@ -83,6 +108,14 @@ export default function MatriculaGate({ moduleToken, courseName, onSession }: Ma
             {isVerifying ? t('verifying') : t('verify')}
           </Button>
         </form>
+
+        <button
+          type="button"
+          onClick={() => setStaffMode((v) => !v)}
+          className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+        >
+          {staffMode ? t('staff.hide') : t('staff.toggle')}
+        </button>
 
         <p className="text-xs text-muted-foreground">{t('helpText')}</p>
       </div>
