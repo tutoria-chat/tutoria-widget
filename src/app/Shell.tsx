@@ -17,6 +17,7 @@ import {
   GraduationCap,
   Crown,
   FlaskConical,
+  ChevronUp,
 } from 'lucide-react';
 import { useApp } from './AppContext';
 import { useResponsive } from './ResponsiveContext';
@@ -156,6 +157,41 @@ export default function Shell({
       : navItems[0]?.key ?? 'settings';
   const [activePanel, setActivePanel] = useState<PanelKey>(defaultPanel);
 
+  // Compact nav: keep only Home + Chat + a "More" toggle on the bar; the rest
+  // appear on a second line when expanded, so nothing ever needs to scroll.
+  const [navExpanded, setNavExpanded] = useState(false);
+  const primaryItems = navItems.filter((i) => i.key === 'home' || i.key === 'chat');
+  const secondaryItems = navItems.filter((i) => i.key !== 'home' && i.key !== 'chat');
+  const secondaryActive = secondaryItems.some((i) => i.key === activePanel);
+
+  const renderMobileNavButton = (
+    item: { key: PanelKey; label: string; icon: React.ReactNode },
+    collapseAfter: boolean,
+  ) => {
+    const isActive = activePanel === item.key;
+    return (
+      <button
+        key={item.key}
+        type="button"
+        onClick={() => {
+          setActivePanel(item.key);
+          if (collapseAfter) setNavExpanded(false);
+        }}
+        aria-current={isActive ? 'page' : undefined}
+        aria-label={item.label}
+        title={item.label}
+        className={`flex min-w-0 flex-1 basis-[3.75rem] flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-1.5 text-[0.625rem] font-medium leading-none transition-colors ${
+          isActive
+            ? 'bg-primary/10 text-primary ring-1 ring-primary/25 dark:text-[#c4b5fd]'
+            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+        }`}
+      >
+        <span className="shrink-0">{item.icon}</span>
+        <span className="max-w-full truncate">{item.label}</span>
+      </button>
+    );
+  };
+
   const firstName = session.student.first_name?.trim();
   const greeting = firstName ? t('greeting', { name: firstName }) : t('greetingAnonymous');
 
@@ -245,19 +281,12 @@ export default function Shell({
 
       {/* Body: side nav + active panel */}
       <div className="flex flex-1 overflow-hidden max-sm:flex-col-reverse">
-        {/*
-          Mobile: a horizontally-scrollable bottom bar. Inactive tabs are
-          icon-only squares; the active tab expands into a labelled pill on a
-          single line. This keeps every tab reachable (left-aligned so scroll
-          origin is never clipped) with a fixed height — no wrapping labels or
-          uneven rows on small phones. Desktop keeps the full labelled sidebar.
-        */}
+        {/* Desktop: full labelled sidebar. */}
         <nav
-          className="flex shrink-0 border-t border-border/60 max-sm:flex-nowrap max-sm:items-center max-sm:justify-start max-sm:gap-1 max-sm:overflow-x-auto max-sm:scrollbar-none max-sm:px-2 max-sm:py-2 sm:w-56 sm:flex-col sm:gap-1.5 sm:border-r sm:border-t-0 sm:bg-sidebar sm:p-3"
+          className="hidden shrink-0 sm:flex sm:w-56 sm:flex-col sm:gap-1.5 sm:border-r sm:border-border/60 sm:bg-sidebar sm:p-3"
           aria-label="Features"
         >
-          {/* Wordmark (desktop sidebar) */}
-          <div className="mb-2 hidden border-b border-border/60 px-2 pb-3 sm:block">
+          <div className="mb-2 border-b border-border/60 px-2 pb-3">
             <span className="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-[#5e17eb] to-[#5ce1e6] bg-clip-text text-transparent dark:from-[#a78bfa] dark:to-[#5ce1e6]">
               Erwin
             </span>
@@ -273,30 +302,57 @@ export default function Shell({
                 title={item.label}
                 aria-label={item.label}
                 aria-current={isActive ? 'page' : undefined}
-                className={`flex items-center justify-center rounded-xl transition-all duration-200 max-sm:h-10 max-sm:shrink-0 max-sm:gap-1.5 sm:w-full sm:justify-start sm:gap-3 sm:px-3.5 sm:py-2.5 sm:text-[15px] ${
-                  isActive ? 'max-sm:px-3' : 'max-sm:w-10'
-                } ${
+                className={`flex w-full items-center justify-start gap-3 rounded-xl px-3.5 py-2.5 text-[15px] transition-all duration-200 ${
                   isActive
                     ? 'bg-gradient-to-r from-primary/20 to-primary/5 font-semibold text-primary shadow-sm ring-1 ring-primary/25 dark:text-[#c4b5fd]'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground sm:hover:translate-x-0.5'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground hover:translate-x-0.5'
                 }`}
               >
                 <span className="shrink-0">{item.icon}</span>
-                {/* Label: always on desktop; on mobile only for the active tab (as a pill) */}
-                <span
-                  className={`whitespace-nowrap sm:inline max-sm:text-[0.8125rem] max-sm:leading-none ${
-                    isActive ? 'max-sm:inline' : 'max-sm:hidden'
-                  }`}
-                >
-                  {item.label}
-                </span>
+                <span className="whitespace-nowrap">{item.label}</span>
               </button>
             );
           })}
 
-          {/* University footer (desktop) */}
-          <div className="mt-auto hidden px-2 pt-3 sm:block">
+          <div className="mt-auto px-2 pt-3">
             <p className="truncate text-[10px] text-muted-foreground/70">{session.university_name}</p>
+          </div>
+        </nav>
+
+        {/*
+          Compact (small embeds / mobile): a fixed bottom bar showing only Home,
+          Chat and a "More" toggle — three targets that always fit on one line
+          with no horizontal scrolling. Tapping More reveals the remaining
+          features on a second line above; picking one collapses the bar again.
+        */}
+        <nav
+          className="flex flex-col gap-1 border-t border-border/60 p-2 sm:hidden"
+          aria-label="Features"
+        >
+          {navExpanded && secondaryItems.length > 0 && (
+            <div className="flex flex-wrap items-stretch justify-around gap-1 border-b border-border/40 pb-2">
+              {secondaryItems.map((item) => renderMobileNavButton(item, true))}
+            </div>
+          )}
+          <div className="flex items-stretch justify-around gap-1">
+            {primaryItems.map((item) => renderMobileNavButton(item, false))}
+            {secondaryItems.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setNavExpanded((v) => !v)}
+                aria-expanded={navExpanded}
+                aria-label={t('nav.more')}
+                title={t('nav.more')}
+                className={`flex min-w-0 flex-1 basis-[3.75rem] flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-1.5 text-[0.625rem] font-medium leading-none transition-colors ${
+                  navExpanded || secondaryActive
+                    ? 'bg-primary/10 text-primary ring-1 ring-primary/25 dark:text-[#c4b5fd]'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                }`}
+              >
+                <ChevronUp className={`h-5 w-5 transition-transform duration-200 ${navExpanded ? 'rotate-180' : ''}`} />
+                <span className="max-w-full truncate">{t('nav.more')}</span>
+              </button>
+            )}
           </div>
         </nav>
 
