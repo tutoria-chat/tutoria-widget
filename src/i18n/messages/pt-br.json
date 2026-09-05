@@ -320,6 +320,8 @@
     "boardInstitution": "Instituição",
     "boardInstitutionTitle": "Ranking da Instituição",
     "goalsTitle": "Minhas Metas",
+    "goalMetricLabel": "Métrica da meta",
+    "goalTargetLabel": "Valor alvo",
     "addGoal": "Nova meta",
     "cancel": "Cancelar",
     "save": "Salvar",

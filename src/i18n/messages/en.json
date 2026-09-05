@@ -320,6 +320,8 @@
     "boardInstitution": "Institution",
     "boardInstitutionTitle": "Institution Ranking",
     "goalsTitle": "My Goals",
+    "goalMetricLabel": "Goal metric",
+    "goalTargetLabel": "Target value",
     "addGoal": "New goal",
     "cancel": "Cancel",
     "save": "Save",

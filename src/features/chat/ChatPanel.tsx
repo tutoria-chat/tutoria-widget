@@ -17,6 +17,7 @@ import { apiClient } from '../../lib/api-client';
 import { useApp } from '../../app/AppContext';
 import { useResponsive } from '../../app/ResponsiveContext';
 import { useI18n, useTranslations } from '../../i18n';
+import { useDialog } from '../../hooks/useDialog';
 
 interface ConversationSummary {
   conversation_id: string;
@@ -59,6 +60,7 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const historyDialogRef = useDialog<HTMLDivElement>(() => setShowHistory(false), showHistory);
 
   const thread = getThread(activeModuleId);
   const isDefaultModule = activeModuleId === session.default_module_id;
@@ -290,23 +292,31 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
 
       {/* History overlay */}
       {showHistory && (
-        <div className="absolute inset-0 z-20 bg-background/95 backdrop-blur-sm flex flex-col">
+        <div
+          ref={historyDialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="chat-history-title"
+          className="absolute inset-0 z-20 bg-background/95 backdrop-blur-sm flex flex-col"
+        >
           <div className="flex items-center justify-between border-b px-4 py-3">
-            <p className="text-sm font-semibold flex items-center gap-2">
-              <History className="w-4 h-4" />
+            <p id="chat-history-title" className="text-sm font-semibold flex items-center gap-2">
+              <History className="w-4 h-4" aria-hidden="true" />
               {t('historyTitle')}
             </p>
             <button
               onClick={() => setShowHistory(false)}
+              aria-label={tCommon('close')}
               className="p-1 rounded-md hover:bg-muted transition-colors"
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
           <div className="flex-1 overflow-y-auto p-3">
             {historyLoading ? (
-              <div className="flex justify-center py-10">
-                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              <div role="status" className="flex justify-center py-10">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" aria-hidden="true" />
+                <span className="sr-only">{tCommon('loading')}</span>
               </div>
             ) : history.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-10">

@@ -32,6 +32,7 @@ const GOAL_METRICS = ['level', 'xp', 'streak', 'quizzes', 'questions', 'flashcar
 
 export default function ProgressPanel() {
   const t = useTranslations('progress');
+  const tCommon = useTranslations('common');
   const { activeCourse } = useApp();
 
   const [gamification, setGamification] = useState<GamificationData | null>(null);
@@ -115,8 +116,9 @@ export default function ProgressPanel() {
 
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <div role="status" className="flex h-full items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-hidden="true" />
+        <span className="sr-only">{tCommon('loading')}</span>
       </div>
     );
   }
@@ -234,6 +236,7 @@ export default function ProgressPanel() {
               <select
                 value={newMetric}
                 onChange={(e) => setNewMetric(e.target.value as (typeof GOAL_METRICS)[number])}
+                aria-label={t('goalMetricLabel')}
                 className="flex-1 rounded-lg border border-input bg-background px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 {GOAL_METRICS.map((m) => (
@@ -245,6 +248,7 @@ export default function ProgressPanel() {
                 min={1}
                 value={newTarget}
                 onChange={(e) => setNewTarget(e.target.value)}
+                aria-label={t('goalTargetLabel')}
                 className="w-24 rounded-lg border border-input bg-background px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>

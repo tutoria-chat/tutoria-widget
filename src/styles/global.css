@@ -82,7 +82,10 @@
   --secondary-foreground: var(--brand-white);
 
   --muted: var(--brand-light-gray);
-  --muted-foreground: oklch(0.5 0.01 285);
+  /* 0.45 keeps small muted text (text-xs / text-[10px]) at ≥4.5:1 on white
+     and on the muted surface — 0.5 was right at the AA edge and failed once
+     placed on --muted or dimmed. */
+  --muted-foreground: oklch(0.45 0.01 285);
   --accent: var(--brand-light-gray);
   --accent-foreground: oklch(0.2 0.01 285);
   --destructive: oklch(0.577 0.245 27.325);

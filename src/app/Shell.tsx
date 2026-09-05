@@ -315,7 +315,7 @@ export default function Shell({
           })}
 
           <div className="mt-auto px-2 pt-3">
-            <p className="truncate text-[10px] text-muted-foreground/70">{session.university_name}</p>
+            <p className="truncate text-[10px] text-muted-foreground">{session.university_name}</p>
           </div>
         </nav>
 
@@ -357,6 +357,9 @@ export default function Shell({
         </nav>
 
         <main className="flex-1 overflow-hidden">
+          {/* Single document-level heading so each panel's <h2> has a parent.
+              Visually hidden — the brand wordmark in the sidebar is decorative. */}
+          <h1 className="sr-only">Erwin — TutorIA</h1>
           {/* key={activeModuleId} forces panels to reload when the module changes —
               the visible cue that the context switched (WhatsApp model) */}
           <div key={`${activePanel}-${activeModuleId}`} className="erwin-fade-up h-full">

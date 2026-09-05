@@ -22,6 +22,7 @@ const storageKey = (sid: number | string) => `tutoria-earned-titles-${sid}`;
 export default function TitleWatcher() {
   const { session } = useApp();
   const t = useTranslations('titles');
+  const tCommon = useTranslations('common');
   const tt = useTranslations() as Translator;
   const studentId = session.student.id;
   const [toasts, setToasts] = useState<TitleDto[]>([]);
@@ -81,25 +82,29 @@ export default function TitleWatcher() {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-4 z-[60] flex flex-col items-center gap-2 px-4">
+    <div
+      role="status"
+      aria-live="polite"
+      className="pointer-events-none fixed inset-x-0 top-4 z-[60] flex flex-col items-center gap-2 px-4"
+    >
       {toasts.map((title) => (
         <div
           key={title.key}
-          className="pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-2xl bg-gradient-to-r from-[#5e17eb] to-[#5ce1e6] p-3 text-white shadow-2xl shadow-[#5e17eb]/40 ring-1 ring-white/20"
+          className="pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-2xl bg-gradient-to-r from-[#5e17eb] to-[#7c3aed] p-3 text-white shadow-2xl shadow-[#5e17eb]/40 ring-1 ring-white/20"
         >
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/20">
-            <Sparkles className="h-5 w-5" />
+            <Sparkles className="h-5 w-5" aria-hidden="true" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium opacity-90">{t('unlockedToast')}</p>
+            <p className="text-xs font-medium text-white/90">{t('unlockedToast')}</p>
             <p className="truncate text-sm font-bold">{titleName(tt, title)}</p>
           </div>
           <button
             onClick={() => dismiss(title.key)}
-            className="shrink-0 rounded-md p-1 opacity-70 transition-opacity hover:opacity-100"
-            aria-label="dismiss"
+            className="shrink-0 rounded-md p-1 opacity-80 transition-opacity hover:opacity-100"
+            aria-label={tCommon('close')}
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
       ))}

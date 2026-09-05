@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { X, CheckCircle2, XCircle, Trophy, ArrowRight, Loader2, Brain } from 'lucide-react';
 import { useTranslations } from '@/i18n';
+import { useDialog } from '@/hooks/useDialog';
 
 interface QuizQuestion {
   id: number;
@@ -53,6 +54,9 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
   const [score, setScore] = useState(0);
   const [answers, setAnswers] = useState<{ question: number; selected: string; correct: string; isCorrect: boolean }[]>([]);
   const submittedRef = useRef(false);
+  // Escape is handled below (disabled on the results screen), so the dialog
+  // trap only manages focus containment + return — no onEscape passed.
+  const dialogRef = useDialog<HTMLDivElement>(undefined, isOpen);
 
   // Pre-compute shuffled options for every question when the question list changes.
   const shuffledData = useMemo(() => {
@@ -228,16 +232,22 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto bg-background border rounded-xl shadow-2xl">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="quiz-modal-title"
+        className="relative w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto bg-background border rounded-xl shadow-2xl"
+      >
         {/* Header */}
         <div className="sticky top-0 z-10 bg-background border-b px-5 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Brain className="w-5 h-5 text-primary" />
-            <span className="font-semibold text-sm">{t('practice')}</span>
+            <Brain className="w-5 h-5 text-primary" aria-hidden="true" />
+            <span id="quiz-modal-title" className="font-semibold text-sm">{t('practice')}</span>
           </div>
           {quizState !== 'results' && (
-            <button onClick={onClose} className="p-1 rounded-md hover:bg-accent transition-colors">
-              <X className="w-4 h-4" />
+            <button onClick={onClose} aria-label={tCommon('close')} className="p-1 rounded-md hover:bg-accent transition-colors">
+              <X className="w-4 h-4" aria-hidden="true" />
             </button>
           )}
         </div>
@@ -255,8 +265,8 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
         <div className="p-5">
           {/* Loading */}
           {isLoading && (
-            <div className="flex flex-col items-center justify-center py-12 gap-3">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <div role="status" className="flex flex-col items-center justify-center py-12 gap-3">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" aria-hidden="true" />
               <p className="text-sm text-muted-foreground">{t('loadingQuestions')}</p>
             </div>
           )}
@@ -380,7 +390,7 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
                           ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
                           : isSelected
                           ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                          : 'border-border opacity-50'
+                          : 'border-border bg-muted/30'
                       }`}
                     >
                       <div className="flex items-center gap-2">

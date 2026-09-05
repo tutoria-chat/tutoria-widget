@@ -26,6 +26,7 @@ interface StudyPlanPanelProps {
 
 export default function StudyPlanPanel({ onOpenChat }: StudyPlanPanelProps) {
   const t = useTranslations('plan');
+  const tCommon = useTranslations('common');
   const { locale } = useI18n();
   const { activeCourse, activeModuleId, context, setChatDraft } = useApp();
 
@@ -107,8 +108,9 @@ export default function StudyPlanPanel({ onOpenChat }: StudyPlanPanelProps) {
 
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <div role="status" className="flex h-full items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-hidden="true" />
+        <span className="sr-only">{tCommon('loading')}</span>
       </div>
     );
   }
@@ -154,8 +156,9 @@ export default function StudyPlanPanel({ onOpenChat }: StudyPlanPanelProps) {
           </div>
 
           <div>
-            <p className="mb-2 text-sm font-medium">{t('preferencesLabel')}</p>
+            <label htmlFor="plan-preferences" className="mb-2 block text-sm font-medium">{t('preferencesLabel')}</label>
             <textarea
+              id="plan-preferences"
               value={preferences}
               onChange={(e) => setPreferences(e.target.value)}
               placeholder={t('preferencesPlaceholder')}

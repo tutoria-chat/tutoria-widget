@@ -102,8 +102,8 @@ export default function SettingsPanel({ theme, onThemeChange }: SettingsPanelPro
           ))}
         </div>
 
-        <div className="h-5 text-sm">
-          {saving && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+        <div className="h-5 text-sm" role="status" aria-live="polite">
+          {saving && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" aria-hidden="true" />}
           {saved && <span className="text-green-600 dark:text-green-400">{t('saved')}</span>}
           {error && <span className="text-destructive">{error}</span>}
         </div>
@@ -260,7 +260,7 @@ function DataExportSection() {
         )}
       </button>
 
-      <div className="h-5 text-sm">
+      <div className="h-5 text-sm" role="status" aria-live="polite">
         {done && <span className="text-green-600 dark:text-green-400">{t('dataExport.done')}</span>}
         {error && <span className="text-destructive">{error}</span>}
       </div>
@@ -322,6 +322,7 @@ function PasswordSection() {
           value={currentPassword}
           onChange={(e) => setCurrentPassword(e.target.value)}
           placeholder={t('password.currentPlaceholder')}
+          aria-label={t('password.currentPlaceholder')}
           autoComplete="current-password"
           className={inputClass}
         />
@@ -330,7 +331,9 @@ function PasswordSection() {
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
           placeholder={t('password.newPlaceholder')}
+          aria-label={t('password.newPlaceholder')}
           autoComplete="new-password"
+          aria-describedby={newPassword && newPassword.length < 8 ? 'password-rules' : undefined}
           className={inputClass}
         />
         <input
@@ -338,14 +341,17 @@ function PasswordSection() {
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           placeholder={t('password.confirmPlaceholder')}
+          aria-label={t('password.confirmPlaceholder')}
           autoComplete="new-password"
+          aria-invalid={confirmPassword ? newPassword !== confirmPassword : undefined}
+          aria-describedby={confirmPassword && newPassword !== confirmPassword ? 'password-mismatch' : undefined}
           className={inputClass}
         />
         {confirmPassword && newPassword !== confirmPassword && (
-          <p className="text-xs text-destructive">{t('password.mismatch')}</p>
+          <p id="password-mismatch" role="alert" className="text-xs text-destructive">{t('password.mismatch')}</p>
         )}
         {newPassword && newPassword.length < 8 && (
-          <p className="text-xs text-muted-foreground">{t('password.rules')}</p>
+          <p id="password-rules" className="text-xs text-muted-foreground">{t('password.rules')}</p>
         )}
 
         <button
@@ -356,7 +362,7 @@ function PasswordSection() {
           {busy ? t('password.saving') : t('password.submit')}
         </button>
 
-        <div className="h-5 text-sm">
+        <div className="h-5 text-sm" role="status" aria-live="polite">
           {done && <span className="text-green-600 dark:text-green-400">{t('password.saved')}</span>}
           {error && <span className="text-destructive">{error}</span>}
         </div>
