@@ -3,10 +3,11 @@
  * management (the only profile field students may edit — everything else
  * stays under the institution's control).
  */
-import React, { useState } from 'react';
-import { Check, Download, KeyRound, Loader2, Maximize2, Settings as SettingsIcon } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Check, Download, KeyRound, Loader2, Maximize2, Settings as SettingsIcon, Volume2 } from 'lucide-react';
 import { apiClient } from '../../lib/api-client';
 import { useApp } from '../../app/AppContext';
+import { useReadAloudPref } from '../../hooks/useReadAloudPref';
 import { useResponsive, USER_SCALE_MIN, USER_SCALE_MAX } from '../../app/ResponsiveContext';
 import {
   LOCALE_NAMES,
@@ -108,6 +109,8 @@ export default function SettingsPanel({ theme, onThemeChange }: SettingsPanelPro
           {error && <span className="text-destructive">{error}</span>}
         </div>
 
+        <VoiceSection />
+
         <DisplaySection optionClass={optionClass} />
 
         <PasswordSection />
@@ -195,6 +198,55 @@ function DisplaySection({ optionClass }: { optionClass: (selected: boolean) => s
               : t('display.hint')}
         </p>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Voice: opt in to having the tutor read every answer aloud. A big win for
+ * students who read slowly, have low vision, or are dyslexic. Only shown when
+ * the browser supports speech synthesis (checked after mount to avoid an
+ * SSR/hydration mismatch).
+ */
+function VoiceSection() {
+  const t = useTranslations('settings');
+  const [readAloud, setReadAloud] = useReadAloudPref();
+  const [supported, setSupported] = useState(false);
+
+  useEffect(() => {
+    setSupported(typeof window !== 'undefined' && 'speechSynthesis' in window);
+  }, []);
+
+  if (!supported) return null;
+
+  return (
+    <div className="space-y-3 border-t border-border pt-6">
+      <div className="flex items-center gap-2">
+        <Volume2 className="h-4 w-4 text-muted-foreground" />
+        <p className="text-sm font-medium">{t('voice.title')}</p>
+      </div>
+
+      <button
+        type="button"
+        role="switch"
+        aria-checked={readAloud}
+        onClick={() => setReadAloud(!readAloud)}
+        className="flex w-full items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2.5 text-left transition-colors hover:bg-accent"
+      >
+        <span className="text-sm">{t('voice.autoRead')}</span>
+        <span
+          className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${
+            readAloud ? 'bg-primary' : 'bg-muted'
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
+              readAloud ? 'left-0.5 translate-x-4' : 'left-0.5'
+            }`}
+          />
+        </span>
+      </button>
+      <p className="text-xs text-muted-foreground">{t('voice.autoReadHint')}</p>
     </div>
   );
 }

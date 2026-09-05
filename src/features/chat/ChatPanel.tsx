@@ -10,7 +10,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import rehypeHighlight from 'rehype-highlight';
-import { History, Loader2, SendHorizontal, Sparkles, SquarePen, X } from 'lucide-react';
+import { History, Loader2, Mic, SendHorizontal, Sparkles, Square, SquarePen, Volume2, X } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Textarea } from '../../components/ui/textarea';
 import { apiClient } from '../../lib/api-client';
@@ -18,6 +18,11 @@ import { useApp } from '../../app/AppContext';
 import { useResponsive } from '../../app/ResponsiveContext';
 import { useI18n, useTranslations } from '../../i18n';
 import { useDialog } from '../../hooks/useDialog';
+import { useTextToSpeech } from '../../hooks/useTextToSpeech';
+import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
+import { useReadAloudPref } from '../../hooks/useReadAloudPref';
+
+const SPEECH_LANG: Record<string, string> = { 'pt-br': 'pt-BR', en: 'en-US', es: 'es-ES' };
 
 interface ConversationSummary {
   conversation_id: string;
@@ -62,8 +67,72 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const historyDialogRef = useDialog<HTMLDivElement>(() => setShowHistory(false), showHistory);
 
+  // Voice: read answers aloud (TTS) and dictate questions (STT).
+  const speechLang = SPEECH_LANG[locale] ?? 'pt-BR';
+  const tts = useTextToSpeech(speechLang);
+  const [readAloud] = useReadAloudPref();
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+  // Text present in the input when dictation began, so interim words append to it.
+  const sttBaseRef = useRef('');
+  const sttFinalRef = useRef('');
+  const wasLoadingRef = useRef(false);
+
+  const applyTranscript = (text: string) => {
+    setInput(text);
+    requestAnimationFrame(() => {
+      const el = textareaRef.current;
+      if (el) {
+        el.style.height = 'auto';
+        el.style.height = `${el.scrollHeight}px`;
+      }
+    });
+  };
+
+  const stt = useSpeechRecognition({
+    lang: speechLang,
+    onInterim: (interim) => applyTranscript(sttBaseRef.current + sttFinalRef.current + interim),
+    onFinal: (final) => {
+      sttFinalRef.current = final;
+      applyTranscript(sttBaseRef.current + final);
+    },
+    onError: (err) => {
+      setVoiceError(err === 'not-allowed' || err === 'service-not-allowed' ? t('voiceDenied') : t('voiceError'));
+    },
+  });
+
+  const toggleDictation = () => {
+    if (stt.listening) {
+      stt.stop();
+      return;
+    }
+    setVoiceError(null);
+    tts.stop(); // don't listen and speak at once
+    sttBaseRef.current = input ? `${input.trimEnd()} ` : '';
+    sttFinalRef.current = '';
+    stt.start();
+  };
+
   const thread = getThread(activeModuleId);
   const isDefaultModule = activeModuleId === session.default_module_id;
+
+  // Auto-read a tutor answer once it finishes (when the student opted in).
+  useEffect(() => {
+    if (readAloud && tts.supported && wasLoadingRef.current && !isLoading) {
+      const msgs = thread.messages;
+      const last = msgs[msgs.length - 1];
+      if (last && last.role === 'assistant' && !last.isThinking && last.content) {
+        tts.speak(`msg-${msgs.length - 1}`, last.content);
+      }
+    }
+    wasLoadingRef.current = isLoading;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, readAloud, tts.supported]);
+
+  // Stop any narration when leaving the thread / module.
+  useEffect(() => {
+    return () => tts.stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeModuleId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -407,6 +476,27 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
                     </ReactMarkdown>
                   </div>
                 )}
+
+                {/* Read-aloud (TTS) — the accessibility win: listen instead of read. */}
+                {msg.role === 'assistant' && !msg.isThinking && msg.content && tts.supported && (() => {
+                  const speaking = tts.speakingKey === `msg-${idx}`;
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => tts.speak(`msg-${idx}`, msg.content)}
+                      aria-pressed={speaking}
+                      aria-label={speaking ? t('stopReading') : t('readAloud')}
+                      className={`mt-2 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
+                        speaking
+                          ? 'border-primary/50 bg-primary/10 text-primary dark:text-[#c4b5fd]'
+                          : 'border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground/40'
+                      }`}
+                    >
+                      {speaking ? <Square className="h-3 w-3 fill-current" aria-hidden="true" /> : <Volume2 className="h-3.5 w-3.5" aria-hidden="true" />}
+                      {speaking ? t('stopReading') : t('readAloud')}
+                    </button>
+                  );
+                })()}
               </div>
             </div>
           ))}
@@ -438,7 +528,27 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
               compact ? 'min-h-11' : 'min-h-16'
             }`}
           />
-          <div className={`flex flex-row items-center justify-end w-full ${compact ? 'mt-1.5' : 'mt-3'}`}>
+          <div className={`flex flex-row items-center justify-between w-full ${compact ? 'mt-1.5' : 'mt-3'}`}>
+            {stt.supported ? (
+              <button
+                type="button"
+                onClick={toggleDictation}
+                aria-pressed={stt.listening}
+                aria-label={stt.listening ? t('voiceStop') : t('voiceInput')}
+                title={stt.listening ? t('voiceStop') : t('voiceInput')}
+                className={`inline-flex items-center justify-center rounded-full border transition-colors ${
+                  compact ? 'h-8 w-8' : 'h-10 w-10'
+                } ${
+                  stt.listening
+                    ? 'border-red-500/60 bg-red-500/10 text-red-500 animate-pulse'
+                    : 'border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground/40'
+                }`}
+              >
+                {stt.listening ? <Square className="h-4 w-4 fill-current" aria-hidden="true" /> : <Mic className={compact ? 'h-4 w-4' : 'h-5 w-5'} aria-hidden="true" />}
+              </button>
+            ) : (
+              <span />
+            )}
             <Button
               type="submit"
               disabled={isLoading || !input.trim()}
@@ -449,6 +559,15 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
               <SendHorizontal />
             </Button>
           </div>
+          {(stt.listening || voiceError) && (
+            <p
+              className={`mt-1.5 text-xs ${voiceError ? 'text-destructive' : 'text-muted-foreground'}`}
+              role={voiceError ? 'alert' : 'status'}
+              aria-live={voiceError ? 'assertive' : 'polite'}
+            >
+              {voiceError || t('listening')}
+            </p>
+          )}
         </form>
       </div>
     </div>

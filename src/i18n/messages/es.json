@@ -348,6 +348,13 @@
   "chat": {
     "inputPlaceholder": "Escribe tu pregunta...",
     "thinking": "Pensando...",
+    "voiceInput": "Hablar la pregunta",
+    "voiceStop": "Detener grabación",
+    "listening": "Escuchando… di tu pregunta",
+    "voiceError": "No se pudo usar el micrófono. Inténtalo de nuevo.",
+    "voiceDenied": "Permiso de micrófono denegado. Permite el acceso para hablar.",
+    "readAloud": "Escuchar",
+    "stopReading": "Detener",
     "newConversationNotice": "Cambiaste de módulo. Esta es una nueva conversación para {moduleName}.",
     "emptyTitle": "Pregúntale a Erwin sobre {moduleName}",
     "emptySubtitle": "Erwin responde con base en los materiales del curso.",
@@ -408,6 +415,11 @@
     "themeSystem": "Sistema",
     "saved": "¡Preferencias guardadas!",
     "saveError": "No se pudieron guardar tus preferencias.",
+    "voice": {
+      "title": "Voz",
+      "autoRead": "Leer respuestas en voz alta",
+      "autoReadHint": "El tutor lee cada nueva respuesta automáticamente. También puedes tocar \"Escuchar\" en cualquier respuesta."
+    },
     "display": {
       "title": "Visualización",
       "zoom": "Tamaño de la interfaz",

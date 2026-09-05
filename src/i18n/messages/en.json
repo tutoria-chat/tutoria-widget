@@ -348,6 +348,13 @@
   "chat": {
     "inputPlaceholder": "Type your question...",
     "thinking": "Thinking...",
+    "voiceInput": "Speak your question",
+    "voiceStop": "Stop recording",
+    "listening": "Listening… speak your question",
+    "voiceError": "Couldn't use the microphone. Please try again.",
+    "voiceDenied": "Microphone permission denied. Allow access to speak.",
+    "readAloud": "Listen",
+    "stopReading": "Stop",
     "newConversationNotice": "You switched modules. This is a new conversation for {moduleName}.",
     "emptyTitle": "Ask Erwin anything about {moduleName}",
     "emptySubtitle": "Erwin answers based on the course materials.",
@@ -408,6 +415,11 @@
     "themeSystem": "System",
     "saved": "Preferences saved!",
     "saveError": "Could not save your preferences.",
+    "voice": {
+      "title": "Voice",
+      "autoRead": "Read answers aloud",
+      "autoReadHint": "The tutor reads each new answer automatically. You can also tap \"Listen\" on any answer."
+    },
     "display": {
       "title": "Display",
       "zoom": "Interface size",
