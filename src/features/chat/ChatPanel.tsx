@@ -362,7 +362,11 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
           </p>
         </div>
       ) : (
-        <div className="flex-1 min-h-0 overflow-y-auto space-y-4 w-full px-4 py-4 scrollbar scrollbar-w-2 scrollbar-thumb-rounded-full scrollbar-track-rounded-full scrollbar-thumb-border">
+        <div
+          role="log"
+          aria-live="polite"
+          aria-atomic="false"
+          className="flex-1 min-h-0 overflow-y-auto space-y-4 w-full px-4 py-4 scrollbar scrollbar-w-2 scrollbar-thumb-rounded-full scrollbar-track-rounded-full scrollbar-thumb-border">
           {thread.messages.map((msg, idx) => (
             <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div
@@ -419,6 +423,7 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
             onChange={handleInput}
             onKeyDown={handleKeyDown}
             placeholder={t('inputPlaceholder')}
+            aria-label={t('inputPlaceholder')}
             className={`w-full resize-none overflow-y-auto !text-base placeholder:text-base max-h-40 scrollbar scrollbar-w-2 scrollbar-thumb-rounded-full scrollbar-track-rounded-full scrollbar-thumb-border ${
               compact ? 'min-h-11' : 'min-h-16'
             }`}

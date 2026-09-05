@@ -195,3 +195,29 @@
 .erwin-fade-up {
   animation: erwin-fade-up 0.25s ease-out;
 }
+/* ── Accessibility ──────────────────────────────────────────────────────── */
+
+/*
+ * A clearly visible keyboard-focus ring on every interactive element. The
+ * !important wins over Tailwind's `outline-none`; :focus-visible keeps the ring
+ * off for pointer/mouse interactions, so it only shows for keyboard users.
+ */
+:focus-visible {
+  outline: 2px solid var(--ring) !important;
+  outline-offset: 2px !important;
+}
+
+/* Respect users who prefer reduced motion (vestibular safety). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .erwin-fade-up {
+    animation: none !important;
+  }
+}
