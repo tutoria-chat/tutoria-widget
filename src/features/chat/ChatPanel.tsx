@@ -477,7 +477,8 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
                   </div>
                 )}
 
-                {/* Read-aloud (TTS) — the accessibility win: listen instead of read. */}
+                {/* Read-aloud (TTS) — a compact speaker icon on each answer, like
+                    Google Translate. The accessibility win: listen instead of read. */}
                 {msg.role === 'assistant' && !msg.isThinking && msg.content && tts.supported && (() => {
                   const speaking = tts.speakingKey === `msg-${idx}`;
                   return (
@@ -486,14 +487,14 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
                       onClick={() => tts.speak(`msg-${idx}`, msg.content)}
                       aria-pressed={speaking}
                       aria-label={speaking ? t('stopReading') : t('readAloud')}
-                      className={`mt-2 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
+                      title={speaking ? t('stopReading') : t('readAloud')}
+                      className={`-ml-1 mt-1 inline-flex h-7 w-7 items-center justify-center rounded-full transition-colors ${
                         speaking
-                          ? 'border-primary/50 bg-primary/10 text-primary dark:text-[#c4b5fd]'
-                          : 'border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground/40'
+                          ? 'bg-primary/10 text-primary dark:text-[#c4b5fd]'
+                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                       }`}
                     >
-                      {speaking ? <Square className="h-3 w-3 fill-current" aria-hidden="true" /> : <Volume2 className="h-3.5 w-3.5" aria-hidden="true" />}
-                      {speaking ? t('stopReading') : t('readAloud')}
+                      <Volume2 className={`h-4 w-4 ${speaking ? 'animate-pulse' : ''}`} aria-hidden="true" />
                     </button>
                   );
                 })()}
