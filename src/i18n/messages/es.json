@@ -89,7 +89,7 @@
     "recentQuizzesTitle": "Quizzes recientes",
     "quizScore": "{correct} de {total} correctas",
     "quickActionsTitle": "Atajos",
-    "actionChat": "Preguntar al tutor",
+    "actionChat": "Preguntar al Centro de apoyo al aprendizaje",
     "actionCreatePlan": "Crear plan de la semana",
     "actionViewPlan": "Ver plan de la semana",
     "actionFlashcards": "Repasar flashcards"
@@ -193,7 +193,7 @@
     "missionsTitle": "Misiones de la Semana",
     "claim": "Reclamar +{xp} XP",
     "mission": {
-      "weekly_questions": "Haz 10 preguntas al tutor",
+      "weekly_questions": "Haz 10 preguntas al Centro de apoyo al aprendizaje",
       "weekly_quizzes": "Completa 3 quizzes",
       "weekly_flashcards": "Repasa 2 mazos de flashcards",
       "weekly_plan": "Genera un plan de estudios",
@@ -381,7 +381,7 @@
   },
   "assignments": {
     "title": "Actividades",
-    "subtitle": "Envía tu trabajo y recibe retroalimentación del tutor",
+    "subtitle": "Envía tu trabajo y recibe retroalimentación del Centro de apoyo al aprendizaje",
     "due": "Entrega: {date}",
     "noDueDate": "Sin fecha de entrega",
     "downloadStatement": "Descargar enunciado",
@@ -390,7 +390,7 @@
     "loadError": "No se pudieron cargar las actividades.",
     "otherModule": "Módulo: {moduleName}",
     "feedbackProcessing": "Analizando tu trabajo de \"{title}\"...",
-    "feedbackProcessingHint": "Puedes seguir usando el tutor — te avisaremos aquí cuando la retroalimentación esté lista.",
+    "feedbackProcessingHint": "Puedes seguir usando el Centro de apoyo al aprendizaje — te avisaremos aquí cuando la retroalimentación esté lista.",
     "feedbackReady": "Retroalimentación: {title}",
     "feedbackFailed": "No se pudo generar la retroalimentación de \"{title}\". Inténtalo de nuevo.",
     "discussInChat": "Discutir en el chat",
@@ -418,7 +418,7 @@
     "voice": {
       "title": "Voz",
       "autoRead": "Leer respuestas en voz alta",
-      "autoReadHint": "El tutor lee cada nueva respuesta automáticamente. También puedes tocar \"Escuchar\" en cualquier respuesta."
+      "autoReadHint": "El Centro de apoyo al aprendizaje lee cada nueva respuesta automáticamente. También puedes tocar \"Escuchar\" en cualquier respuesta."
     },
     "display": {
       "title": "Visualización",
@@ -476,11 +476,11 @@
     "resultPerfect": "¡Perfecto! ¡Dominaste el contenido!",
     "resultGreat": "¡Genial! Tienes un buen entendimiento del contenido.",
     "resultOk": "¡Buen esfuerzo! Hay algunos puntos para repasar.",
-    "resultReview": "Hay puntos importantes para repasar. ¡El tutor puede ayudarte!",
+    "resultReview": "Hay puntos importantes para repasar. ¡El Centro de apoyo al aprendizaje puede ayudarte!",
     "yourAnswer": "Tu respuesta: {answer}",
     "correctAnswer": "Respuesta correcta: {answer}",
     "continueStudying": "Seguir estudiando",
-    "sendToTutor": "Enviar al tutor",
+    "sendToTutor": "Enviar al Centro de apoyo al aprendizaje",
     "sharePerfect": "Acabo de terminar una evaluación sobre \"{moduleName}\" y acerté todo ({score}/{total}, {percent}%). ¿Puedes sugerirme temas avanzados para seguir aprendiendo?",
     "shareHeader": "Acabo de terminar una evaluación sobre \"{moduleName}\". Acerté {score}/{total} ({percent}%).",
     "shareWrongCount": "Fallé {count} pregunta(s):",
@@ -494,7 +494,7 @@
     "retry": "Reintentar",
     "title": "Aviso de Privacidad",
     "subtitle": "Conforme a la Ley General de Protección de Datos de Brasil (LGPD)",
-    "aiTitle": "Este tutor utiliza inteligencia artificial",
+    "aiTitle": "Este Centro de apoyo al aprendizaje utiliza inteligencia artificial",
     "aiBody": "Las respuestas son generadas por IA con base en los materiales del curso. Pueden contener imprecisiones y no sustituyen al profesor.",
     "dataTitle": "Recolección y uso de datos",
     "dataItem1": "Tus preguntas e interacciones se registran con fines educativos",
