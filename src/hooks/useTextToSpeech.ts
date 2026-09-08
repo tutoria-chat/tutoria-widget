@@ -52,13 +52,16 @@ export function useTextToSpeech(lang: string) {
   const pickVoice = useCallback((): SpeechSynthesisVoice | null => {
     try {
       const voices = window.speechSynthesis.getVoices() || [];
-      const want = lang.toLowerCase();
-      const base = want.split('-')[0];
-      return (
-        voices.find((v) => v.lang?.toLowerCase() === want) ||
-        voices.find((v) => v.lang?.toLowerCase().startsWith(base)) ||
-        null
-      );
+      const want = lang.toLowerCase(); // e.g. 'pt-br'
+      const base = want.split('-')[0]; // e.g. 'pt'
+      const norm = (v: SpeechSynthesisVoice) => (v.lang || '').toLowerCase().replace('_', '-');
+      // Exact region first (pt-BR, not pt-PT).
+      const exact = voices.find((v) => norm(v) === want || norm(v).startsWith(want));
+      if (exact) return exact;
+      // Portuguese is region-sensitive: never substitute a Portugal voice for
+      // a Brazilian one — leave the choice to the engine via utterance.lang.
+      if (base === 'pt') return null;
+      return voices.find((v) => norm(v).startsWith(base)) || null;
     } catch {
       return null;
     }
