@@ -733,7 +733,7 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
             <>
               <CardTitle className="text-lg">UP Business Game</CardTitle>
               <p className="text-sm text-muted-foreground">
-                {teamName || (upId ? `Team ${upId}` : 'AI Tutor')}
+                {teamName || (upId ? `Team ${upId}` : 'Central de apoio ao aprendizado')}
               </p>
             </>
           ) : isProfessorMode ? (
