@@ -8,6 +8,7 @@ import { Check, Download, KeyRound, Loader2, Maximize2, Settings as SettingsIcon
 import { apiClient } from '../../lib/api-client';
 import { useApp } from '../../app/AppContext';
 import { useReadAloudPref } from '../../hooks/useReadAloudPref';
+import { useSpeechRatePref, SPEECH_RATES } from '../../hooks/useSpeechRatePref';
 import { useResponsive, USER_SCALE_MIN, USER_SCALE_MAX } from '../../app/ResponsiveContext';
 import {
   LOCALE_NAMES,
@@ -210,7 +211,9 @@ function DisplaySection({ optionClass }: { optionClass: (selected: boolean) => s
  */
 function VoiceSection() {
   const t = useTranslations('settings');
+  const { locale } = useI18n();
   const [readAloud, setReadAloud] = useReadAloudPref();
+  const [rate, setRate] = useSpeechRatePref();
   const [supported, setSupported] = useState(false);
 
   useEffect(() => {
@@ -218,6 +221,9 @@ function VoiceSection() {
   }, []);
 
   if (!supported) return null;
+
+  const bcp47 = ({ 'pt-br': 'pt-BR', en: 'en-US', es: 'es-ES' } as const)[locale] ?? 'pt-BR';
+  const fmtRate = (r: number) => `${new Intl.NumberFormat(bcp47, { maximumFractionDigits: 2 }).format(r)}×`;
 
   return (
     <div className="space-y-3 border-t border-border pt-6">
@@ -247,6 +253,25 @@ function VoiceSection() {
         </span>
       </button>
       <p className="text-xs text-muted-foreground">{t('voice.autoReadHint')}</p>
+
+      <div className="pt-1">
+        <p className="mb-1.5 text-sm">{t('voice.speedLabel')}</p>
+        <div className="inline-flex overflow-hidden rounded-md border border-border" role="group" aria-label={t('voice.speedLabel')}>
+          {SPEECH_RATES.map((r) => (
+            <button
+              key={r}
+              type="button"
+              onClick={() => setRate(r)}
+              aria-pressed={rate === r}
+              className={`px-3 py-1.5 text-xs font-medium tabular-nums transition-colors ${
+                rate === r ? 'bg-primary/10 text-primary dark:text-[#c4b5fd]' : 'text-muted-foreground hover:bg-accent'
+              }`}
+            >
+              {fmtRate(r)}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

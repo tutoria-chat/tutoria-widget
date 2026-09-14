@@ -19,6 +19,8 @@ import { useResponsive } from '../../app/ResponsiveContext';
 import { useI18n, useTranslations } from '../../i18n';
 import { useDialog } from '../../hooks/useDialog';
 import { useTextToSpeech } from '../../hooks/useTextToSpeech';
+import { useSpeechRatePref } from '../../hooks/useSpeechRatePref';
+import ReadingText from './ReadingText';
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
 import { useReadAloudPref } from '../../hooks/useReadAloudPref';
 
@@ -69,7 +71,8 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
 
   // Voice: read answers aloud (TTS) and dictate questions (STT).
   const speechLang = SPEECH_LANG[locale] ?? 'pt-BR';
-  const tts = useTextToSpeech(speechLang);
+  const [speechRate] = useSpeechRatePref();
+  const tts = useTextToSpeech(speechLang, speechRate);
   const [readAloud] = useReadAloudPref();
   const [voiceError, setVoiceError] = useState<string | null>(null);
   // Text present in the input when dictation began, so interim words append to it.
@@ -466,6 +469,9 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
                   </div>
                 ) : msg.role === 'user' ? (
                   <div className="whitespace-pre-wrap w-full break-words text-sm">{msg.content}</div>
+                ) : tts.speakingKey === `msg-${idx}` ? (
+                  /* While reading: karaoke plain text with the spoken word lit up. */
+                  <ReadingText text={tts.spokenText} charIndex={tts.charIndex} />
                 ) : (
                   <div className="prose prose-sm dark:prose-invert max-w-none">
                     <ReactMarkdown
@@ -477,8 +483,7 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
                   </div>
                 )}
 
-                {/* Read-aloud (TTS) — a compact speaker icon on each answer, like
-                    Google Translate. The accessibility win: listen instead of read. */}
+                {/* Read-aloud (TTS) — a bright gradient pill so it's easy to spot. */}
                 {msg.role === 'assistant' && !msg.isThinking && msg.content && tts.supported && (() => {
                   const speaking = tts.speakingKey === `msg-${idx}`;
                   return (
@@ -488,13 +493,16 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
                       aria-pressed={speaking}
                       aria-label={speaking ? t('stopReading') : t('readAloud')}
                       title={speaking ? t('stopReading') : t('readAloud')}
-                      className={`-ml-1 mt-1 inline-flex h-7 w-7 items-center justify-center rounded-full transition-colors ${
-                        speaking
-                          ? 'bg-primary/10 text-primary dark:text-[#c4b5fd]'
-                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                      className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-white transition-all bg-gradient-to-r from-[#5e17eb] to-[#5ce1e6] shadow-md shadow-[#5e17eb]/30 hover:-translate-y-px hover:shadow-lg hover:shadow-[#5e17eb]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5ce1e6] focus-visible:ring-offset-1 ${
+                        speaking ? 'ring-2 ring-[#5ce1e6] ring-offset-1 animate-pulse' : ''
                       }`}
                     >
-                      <Volume2 className={`h-4 w-4 ${speaking ? 'animate-pulse' : ''}`} aria-hidden="true" />
+                      {speaking ? (
+                        <Square className="h-3.5 w-3.5 fill-current" aria-hidden="true" />
+                      ) : (
+                        <Volume2 className="h-3.5 w-3.5" aria-hidden="true" />
+                      )}
+                      {speaking ? t('stopReading') : t('readAloud')}
                     </button>
                   );
                 })()}

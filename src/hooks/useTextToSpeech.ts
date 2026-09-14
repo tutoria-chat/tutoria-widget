@@ -26,11 +26,15 @@ export function stripForSpeech(md: string): string {
     .trim();
 }
 
-export function useTextToSpeech(lang: string) {
+export function useTextToSpeech(lang: string, rate = 0.9) {
   const supported =
     typeof window !== 'undefined' && 'speechSynthesis' in window &&
     typeof window.SpeechSynthesisUtterance !== 'undefined';
   const [speakingKey, setSpeakingKey] = useState<string | null>(null);
+  // The cleaned text being read + the char index of the word currently spoken,
+  // so the UI can highlight it and follow along.
+  const [spokenText, setSpokenText] = useState('');
+  const [charIndex, setCharIndex] = useState(0);
   const keyRef = useRef<string | null>(null);
 
   // Nudge the (async) voice list to populate so pickVoice has options ready.
@@ -67,16 +71,23 @@ export function useTextToSpeech(lang: string) {
     }
   }, [lang]);
 
-  const stop = useCallback(() => {
-    if (!supported) return;
-    try {
-      window.speechSynthesis.cancel();
-    } catch {
-      /* ignore */
-    }
+  const reset = useCallback(() => {
     keyRef.current = null;
     setSpeakingKey(null);
-  }, [supported]);
+    setSpokenText('');
+    setCharIndex(0);
+  }, []);
+
+  const stop = useCallback(() => {
+    if (supported) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch {
+        /* ignore */
+      }
+    }
+    reset();
+  }, [supported, reset]);
 
   /** Speak `text` for `key`; calling again with the same key stops it. */
   const speak = useCallback(
@@ -89,38 +100,41 @@ export function useTextToSpeech(lang: string) {
         /* ignore */
       }
       if (wasSpeaking === key) {
-        keyRef.current = null;
-        setSpeakingKey(null);
+        reset();
         return;
       }
       const clean = stripForSpeech(text);
       if (!clean) {
-        keyRef.current = null;
-        setSpeakingKey(null);
+        reset();
         return;
       }
       try {
         const u = new SpeechSynthesisUtterance(clean);
         u.lang = lang;
+        u.rate = rate;
         const v = pickVoice();
         if (v) u.voice = v;
-        u.onend = () => {
-          if (keyRef.current === key) {
-            keyRef.current = null;
-            setSpeakingKey(null);
+        // Follow along word by word (charIndex points at the current word).
+        u.onboundary = (e) => {
+          if (keyRef.current === key && typeof e.charIndex === 'number') {
+            setCharIndex(e.charIndex);
           }
+        };
+        u.onend = () => {
+          if (keyRef.current === key) reset();
         };
         u.onerror = u.onend;
         keyRef.current = key;
         setSpeakingKey(key);
+        setSpokenText(clean);
+        setCharIndex(0);
         window.speechSynthesis.speak(u);
       } catch {
-        keyRef.current = null;
-        setSpeakingKey(null);
+        reset();
       }
     },
-    [supported, lang, pickVoice],
+    [supported, lang, rate, pickVoice, reset],
   );
 
-  return { supported, speakingKey, speak, stop };
+  return { supported, speakingKey, spokenText, charIndex, speak, stop };
 }

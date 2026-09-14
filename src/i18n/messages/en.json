@@ -418,7 +418,8 @@
     "voice": {
       "title": "Voice",
       "autoRead": "Read answers aloud",
-      "autoReadHint": "The Learning Support Center reads each new answer automatically. You can also tap \"Listen\" on any answer."
+      "autoReadHint": "The Learning Support Center reads each new answer automatically. You can also tap \"Listen\" on any answer.",
+      "speedLabel": "Reading speed"
     },
     "display": {
       "title": "Display",

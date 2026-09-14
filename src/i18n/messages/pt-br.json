@@ -418,7 +418,8 @@
     "voice": {
       "title": "Voz",
       "autoRead": "Ler respostas em voz alta",
-      "autoReadHint": "A Central de apoio ao aprendizado lê cada nova resposta automaticamente. Você também pode tocar em \"Ouvir\" em qualquer resposta."
+      "autoReadHint": "A Central de apoio ao aprendizado lê cada nova resposta automaticamente. Você também pode tocar em \"Ouvir\" em qualquer resposta.",
+      "speedLabel": "Velocidade da leitura"
     },
     "display": {
       "title": "Exibição",
