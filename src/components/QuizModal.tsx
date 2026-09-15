@@ -16,10 +16,10 @@ interface QuizQuestion {
   concepts_covered: string[];
 }
 
-interface ShuffledOption {
+interface DisplayOption {
   displayKey: string;   // letter shown to student (A, B, C, …)
   value: string;        // answer text
-  originalKey: string;  // original letter from the API (used to look up the explanation)
+  originalKey: string;  // stored letter from the API (used to look up the explanation)
   explanation: string | null;
 }
 
@@ -58,22 +58,19 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
   // trap only manages focus containment + return — no onEscape passed.
   const dialogRef = useDialog<HTMLDivElement>(undefined, isOpen);
 
-  // Pre-compute shuffled options for every question when the question list changes.
-  const shuffledData = useMemo(() => {
+  // Prepare each question's options for display. Option order is randomized once,
+  // at generation time, and the explanations are self-contained (they never cite a
+  // letter), so we present them in their stored order here. Shuffling at display
+  // time used to relabel the options while the explanation text kept the original
+  // letter, so the feedback pointed at the wrong option.
+  const preparedData = useMemo(() => {
     const displayKeys = ['A', 'B', 'C', 'D', 'E'];
     return questions.map((q) => {
       const valid = (Object.entries(q.options) as [string, string | null][]).filter(
         ([, v]) => v != null,
       ) as [string, string][];
 
-      // Fisher-Yates shuffle
-      const shuffled = [...valid];
-      for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-      }
-
-      const options: ShuffledOption[] = shuffled.map(([originalKey, value], idx) => ({
+      const options: DisplayOption[] = valid.map(([originalKey, value], idx) => ({
         displayKey: displayKeys[idx],
         value,
         originalKey,
@@ -137,7 +134,7 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
   const handleConfirm = () => {
     if (!selectedAnswer || !currentQuestion) return;
 
-    const correctDisplayKey = shuffledData[currentIndex]?.correctDisplayKey ?? currentQuestion.correct_answer;
+    const correctDisplayKey = preparedData[currentIndex]?.correctDisplayKey ?? currentQuestion.correct_answer;
     const isCorrect = selectedAnswer === correctDisplayKey;
     if (isCorrect) setScore((prev) => prev + 1);
 
@@ -199,7 +196,7 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
         .map((ans) => {
           const qIdx = ans.question - 1;
           const question = questions[qIdx];
-          const opts = shuffledData[qIdx]?.options ?? [];
+          const opts = preparedData[qIdx]?.options ?? [];
           const correctOpt = opts.find((o) => o.displayKey === ans.correct);
           const concepts = question?.concepts_covered?.join(', ') || '';
           const questionText = escapeDollar(question?.question_text ?? '');
@@ -324,7 +321,7 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
               <p className="text-sm font-medium leading-relaxed">{currentQuestion.question_text}</p>
 
               <div className="space-y-2">
-                {(shuffledData[currentIndex]?.options ?? []).map(({ displayKey, value }) => (
+                {(preparedData[currentIndex]?.options ?? []).map(({ displayKey, value }) => (
                   <button
                     key={displayKey}
                     onClick={() => handleSelectAnswer(displayKey)}
@@ -354,7 +351,7 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
           {!isLoading && quizState === 'feedback' && currentQuestion && selectedAnswer && (
             <div className="space-y-4">
               {(() => {
-                const correctDisplayKey = shuffledData[currentIndex]?.correctDisplayKey ?? currentQuestion.correct_answer;
+                const correctDisplayKey = preparedData[currentIndex]?.correctDisplayKey ?? currentQuestion.correct_answer;
                 const isAnswerCorrect = selectedAnswer === correctDisplayKey;
                 return (
                   <div className="flex items-center gap-2">
@@ -376,8 +373,8 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
               <p className="text-sm text-muted-foreground">{currentQuestion.question_text}</p>
 
               <div className="space-y-2">
-                {(shuffledData[currentIndex]?.options ?? []).map(({ displayKey, value, explanation }) => {
-                  const correctDisplayKey = shuffledData[currentIndex]?.correctDisplayKey ?? currentQuestion.correct_answer;
+                {(preparedData[currentIndex]?.options ?? []).map(({ displayKey, value, explanation }) => {
+                  const correctDisplayKey = preparedData[currentIndex]?.correctDisplayKey ?? currentQuestion.correct_answer;
                   const isCorrect = displayKey === correctDisplayKey;
                   const isSelected = displayKey === selectedAnswer;
                   const showExplanation = isCorrect || isSelected;
@@ -452,7 +449,7 @@ export default function QuizModal({ isOpen, onClose, questions, moduleName, isLo
                 {answers.map((ans, i) => {
                   const qIdx = ans.question - 1;
                   const question = questions[qIdx];
-                  const opts = shuffledData[qIdx]?.options ?? [];
+                  const opts = preparedData[qIdx]?.options ?? [];
                   const correctOpt = opts.find((o) => o.displayKey === ans.correct);
                   const selectedOpt = opts.find((o) => o.displayKey === ans.selected);
 
