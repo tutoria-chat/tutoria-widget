@@ -3,10 +3,12 @@
  * management (the only profile field students may edit — everything else
  * stays under the institution's control).
  */
-import React, { useState } from 'react';
-import { Check, Download, KeyRound, Loader2, Maximize2, Settings as SettingsIcon } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Check, Download, KeyRound, Loader2, Maximize2, Settings as SettingsIcon, Volume2 } from 'lucide-react';
 import { apiClient } from '../../lib/api-client';
 import { useApp } from '../../app/AppContext';
+import { useReadAloudPref } from '../../hooks/useReadAloudPref';
+import { useSpeechRatePref, SPEECH_RATES } from '../../hooks/useSpeechRatePref';
 import { useResponsive, USER_SCALE_MIN, USER_SCALE_MAX } from '../../app/ResponsiveContext';
 import {
   LOCALE_NAMES,
@@ -102,11 +104,13 @@ export default function SettingsPanel({ theme, onThemeChange }: SettingsPanelPro
           ))}
         </div>
 
-        <div className="h-5 text-sm">
-          {saving && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+        <div className="h-5 text-sm" role="status" aria-live="polite">
+          {saving && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" aria-hidden="true" />}
           {saved && <span className="text-green-600 dark:text-green-400">{t('saved')}</span>}
           {error && <span className="text-destructive">{error}</span>}
         </div>
+
+        <VoiceSection />
 
         <DisplaySection optionClass={optionClass} />
 
@@ -199,6 +203,79 @@ function DisplaySection({ optionClass }: { optionClass: (selected: boolean) => s
   );
 }
 
+/**
+ * Voice: opt in to having the tutor read every answer aloud. A big win for
+ * students who read slowly, have low vision, or are dyslexic. Only shown when
+ * the browser supports speech synthesis (checked after mount to avoid an
+ * SSR/hydration mismatch).
+ */
+function VoiceSection() {
+  const t = useTranslations('settings');
+  const { locale } = useI18n();
+  const [readAloud, setReadAloud] = useReadAloudPref();
+  const [rate, setRate] = useSpeechRatePref();
+  const [supported, setSupported] = useState(false);
+
+  useEffect(() => {
+    setSupported(typeof window !== 'undefined' && 'speechSynthesis' in window);
+  }, []);
+
+  if (!supported) return null;
+
+  const bcp47 = ({ 'pt-br': 'pt-BR', en: 'en-US', es: 'es-ES' } as const)[locale] ?? 'pt-BR';
+  const fmtRate = (r: number) => `${new Intl.NumberFormat(bcp47, { maximumFractionDigits: 2 }).format(r)}×`;
+
+  return (
+    <div className="space-y-3 border-t border-border pt-6">
+      <div className="flex items-center gap-2">
+        <Volume2 className="h-4 w-4 text-muted-foreground" />
+        <p className="text-sm font-medium">{t('voice.title')}</p>
+      </div>
+
+      <button
+        type="button"
+        role="switch"
+        aria-checked={readAloud}
+        onClick={() => setReadAloud(!readAloud)}
+        className="flex w-full items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2.5 text-left transition-colors hover:bg-accent"
+      >
+        <span className="text-sm">{t('voice.autoRead')}</span>
+        <span
+          className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${
+            readAloud ? 'bg-primary' : 'bg-muted'
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
+              readAloud ? 'left-0.5 translate-x-4' : 'left-0.5'
+            }`}
+          />
+        </span>
+      </button>
+      <p className="text-xs text-muted-foreground">{t('voice.autoReadHint')}</p>
+
+      <div className="pt-1">
+        <p className="mb-1.5 text-sm">{t('voice.speedLabel')}</p>
+        <div className="inline-flex overflow-hidden rounded-md border border-border" role="group" aria-label={t('voice.speedLabel')}>
+          {SPEECH_RATES.map((r) => (
+            <button
+              key={r}
+              type="button"
+              onClick={() => setRate(r)}
+              aria-pressed={rate === r}
+              className={`px-3 py-1.5 text-xs font-medium tabular-nums transition-colors ${
+                rate === r ? 'bg-primary/10 text-primary dark:text-[#c4b5fd]' : 'text-muted-foreground hover:bg-accent'
+              }`}
+            >
+              {fmtRate(r)}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DataExportSection() {
   const t = useTranslations('settings');
   const { moduleToken, session } = useApp();
@@ -260,7 +337,7 @@ function DataExportSection() {
         )}
       </button>
 
-      <div className="h-5 text-sm">
+      <div className="h-5 text-sm" role="status" aria-live="polite">
         {done && <span className="text-green-600 dark:text-green-400">{t('dataExport.done')}</span>}
         {error && <span className="text-destructive">{error}</span>}
       </div>
@@ -322,6 +399,7 @@ function PasswordSection() {
           value={currentPassword}
           onChange={(e) => setCurrentPassword(e.target.value)}
           placeholder={t('password.currentPlaceholder')}
+          aria-label={t('password.currentPlaceholder')}
           autoComplete="current-password"
           className={inputClass}
         />
@@ -330,7 +408,9 @@ function PasswordSection() {
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
           placeholder={t('password.newPlaceholder')}
+          aria-label={t('password.newPlaceholder')}
           autoComplete="new-password"
+          aria-describedby={newPassword && newPassword.length < 8 ? 'password-rules' : undefined}
           className={inputClass}
         />
         <input
@@ -338,14 +418,17 @@ function PasswordSection() {
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           placeholder={t('password.confirmPlaceholder')}
+          aria-label={t('password.confirmPlaceholder')}
           autoComplete="new-password"
+          aria-invalid={confirmPassword ? newPassword !== confirmPassword : undefined}
+          aria-describedby={confirmPassword && newPassword !== confirmPassword ? 'password-mismatch' : undefined}
           className={inputClass}
         />
         {confirmPassword && newPassword !== confirmPassword && (
-          <p className="text-xs text-destructive">{t('password.mismatch')}</p>
+          <p id="password-mismatch" role="alert" className="text-xs text-destructive">{t('password.mismatch')}</p>
         )}
         {newPassword && newPassword.length < 8 && (
-          <p className="text-xs text-muted-foreground">{t('password.rules')}</p>
+          <p id="password-rules" className="text-xs text-muted-foreground">{t('password.rules')}</p>
         )}
 
         <button
@@ -356,7 +439,7 @@ function PasswordSection() {
           {busy ? t('password.saving') : t('password.submit')}
         </button>
 
-        <div className="h-5 text-sm">
+        <div className="h-5 text-sm" role="status" aria-live="polite">
           {done && <span className="text-green-600 dark:text-green-400">{t('password.saved')}</span>}
           {error && <span className="text-destructive">{error}</span>}
         </div>

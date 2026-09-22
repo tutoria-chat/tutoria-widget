@@ -10,13 +10,21 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import rehypeHighlight from 'rehype-highlight';
-import { History, Loader2, SendHorizontal, Sparkles, SquarePen, X } from 'lucide-react';
+import { History, Loader2, Mic, SendHorizontal, Sparkles, Square, SquarePen, Volume2, X } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Textarea } from '../../components/ui/textarea';
 import { apiClient } from '../../lib/api-client';
 import { useApp } from '../../app/AppContext';
 import { useResponsive } from '../../app/ResponsiveContext';
 import { useI18n, useTranslations } from '../../i18n';
+import { useDialog } from '../../hooks/useDialog';
+import { useTextToSpeech } from '../../hooks/useTextToSpeech';
+import { useSpeechRatePref } from '../../hooks/useSpeechRatePref';
+import ReadingText from './ReadingText';
+import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
+import { useReadAloudPref } from '../../hooks/useReadAloudPref';
+
+const SPEECH_LANG: Record<string, string> = { 'pt-br': 'pt-BR', en: 'en-US', es: 'es-ES' };
 
 interface ConversationSummary {
   conversation_id: string;
@@ -59,9 +67,75 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const historyDialogRef = useDialog<HTMLDivElement>(() => setShowHistory(false), showHistory);
+
+  // Voice: read answers aloud (TTS) and dictate questions (STT).
+  const speechLang = SPEECH_LANG[locale] ?? 'pt-BR';
+  const [speechRate] = useSpeechRatePref();
+  const tts = useTextToSpeech(speechLang, speechRate);
+  const [readAloud] = useReadAloudPref();
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+  // Text present in the input when dictation began, so interim words append to it.
+  const sttBaseRef = useRef('');
+  const sttFinalRef = useRef('');
+  const wasLoadingRef = useRef(false);
+
+  const applyTranscript = (text: string) => {
+    setInput(text);
+    requestAnimationFrame(() => {
+      const el = textareaRef.current;
+      if (el) {
+        el.style.height = 'auto';
+        el.style.height = `${el.scrollHeight}px`;
+      }
+    });
+  };
+
+  const stt = useSpeechRecognition({
+    lang: speechLang,
+    onInterim: (interim) => applyTranscript(sttBaseRef.current + sttFinalRef.current + interim),
+    onFinal: (final) => {
+      sttFinalRef.current = final;
+      applyTranscript(sttBaseRef.current + final);
+    },
+    onError: (err) => {
+      setVoiceError(err === 'not-allowed' || err === 'service-not-allowed' ? t('voiceDenied') : t('voiceError'));
+    },
+  });
+
+  const toggleDictation = () => {
+    if (stt.listening) {
+      stt.stop();
+      return;
+    }
+    setVoiceError(null);
+    tts.stop(); // don't listen and speak at once
+    sttBaseRef.current = input ? `${input.trimEnd()} ` : '';
+    sttFinalRef.current = '';
+    stt.start();
+  };
 
   const thread = getThread(activeModuleId);
   const isDefaultModule = activeModuleId === session.default_module_id;
+
+  // Auto-read a tutor answer once it finishes (when the student opted in).
+  useEffect(() => {
+    if (readAloud && tts.supported && wasLoadingRef.current && !isLoading) {
+      const msgs = thread.messages;
+      const last = msgs[msgs.length - 1];
+      if (last && last.role === 'assistant' && !last.isThinking && last.content) {
+        tts.speak(`msg-${msgs.length - 1}`, last.content);
+      }
+    }
+    wasLoadingRef.current = isLoading;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, readAloud, tts.supported]);
+
+  // Stop any narration when leaving the thread / module.
+  useEffect(() => {
+    return () => tts.stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeModuleId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -290,23 +364,31 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
 
       {/* History overlay */}
       {showHistory && (
-        <div className="absolute inset-0 z-20 bg-background/95 backdrop-blur-sm flex flex-col">
+        <div
+          ref={historyDialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="chat-history-title"
+          className="absolute inset-0 z-20 bg-background/95 backdrop-blur-sm flex flex-col"
+        >
           <div className="flex items-center justify-between border-b px-4 py-3">
-            <p className="text-sm font-semibold flex items-center gap-2">
-              <History className="w-4 h-4" />
+            <p id="chat-history-title" className="text-sm font-semibold flex items-center gap-2">
+              <History className="w-4 h-4" aria-hidden="true" />
               {t('historyTitle')}
             </p>
             <button
               onClick={() => setShowHistory(false)}
+              aria-label={tCommon('close')}
               className="p-1 rounded-md hover:bg-muted transition-colors"
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
           <div className="flex-1 overflow-y-auto p-3">
             {historyLoading ? (
-              <div className="flex justify-center py-10">
-                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              <div role="status" className="flex justify-center py-10">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" aria-hidden="true" />
+                <span className="sr-only">{tCommon('loading')}</span>
               </div>
             ) : history.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-10">
@@ -362,7 +444,11 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
           </p>
         </div>
       ) : (
-        <div className="flex-1 min-h-0 overflow-y-auto space-y-4 w-full px-4 py-4 scrollbar scrollbar-w-2 scrollbar-thumb-rounded-full scrollbar-track-rounded-full scrollbar-thumb-border">
+        <div
+          role="log"
+          aria-live="polite"
+          aria-atomic="false"
+          className="flex-1 min-h-0 overflow-y-auto space-y-4 w-full px-4 py-4 scrollbar scrollbar-w-2 scrollbar-thumb-rounded-full scrollbar-track-rounded-full scrollbar-thumb-border">
           {thread.messages.map((msg, idx) => (
             <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div
@@ -383,6 +469,9 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
                   </div>
                 ) : msg.role === 'user' ? (
                   <div className="whitespace-pre-wrap w-full break-words text-sm">{msg.content}</div>
+                ) : tts.speakingKey === `msg-${idx}` ? (
+                  /* While reading: karaoke plain text with the spoken word lit up. */
+                  <ReadingText text={tts.spokenText} charIndex={tts.charIndex} />
                 ) : (
                   <div className="prose prose-sm dark:prose-invert max-w-none">
                     <ReactMarkdown
@@ -393,6 +482,30 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
                     </ReactMarkdown>
                   </div>
                 )}
+
+                {/* Read-aloud (TTS) — a bright gradient pill so it's easy to spot. */}
+                {msg.role === 'assistant' && !msg.isThinking && msg.content && tts.supported && (() => {
+                  const speaking = tts.speakingKey === `msg-${idx}`;
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => tts.speak(`msg-${idx}`, msg.content)}
+                      aria-pressed={speaking}
+                      aria-label={speaking ? t('stopReading') : t('readAloud')}
+                      title={speaking ? t('stopReading') : t('readAloud')}
+                      className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-white transition-all bg-gradient-to-r from-[#5e17eb] to-[#5ce1e6] shadow-md shadow-[#5e17eb]/30 hover:-translate-y-px hover:shadow-lg hover:shadow-[#5e17eb]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5ce1e6] focus-visible:ring-offset-1 ${
+                        speaking ? 'ring-2 ring-[#5ce1e6] ring-offset-1 animate-pulse' : ''
+                      }`}
+                    >
+                      {speaking ? (
+                        <Square className="h-3.5 w-3.5 fill-current" aria-hidden="true" />
+                      ) : (
+                        <Volume2 className="h-3.5 w-3.5" aria-hidden="true" />
+                      )}
+                      {speaking ? t('stopReading') : t('readAloud')}
+                    </button>
+                  );
+                })()}
               </div>
             </div>
           ))}
@@ -419,11 +532,32 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
             onChange={handleInput}
             onKeyDown={handleKeyDown}
             placeholder={t('inputPlaceholder')}
+            aria-label={t('inputPlaceholder')}
             className={`w-full resize-none overflow-y-auto !text-base placeholder:text-base max-h-40 scrollbar scrollbar-w-2 scrollbar-thumb-rounded-full scrollbar-track-rounded-full scrollbar-thumb-border ${
               compact ? 'min-h-11' : 'min-h-16'
             }`}
           />
-          <div className={`flex flex-row items-center justify-end w-full ${compact ? 'mt-1.5' : 'mt-3'}`}>
+          <div className={`flex flex-row items-center justify-between w-full ${compact ? 'mt-1.5' : 'mt-3'}`}>
+            {stt.supported ? (
+              <button
+                type="button"
+                onClick={toggleDictation}
+                aria-pressed={stt.listening}
+                aria-label={stt.listening ? t('voiceStop') : t('voiceInput')}
+                title={stt.listening ? t('voiceStop') : t('voiceInput')}
+                className={`inline-flex items-center justify-center rounded-full border transition-colors ${
+                  compact ? 'h-8 w-8' : 'h-10 w-10'
+                } ${
+                  stt.listening
+                    ? 'border-red-500/60 bg-red-500/10 text-red-500 animate-pulse'
+                    : 'border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground/40'
+                }`}
+              >
+                {stt.listening ? <Square className="h-4 w-4 fill-current" aria-hidden="true" /> : <Mic className={compact ? 'h-4 w-4' : 'h-5 w-5'} aria-hidden="true" />}
+              </button>
+            ) : (
+              <span />
+            )}
             <Button
               type="submit"
               disabled={isLoading || !input.trim()}
@@ -434,6 +568,15 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
               <SendHorizontal />
             </Button>
           </div>
+          {(stt.listening || voiceError) && (
+            <p
+              className={`mt-1.5 text-xs ${voiceError ? 'text-destructive' : 'text-muted-foreground'}`}
+              role={voiceError ? 'alert' : 'status'}
+              aria-live={voiceError ? 'assertive' : 'polite'}
+            >
+              {voiceError || t('listening')}
+            </p>
+          )}
         </form>
       </div>
     </div>

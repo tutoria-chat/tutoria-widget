@@ -214,6 +214,8 @@ export default function VerificationGate({ moduleToken, apiBaseUrl, onVerified }
               onKeyDown={handleKeyDown}
               placeholder="Digite sua matricula"
               disabled={state === 'verifying'}
+              aria-invalid={errorMessage ? true : undefined}
+              aria-describedby={errorMessage ? 'matricula-error' : undefined}
               className="flex w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm text-foreground shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
               autoComplete="off"
             />
@@ -221,8 +223,8 @@ export default function VerificationGate({ moduleToken, apiBaseUrl, onVerified }
 
           {/* Error message */}
           {errorMessage && (
-            <div className="flex items-start gap-2 rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2.5">
-              <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+            <div id="matricula-error" role="alert" className="flex items-start gap-2 rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2.5">
+              <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" aria-hidden="true" />
               <p className="text-sm text-destructive">{errorMessage}</p>
             </div>
           )}

@@ -18,6 +18,7 @@ import AssignmentFeedbackModal from '../../components/AssignmentFeedbackModal';
 import { apiClient } from '../../lib/api-client';
 import { useApp } from '../../app/AppContext';
 import { useI18n, useTranslations } from '../../i18n';
+import { useDialog } from '../../hooks/useDialog';
 
 interface Assignment {
   id: number;
@@ -37,6 +38,7 @@ interface Assignment {
 
 export default function AssignmentsPanel({ onOpenChat }: { onOpenChat: () => void }) {
   const t = useTranslations('assignments');
+  const tCommon = useTranslations('common');
   const { locale } = useI18n();
   const {
     moduleToken,
@@ -55,6 +57,7 @@ export default function AssignmentsPanel({ onOpenChat }: { onOpenChat: () => voi
   const [feedbackTarget, setFeedbackTarget] = useState<Assignment | null>(null);
   const [detailTarget, setDetailTarget] = useState<Assignment | null>(null);
   const [quotaRefresh, setQuotaRefresh] = useState(0);
+  const detailDialogRef = useDialog<HTMLDivElement>(() => setDetailTarget(null), !!detailTarget);
 
   const isDefaultModule = activeModuleId === session.default_module_id;
   const moduleIdParam = isDefaultModule ? undefined : activeModuleId;
@@ -134,10 +137,10 @@ export default function AssignmentsPanel({ onOpenChat }: { onOpenChat: () => voi
 
       {/* Async feedback job card */}
       {job && (
-        <div className="mb-4 rounded-xl border bg-card shadow-sm">
+        <div role="status" aria-live="polite" className="mb-4 rounded-xl border bg-card shadow-sm">
           {job.status === 'processing' ? (
             <div className="flex items-center gap-3 p-4">
-              <Loader2 className="w-5 h-5 animate-spin text-primary shrink-0" />
+              <Loader2 className="w-5 h-5 animate-spin text-primary shrink-0" aria-hidden="true" />
               <div className="min-w-0">
                 <p className="text-sm font-medium truncate">
                   {t('feedbackProcessing', { title: job.assignmentTitle })}
@@ -148,13 +151,13 @@ export default function AssignmentsPanel({ onOpenChat }: { onOpenChat: () => voi
           ) : job.status === 'failed' ? (
             <div className="flex items-center justify-between gap-3 p-4">
               <div className="flex items-center gap-2 min-w-0">
-                <XCircle className="w-5 h-5 text-destructive shrink-0" />
+                <XCircle className="w-5 h-5 text-destructive shrink-0" aria-hidden="true" />
                 <p className="text-sm text-destructive truncate">
                   {t('feedbackFailed', { title: job.assignmentTitle })}
                 </p>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => setFeedbackJob(activeModuleId, null)}>
-                <X className="w-4 h-4" />
+              <Button variant="ghost" size="sm" aria-label={tCommon('close')} onClick={() => setFeedbackJob(activeModuleId, null)}>
+                <X className="w-4 h-4" aria-hidden="true" />
               </Button>
             </div>
           ) : (
@@ -163,8 +166,8 @@ export default function AssignmentsPanel({ onOpenChat }: { onOpenChat: () => voi
                 <p className="text-sm font-semibold">
                   {t('feedbackReady', { title: job.assignmentTitle })}
                 </p>
-                <Button variant="ghost" size="sm" onClick={() => setFeedbackJob(activeModuleId, null)}>
-                  <X className="w-4 h-4" />
+                <Button variant="ghost" size="sm" aria-label={tCommon('close')} onClick={() => setFeedbackJob(activeModuleId, null)}>
+                  <X className="w-4 h-4" aria-hidden="true" />
                 </Button>
               </div>
               <div className="prose prose-sm dark:prose-invert max-w-none max-h-96 overflow-y-auto rounded-md bg-muted/30 p-3">
@@ -185,11 +188,12 @@ export default function AssignmentsPanel({ onOpenChat }: { onOpenChat: () => voi
       )}
 
       {loading ? (
-        <div className="flex justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <div role="status" className="flex justify-center py-12">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" aria-hidden="true" />
+          <span className="sr-only">{tCommon('loading')}</span>
         </div>
       ) : error ? (
-        <p className="text-sm text-destructive">{error}</p>
+        <p role="alert" className="text-sm text-destructive">{error}</p>
       ) : assignments.length === 0 ? (
         <p className="text-sm text-muted-foreground py-8 text-center">{t('empty')}</p>
       ) : (
@@ -252,21 +256,28 @@ export default function AssignmentsPanel({ onOpenChat }: { onOpenChat: () => voi
       {/* Assignment detail modal */}
       {detailTarget && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center">
-          <div className="erwin-fade-up flex max-h-[90vh] w-full flex-col overflow-hidden rounded-t-2xl bg-background shadow-2xl sm:max-w-lg sm:rounded-2xl">
+          <div
+            ref={detailDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="assignment-detail-title"
+            className="erwin-fade-up flex max-h-[90vh] w-full flex-col overflow-hidden rounded-t-2xl bg-background shadow-2xl sm:max-w-lg sm:rounded-2xl"
+          >
             <div className="flex items-start justify-between gap-3 border-b p-5">
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#5e17eb] to-[#5ce1e6] text-white">
-                  <ClipboardList className="h-5 w-5" />
+                  <ClipboardList className="h-5 w-5" aria-hidden="true" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold leading-tight">{detailTarget.title}</h3>
+                  <h3 id="assignment-detail-title" className="text-lg font-bold leading-tight">{detailTarget.title}</h3>
                 </div>
               </div>
               <button
                 onClick={() => setDetailTarget(null)}
+                aria-label={tCommon('close')}
                 className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
-                <X className="h-5 w-5" />
+                <X className="h-5 w-5" aria-hidden="true" />
               </button>
             </div>
 

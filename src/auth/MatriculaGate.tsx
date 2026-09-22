@@ -80,6 +80,8 @@ export default function MatriculaGate({ moduleToken, courseName, onSession }: Ma
             placeholder={t('matriculaPlaceholder')}
             autoComplete="off"
             autoFocus
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? 'gate-error' : undefined}
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
 
@@ -100,7 +102,7 @@ export default function MatriculaGate({ moduleToken, courseName, onSession }: Ma
           )}
 
           {error && (
-            <p className="text-sm text-destructive text-left" role="alert">
+            <p id="gate-error" className="text-sm text-destructive text-left" role="alert">
               {error}
             </p>
           )}

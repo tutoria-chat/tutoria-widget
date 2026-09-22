@@ -20,6 +20,7 @@ interface WidgetFile {
 
 export default function FilesPanel({ apiBaseUrl }: { apiBaseUrl: string }) {
   const t = useTranslations('files');
+  const tCommon = useTranslations('common');
   const { moduleToken, session, activeModuleId } = useApp();
 
   const [files, setFiles] = useState<WidgetFile[]>([]);
@@ -91,11 +92,12 @@ export default function FilesPanel({ apiBaseUrl }: { apiBaseUrl: string }) {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <div role="status" className="flex justify-center py-12">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" aria-hidden="true" />
+          <span className="sr-only">{tCommon('loading')}</span>
         </div>
       ) : error ? (
-        <p className="text-sm text-destructive">{error}</p>
+        <p role="alert" className="text-sm text-destructive">{error}</p>
       ) : files.length === 0 ? (
         <p className="text-sm text-muted-foreground py-8 text-center">{t('empty')}</p>
       ) : (

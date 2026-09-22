@@ -245,7 +245,7 @@ export default function FlashcardsPanel() {
                 {flipped ? card.back : card.front}
               </p>
 
-              <p className="absolute bottom-4 left-6 right-6 flex items-center gap-1.5 text-xs text-muted-foreground opacity-70">
+              <p className="absolute bottom-4 left-6 right-6 flex items-center gap-1.5 text-xs text-muted-foreground">
                 <RotateCcw className="h-3 w-3" />
                 {t('flipHint')}
               </p>
@@ -323,7 +323,7 @@ export default function FlashcardsPanel() {
                     {reviewFlipped ? dueCards[reviewIdx].back : dueCards[reviewIdx].front}
                   </p>
                   {!reviewFlipped && (
-                    <p className="absolute bottom-4 left-6 right-6 flex items-center gap-1.5 text-xs text-muted-foreground opacity-70">
+                    <p className="absolute bottom-4 left-6 right-6 flex items-center gap-1.5 text-xs text-muted-foreground">
                       <RotateCcw className="h-3 w-3" />
                       {t('flipHint')}
                     </p>

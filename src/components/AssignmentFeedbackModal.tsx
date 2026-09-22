@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { X, ClipboardList, Upload, Loader2, Calendar, ArrowLeft } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { useTranslations } from '@/i18n';
+import { useDialog } from '@/hooks/useDialog';
 
 interface Assignment {
   id: number;
@@ -53,6 +54,8 @@ export default function AssignmentFeedbackModal({
   initialAssignment,
 }: AssignmentFeedbackModalProps) {
   const t = useTranslations('feedbackModal');
+  const tCommon = useTranslations('common');
+  const dialogRef = useDialog<HTMLDivElement>(onClose);
   const [step, setStep] = useState<Step>(initialAssignment ? 'upload' : 'select');
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loadingAssignments, setLoadingAssignments] = useState(!initialAssignment);
@@ -145,30 +148,36 @@ export default function AssignmentFeedbackModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50">
-      <div className="bg-background rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:max-w-md max-h-[90vh] flex flex-col">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="feedback-modal-title"
+        className="bg-background rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:max-w-md max-h-[90vh] flex flex-col"
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b shrink-0">
           <div className="flex items-center gap-2">
             {step === 'upload' && !initialAssignment && (
-              <button onClick={() => setStep('select')} className="text-muted-foreground hover:text-foreground mr-1">
-                <ArrowLeft className="w-4 h-4" />
+              <button onClick={() => setStep('select')} aria-label={tCommon('back')} className="text-muted-foreground hover:text-foreground mr-1">
+                <ArrowLeft className="w-4 h-4" aria-hidden="true" />
               </button>
             )}
-            <ClipboardList className="w-5 h-5 text-primary" />
-            <span className="font-semibold text-sm">
+            <ClipboardList className="w-5 h-5 text-primary" aria-hidden="true" />
+            <span id="feedback-modal-title" className="font-semibold text-sm">
               {step === 'select' ? t('selectTitle') : step === 'upload' ? t('uploadTitle') : t('analyzingTitle')}
             </span>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-            <X className="w-5 h-5" />
+          <button onClick={onClose} aria-label={tCommon('close')} className="text-muted-foreground hover:text-foreground">
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-4">
           {step === 'loading' && (
-            <div className="flex flex-col items-center justify-center py-12 gap-3">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <div role="status" className="flex flex-col items-center justify-center py-12 gap-3">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" aria-hidden="true" />
               <p className="text-sm text-muted-foreground">{t('analyzingBody')}</p>
               <p className="text-xs text-muted-foreground">{t('analyzingHint')}</p>
             </div>
@@ -177,8 +186,9 @@ export default function AssignmentFeedbackModal({
           {step === 'select' && (
             <>
               {loadingAssignments ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                <div role="status" className="flex justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" aria-hidden="true" />
+                  <span className="sr-only">{tCommon('loading')}</span>
                 </div>
               ) : assignments.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">{t('empty')}</p>
@@ -204,7 +214,7 @@ export default function AssignmentFeedbackModal({
                   ))}
                 </div>
               )}
-              {errorMsg && <p className="text-xs text-destructive mt-3">{errorMsg}</p>}
+              {errorMsg && <p role="alert" className="text-xs text-destructive mt-3">{errorMsg}</p>}
             </>
           )}
 
@@ -238,7 +248,7 @@ export default function AssignmentFeedbackModal({
                 </label>
               </div>
 
-              {errorMsg && <p className="text-xs text-destructive">{errorMsg}</p>}
+              {errorMsg && <p role="alert" className="text-xs text-destructive">{errorMsg}</p>}
 
               <Button
                 className="w-full"
