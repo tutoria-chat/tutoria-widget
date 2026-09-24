@@ -420,7 +420,7 @@
     "saveError": "Could not save your preferences.",
     "learning": {
       "title": "How you learn",
-      "intro": "If you like, tell us how you learn best and the Learning Support Center will adjust how it explains — in short steps, with more direct language, with everyday examples… It's completely optional.",
+      "intro": "If you like, tell us how you learn best and the Learning Support Center will adjust how it explains, in the chat and in assignment feedback: in short steps, with more direct language, with everyday examples… It's completely optional.",
       "toggle": "Adapt answers to how I learn",
       "conditionsLabel": "Is any of this part of you? (optional)",
       "conditionsHint": "No diagnosis needed — only tick what makes sense to you. It's just used to choose the adjustments below.",
@@ -454,7 +454,7 @@
       },
       "noteLabel": "Anything else that helps you learn? (optional)",
       "notePlaceholder": "E.g. I prefer everyday examples; I get lost in long texts.",
-      "privacy": "This stays on this device only: it isn't shown to teachers or the institution and isn't saved on our servers. The AI only receives how you'd like answers (e.g. “short steps”) and the optional text above — never the options you ticked — and never mentions any of it in conversations. You can turn it off or delete it anytime.",
+      "privacy": "This stays on this device only: it isn't shown to teachers or the institution and isn't saved on our servers. The AI only receives how you'd like answers (e.g. “short steps”) and the optional text above — never the options you ticked — and never mentions any of it in its answers. You can turn it off or delete it anytime.",
       "clear": "Delete my preferences",
       "cleared": "Preferences deleted from this device."
     },

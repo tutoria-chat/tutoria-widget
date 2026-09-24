@@ -420,7 +420,7 @@
     "saveError": "Não foi possível salvar suas preferências.",
     "learning": {
       "title": "Seu jeito de aprender",
-      "intro": "Se quiser, conte como você aprende melhor e a Central de apoio ao aprendizado ajusta a forma de explicar — em passos curtos, com linguagem mais direta, com exemplos do dia a dia… É totalmente opcional.",
+      "intro": "Se quiser, conte como você aprende melhor e a Central de apoio ao aprendizado ajusta a forma de explicar, no chat e nos feedbacks das atividades: em passos curtos, com linguagem mais direta, com exemplos do dia a dia… É totalmente opcional.",
       "toggle": "Adaptar as respostas ao meu jeito de aprender",
       "conditionsLabel": "Algo disso faz parte de você? (opcional)",
       "conditionsHint": "Não precisa de laudo — marque só o que fizer sentido. Isso serve apenas para escolher os ajustes abaixo.",
@@ -454,7 +454,7 @@
       },
       "noteLabel": "Algo mais que te ajuda a aprender? (opcional)",
       "notePlaceholder": "Ex.: prefiro exemplos do dia a dia; me perco em textos longos.",
-      "privacy": "Isso fica só neste dispositivo: não aparece para professores nem para a instituição e não é salvo nos nossos servidores. A IA recebe apenas como você prefere as respostas (ex.: “passos curtos”) e o texto opcional acima — nunca as opções que você marcou — e não comenta nada disso nas conversas. Você pode desligar ou apagar quando quiser.",
+      "privacy": "Isso fica só neste dispositivo: não aparece para professores nem para a instituição e não é salvo nos nossos servidores. A IA recebe apenas como você prefere as respostas (ex.: “passos curtos”) e o texto opcional acima — nunca as opções que você marcou — e não comenta nada disso nas respostas. Você pode desligar ou apagar quando quiser.",
       "clear": "Apagar minhas preferências",
       "cleared": "Preferências apagadas deste dispositivo."
     },

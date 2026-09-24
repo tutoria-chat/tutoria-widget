@@ -40,6 +40,15 @@ function learningBody(params: { learningAdaptations?: string[]; learningNote?: s
   };
 }
 
+/** Same as learningBody, for multipart requests (ids as one comma-separated field). */
+function appendLearningFields(
+  formData: FormData,
+  params: { learningAdaptations?: string[]; learningNote?: string },
+) {
+  if (params.learningAdaptations?.length) formData.append('learning_adaptations', params.learningAdaptations.join(','));
+  if (params.learningNote) formData.append('learning_note', params.learningNote);
+}
+
 /**
  * Calculate exponential backoff delay
  */
@@ -1536,6 +1545,9 @@ export class WidgetAPIClient {
     file: File;
     conversationId?: string;
     moduleId?: number;
+    /** Opt-in answer-style prefs (never a condition) — see lib/learningProfile. */
+    learningAdaptations?: string[];
+    learningNote?: string;
   }): Promise<{ submission_id: number; conversation_id: string; status: string }> {
     const formData = new FormData();
     formData.append('assignment_id', String(params.assignmentId));
@@ -1543,6 +1555,7 @@ export class WidgetAPIClient {
     formData.append('background', 'true');
     if (params.conversationId) formData.append('conversation_id', params.conversationId);
     if (params.moduleId) formData.append('module_id', String(params.moduleId));
+    appendLearningFields(formData, params);
 
     const url = `${this.baseUrl}/api/widget/assignments/get-feedback?module_token=${encodeURIComponent(params.moduleToken)}`;
     const response = await robustFetch(url, {
@@ -1584,6 +1597,9 @@ export class WidgetAPIClient {
     conversationId?: string;
     moduleId?: number;
     verificationToken?: string;
+    /** Opt-in answer-style prefs (never a condition) — see lib/learningProfile. */
+    learningAdaptations?: string[];
+    learningNote?: string;
   }): Promise<{ response: string; conversation_id: string; message_id?: string }> {
     const formData = new FormData();
     formData.append('assignment_id', String(params.assignmentId));
@@ -1592,6 +1608,7 @@ export class WidgetAPIClient {
     if (params.conversationId) formData.append('conversation_id', params.conversationId);
     if (params.moduleId) formData.append('module_id', String(params.moduleId));
     if (params.verificationToken) formData.append('verification_token', params.verificationToken);
+    appendLearningFields(formData, params);
 
     const url = `${this.baseUrl}/api/widget/assignments/get-feedback?module_token=${encodeURIComponent(params.moduleToken)}`;
     const response = await robustFetch(url, {
