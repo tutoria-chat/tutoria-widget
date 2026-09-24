@@ -30,6 +30,17 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
+ * Chat body fields for the student's opt-in answer-style prefs — omitted
+ * entirely when there are none, so a plain request looks exactly as before.
+ */
+function learningBody(params: { learningAdaptations?: string[]; learningNote?: string }) {
+  return {
+    ...(params.learningAdaptations?.length ? { learning_adaptations: params.learningAdaptations } : {}),
+    ...(params.learningNote ? { learning_note: params.learningNote } : {}),
+  };
+}
+
+/**
  * Calculate exponential backoff delay
  */
 function getRetryDelay(attempt: number, config: RetryConfig): number {
@@ -888,6 +899,9 @@ export class WidgetAPIClient {
     moduleId?: number | null;
     verificationToken?: string;
     authToken?: string;
+    /** Opt-in answer-style prefs (never a condition) — see lib/learningProfile. */
+    learningAdaptations?: string[];
+    learningNote?: string;
   }): Promise<any> {
     const url = `${this.baseUrl}/api/widget/chat?module_token=${encodeURIComponent(params.moduleToken)}`;
 
@@ -909,6 +923,7 @@ export class WidgetAPIClient {
           conversation_id: params.conversationId,
           module_id: params.moduleId ?? null,
           verification_token: params.verificationToken,
+          ...learningBody(params),
         }),
         timeout: 60000, // 60 seconds for AI responses
         retries: 3, // 3 retries for chat (most critical)
@@ -966,6 +981,9 @@ export class WidgetAPIClient {
     moduleId?: number | null;
     verificationToken?: string;
     authToken?: string;
+    /** Opt-in answer-style prefs (never a condition) — see lib/learningProfile. */
+    learningAdaptations?: string[];
+    learningNote?: string;
   }): AsyncGenerator<{ type: 'chunk' | 'done' | 'error' | 'connected' | 'formatted'; content?: string; conversationId?: string; error?: string }, void, unknown> {
     const url = `${this.baseUrl}/api/widget/chat/stream?module_token=${encodeURIComponent(params.moduleToken)}`;
 
@@ -991,6 +1009,7 @@ export class WidgetAPIClient {
           conversation_id: params.conversationId,
           module_id: params.moduleId ?? null,
           verification_token: params.verificationToken,
+          ...learningBody(params),
         }),
         signal: controller.signal,
       });

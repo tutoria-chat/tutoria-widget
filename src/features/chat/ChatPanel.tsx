@@ -10,7 +10,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import rehypeHighlight from 'rehype-highlight';
-import { History, Loader2, Mic, SendHorizontal, Sparkles, Square, SquarePen, Volume2, X } from 'lucide-react';
+import { Check, History, Loader2, Mic, SendHorizontal, SlidersHorizontal, Sparkles, Square, SquarePen, Volume2, X } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Textarea } from '../../components/ui/textarea';
 import { apiClient } from '../../lib/api-client';
@@ -23,6 +23,8 @@ import { useSpeechRatePref } from '../../hooks/useSpeechRatePref';
 import ReadingText from './ReadingText';
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
 import { useReadAloudPref } from '../../hooks/useReadAloudPref';
+import { useLearningProfile } from '../../hooks/useLearningProfile';
+import { isProfileActive, learningRequestFields } from '../../lib/learningProfile';
 
 const SPEECH_LANG: Record<string, string> = { 'pt-br': 'pt-BR', en: 'en-US', es: 'es-ES' };
 
@@ -35,9 +37,11 @@ interface ConversationSummary {
 
 interface ChatPanelProps {
   streaming: boolean;
+  /** Opens Settings at "Seu jeito de aprender" (button under each answer). */
+  onOpenLearningSettings?: () => void;
 }
 
-export default function ChatPanel({ streaming }: ChatPanelProps) {
+export default function ChatPanel({ streaming, onOpenLearningSettings }: ChatPanelProps) {
   const t = useTranslations('chat');
   const tCommon = useTranslations('common');
   const {
@@ -74,6 +78,10 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
   const [speechRate] = useSpeechRatePref();
   const tts = useTextToSpeech(speechLang, speechRate);
   const [readAloud] = useReadAloudPref();
+  // Opt-in "jeito de aprender": only answer-style adaptations are sent — never
+  // the conditions the student picked (those never leave this device).
+  const [learningProfile] = useLearningProfile();
+  const learningActive = isProfileActive(learningProfile);
   const [voiceError, setVoiceError] = useState<string | null>(null);
   // Text present in the input when dictation began, so interim words append to it.
   const sttBaseRef = useRef('');
@@ -176,6 +184,7 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
       conversationId: getThread(moduleId).conversationId,
       // module_id only needs to be sent when targeting a non-default module
       moduleId: isDefaultModule ? null : moduleId,
+      ...learningRequestFields(learningProfile),
     };
 
     try {
@@ -483,29 +492,56 @@ export default function ChatPanel({ streaming }: ChatPanelProps) {
                   </div>
                 )}
 
-                {/* Read-aloud (TTS) — a bright gradient pill so it's easy to spot. */}
-                {msg.role === 'assistant' && !msg.isThinking && msg.content && tts.supported && (() => {
-                  const speaking = tts.speakingKey === `msg-${idx}`;
-                  return (
-                    <button
-                      type="button"
-                      onClick={() => tts.speak(`msg-${idx}`, msg.content)}
-                      aria-pressed={speaking}
-                      aria-label={speaking ? t('stopReading') : t('readAloud')}
-                      title={speaking ? t('stopReading') : t('readAloud')}
-                      className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-white transition-all bg-gradient-to-r from-[#5e17eb] to-[#5ce1e6] shadow-md shadow-[#5e17eb]/30 hover:-translate-y-px hover:shadow-lg hover:shadow-[#5e17eb]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5ce1e6] focus-visible:ring-offset-1 ${
-                        speaking ? 'ring-2 ring-[#5ce1e6] ring-offset-1 animate-pulse' : ''
-                      }`}
-                    >
-                      {speaking ? (
-                        <Square className="h-3.5 w-3.5 fill-current" aria-hidden="true" />
-                      ) : (
-                        <Volume2 className="h-3.5 w-3.5" aria-hidden="true" />
-                      )}
-                      {speaking ? t('stopReading') : t('readAloud')}
-                    </button>
-                  );
-                })()}
+                {msg.role === 'assistant' && !msg.isThinking && msg.content && (tts.supported || onOpenLearningSettings) && (
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {/* Read-aloud (TTS) — a bright gradient pill so it's easy to spot. */}
+                    {tts.supported && (() => {
+                      const speaking = tts.speakingKey === `msg-${idx}`;
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => tts.speak(`msg-${idx}`, msg.content)}
+                          aria-pressed={speaking}
+                          aria-label={speaking ? t('stopReading') : t('readAloud')}
+                          title={speaking ? t('stopReading') : t('readAloud')}
+                          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-white transition-all bg-gradient-to-r from-[#5e17eb] to-[#5ce1e6] shadow-md shadow-[#5e17eb]/30 hover:-translate-y-px hover:shadow-lg hover:shadow-[#5e17eb]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5ce1e6] focus-visible:ring-offset-1 ${
+                            speaking ? 'ring-2 ring-[#5ce1e6] ring-offset-1 animate-pulse' : ''
+                          }`}
+                        >
+                          {speaking ? (
+                            <Square className="h-3.5 w-3.5 fill-current" aria-hidden="true" />
+                          ) : (
+                            <Volume2 className="h-3.5 w-3.5" aria-hidden="true" />
+                          )}
+                          {speaking ? t('stopReading') : t('readAloud')}
+                        </button>
+                      );
+                    })()}
+
+                    {/* "Seu jeito de aprender" — opens the opt-in setting. Quieter than
+                        the TTS pill; shows a check once the student has it on. */}
+                    {onOpenLearningSettings && (
+                      <button
+                        type="button"
+                        onClick={onOpenLearningSettings}
+                        aria-label={learningActive ? t('adaptAnswersActiveTitle') : t('adaptAnswersTitle')}
+                        title={learningActive ? t('adaptAnswersActiveTitle') : t('adaptAnswersTitle')}
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5e17eb] focus-visible:ring-offset-1 ${
+                          learningActive
+                            ? 'border-[#5e17eb]/40 bg-[#5e17eb]/10 text-[#5e17eb] dark:text-[#c4b5fd]'
+                            : 'border-[#5e17eb]/25 bg-background/60 text-[#5e17eb] hover:bg-[#5e17eb]/10 dark:text-[#c4b5fd]'
+                        }`}
+                      >
+                        {learningActive ? (
+                          <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                        ) : (
+                          <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden="true" />
+                        )}
+                        {t('adaptAnswers')}
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ))}

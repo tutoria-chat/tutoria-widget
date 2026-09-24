@@ -156,6 +156,13 @@ export default function Shell({
       ? initialPanel
       : navItems[0]?.key ?? 'settings';
   const [activePanel, setActivePanel] = useState<PanelKey>(defaultPanel);
+  // Settings section to scroll to when opened from elsewhere (e.g. the chat's
+  // "Adaptar ao meu jeito" button → "Seu jeito de aprender").
+  const [settingsFocus, setSettingsFocus] = useState<'learning' | null>(null);
+  const openLearningSettings = () => {
+    setSettingsFocus('learning');
+    setActivePanel('settings');
+  };
 
   // Compact nav: keep only Home + Chat + a "More" toggle on the bar; the rest
   // appear on a second line when expanded, so nothing ever needs to scroll.
@@ -369,7 +376,13 @@ export default function Shell({
             )}
             {activePanel === 'flashcards' && <FlashcardsPanel key={`fc-${activeModuleId}`} />}
             {activePanel === 'enem' && <EnemPanel area={enemArea} />}
-            {activePanel === 'chat' && <ChatPanel key={`chat-${activeModuleId}`} streaming={streaming} />}
+            {activePanel === 'chat' && (
+              <ChatPanel
+                key={`chat-${activeModuleId}`}
+                streaming={streaming}
+                onOpenLearningSettings={openLearningSettings}
+              />
+            )}
             {activePanel === 'quizzes' && (
               <QuizzesPanel key={`quiz-${activeModuleId}`} onOpenChat={() => setActivePanel('chat')} />
             )}
@@ -379,7 +392,14 @@ export default function Shell({
             {activePanel === 'files' && <FilesPanel key={`files-${activeModuleId}`} apiBaseUrl={apiBaseUrl} />}
             {activePanel === 'progress' && <ProgressPanel key={`progress-${activeCourse?.id ?? 0}`} />}
             {activePanel === 'titles' && <TitlesPanel />}
-            {activePanel === 'settings' && <SettingsPanel theme={theme} onThemeChange={onThemeChange} />}
+            {activePanel === 'settings' && (
+              <SettingsPanel
+                theme={theme}
+                onThemeChange={onThemeChange}
+                focusSection={settingsFocus}
+                onFocusHandled={() => setSettingsFocus(null)}
+              />
+            )}
           </div>
         </main>
       </div>
