@@ -5,6 +5,7 @@
  * synthesis `onboundary` event.
  */
 import { useEffect, useMemo, useRef } from 'react';
+import { revealInScroller } from '../../lib/scroll';
 
 interface ReadingTextProps {
   text: string;
@@ -37,7 +38,7 @@ export default function ReadingText({ text, charIndex }: ReadingTextProps) {
 
   const activeRef = useRef<HTMLSpanElement>(null);
   useEffect(() => {
-    activeRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    if (activeRef.current) revealInScroller(activeRef.current, 'smooth');
   }, [activeIdx]);
 
   return (

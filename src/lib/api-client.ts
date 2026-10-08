@@ -1502,7 +1502,9 @@ export class WidgetAPIClient {
         method: 'GET',
         headers: this.sessionHeaders(),
         timeout: 30000,
-        retries: 2,
+        // A full export pages through the whole chat history — retrying a
+        // server error just repeats that work and triples the wait.
+        retries: 0,
       });
 
       if (!response.ok) {

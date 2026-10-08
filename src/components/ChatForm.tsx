@@ -17,6 +17,7 @@ import QuizModal from '@/components/QuizModal';
 import VerificationGate from '@/components/VerificationGate';
 import ConsentGate from '@/components/ConsentGate';
 import AssignmentFeedbackModal from '@/components/AssignmentFeedbackModal';
+import { scrollParent, scrollToBottom } from '@/lib/scroll';
 
 /**
  * Represents a single chat message.
@@ -229,7 +230,9 @@ export default function ChatForm({ apiBaseUrl: apiBaseUrlProp }: { apiBaseUrl?: 
    * Scrolls the chat to the bottom whenever messages change.
    */
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Only the message list — scrollIntoView would also scroll the host page.
+    const end = messagesEndRef.current;
+    if (end) scrollToBottom(scrollParent(end), 'smooth');
   }, [messages, showQuizPrompt]);
 
   /**

@@ -287,10 +287,10 @@ export default function Shell({
       </header>
 
       {/* Body: side nav + active panel */}
-      <div className="flex flex-1 overflow-hidden max-sm:flex-col-reverse">
+      <div className="flex min-h-0 flex-1 overflow-hidden max-sm:flex-col-reverse">
         {/* Desktop: full labelled sidebar. */}
         <nav
-          className="hidden shrink-0 sm:flex sm:w-56 sm:flex-col sm:gap-1.5 sm:border-r sm:border-border/60 sm:bg-sidebar sm:p-3"
+          className="hidden shrink-0 sm:flex sm:w-56 sm:flex-col sm:gap-1.5 sm:overflow-y-auto sm:overflow-x-hidden sm:border-r sm:border-border/60 sm:bg-sidebar sm:p-3"
           aria-label="Features"
         >
           <div className="mb-2 border-b border-border/60 px-2 pb-3">

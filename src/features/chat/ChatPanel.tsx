@@ -25,6 +25,7 @@ import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
 import { useReadAloudPref } from '../../hooks/useReadAloudPref';
 import { useLearningProfile } from '../../hooks/useLearningProfile';
 import { isProfileActive, learningRequestFields } from '../../lib/learningProfile';
+import { scrollToBottom } from '../../lib/scroll';
 
 const SPEECH_LANG: Record<string, string> = { 'pt-br': 'pt-BR', en: 'en-US', es: 'es-ES' };
 
@@ -69,7 +70,10 @@ export default function ChatPanel({ streaming, onOpenLearningSettings }: ChatPan
   const [historyLoading, setHistoryLoading] = useState(false);
   const [history, setHistory] = useState<ConversationSummary[]>([]);
   const [restoringId, setRestoringId] = useState<string | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  // Follow new text to the bottom unless the student scrolled up to re-read.
+  const stickToBottomRef = useRef(true);
+  const lastScrollTopRef = useRef(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const historyDialogRef = useDialog<HTMLDivElement>(() => setShowHistory(false), showHistory);
 
@@ -145,9 +149,26 @@ export default function ChatPanel({ streaming, onOpenLearningSettings }: ChatPan
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeModuleId]);
 
+  // Scroll only the message list (see lib/scroll.ts for why not scrollIntoView).
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    stickToBottomRef.current = true;
+    scrollToBottom(listRef.current, 'smooth');
   }, [thread.messages.length, activeModuleId]);
+
+  // Keep a streaming answer in view as it grows.
+  const lastMessageContent = thread.messages[thread.messages.length - 1]?.content;
+  useEffect(() => {
+    if (stickToBottomRef.current) scrollToBottom(listRef.current);
+  }, [lastMessageContent]);
+
+  const handleListScroll = () => {
+    const list = listRef.current;
+    if (!list) return;
+    const distance = list.scrollHeight - list.scrollTop - list.clientHeight;
+    if (distance < 80) stickToBottomRef.current = true;
+    else if (list.scrollTop < lastScrollTopRef.current) stickToBottomRef.current = false;
+    lastScrollTopRef.current = list.scrollTop;
+  };
 
   // Drafts staged by other panels (e.g. quiz result summaries) land in the
   // input ready to send — the student just hits Enter.
@@ -454,6 +475,8 @@ export default function ChatPanel({ streaming, onOpenLearningSettings }: ChatPan
         </div>
       ) : (
         <div
+          ref={listRef}
+          onScroll={handleListScroll}
           role="log"
           aria-live="polite"
           aria-atomic="false"
@@ -556,7 +579,6 @@ export default function ChatPanel({ streaming, onOpenLearningSettings }: ChatPan
               </div>
             </div>
           )}
-          <div ref={messagesEndRef} />
         </div>
       )}
 
