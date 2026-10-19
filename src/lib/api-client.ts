@@ -30,6 +30,26 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
+ * Chat body fields for the student's opt-in answer-style prefs — omitted
+ * entirely when there are none, so a plain request looks exactly as before.
+ */
+function learningBody(params: { learningAdaptations?: string[]; learningNote?: string }) {
+  return {
+    ...(params.learningAdaptations?.length ? { learning_adaptations: params.learningAdaptations } : {}),
+    ...(params.learningNote ? { learning_note: params.learningNote } : {}),
+  };
+}
+
+/** Same as learningBody, for multipart requests (ids as one comma-separated field). */
+function appendLearningFields(
+  formData: FormData,
+  params: { learningAdaptations?: string[]; learningNote?: string },
+) {
+  if (params.learningAdaptations?.length) formData.append('learning_adaptations', params.learningAdaptations.join(','));
+  if (params.learningNote) formData.append('learning_note', params.learningNote);
+}
+
+/**
  * Calculate exponential backoff delay
  */
 function getRetryDelay(attempt: number, config: RetryConfig): number {
@@ -888,6 +908,9 @@ export class WidgetAPIClient {
     moduleId?: number | null;
     verificationToken?: string;
     authToken?: string;
+    /** Opt-in answer-style prefs (never a condition) — see lib/learningProfile. */
+    learningAdaptations?: string[];
+    learningNote?: string;
   }): Promise<any> {
     const url = `${this.baseUrl}/api/widget/chat?module_token=${encodeURIComponent(params.moduleToken)}`;
 
@@ -909,6 +932,7 @@ export class WidgetAPIClient {
           conversation_id: params.conversationId,
           module_id: params.moduleId ?? null,
           verification_token: params.verificationToken,
+          ...learningBody(params),
         }),
         timeout: 60000, // 60 seconds for AI responses
         retries: 3, // 3 retries for chat (most critical)
@@ -966,6 +990,9 @@ export class WidgetAPIClient {
     moduleId?: number | null;
     verificationToken?: string;
     authToken?: string;
+    /** Opt-in answer-style prefs (never a condition) — see lib/learningProfile. */
+    learningAdaptations?: string[];
+    learningNote?: string;
   }): AsyncGenerator<{ type: 'chunk' | 'done' | 'error' | 'connected' | 'formatted'; content?: string; conversationId?: string; error?: string }, void, unknown> {
     const url = `${this.baseUrl}/api/widget/chat/stream?module_token=${encodeURIComponent(params.moduleToken)}`;
 
@@ -991,6 +1018,7 @@ export class WidgetAPIClient {
           conversation_id: params.conversationId,
           module_id: params.moduleId ?? null,
           verification_token: params.verificationToken,
+          ...learningBody(params),
         }),
         signal: controller.signal,
       });
@@ -1474,7 +1502,9 @@ export class WidgetAPIClient {
         method: 'GET',
         headers: this.sessionHeaders(),
         timeout: 30000,
-        retries: 2,
+        // A full export pages through the whole chat history — retrying a
+        // server error just repeats that work and triples the wait.
+        retries: 0,
       });
 
       if (!response.ok) {
@@ -1517,6 +1547,9 @@ export class WidgetAPIClient {
     file: File;
     conversationId?: string;
     moduleId?: number;
+    /** Opt-in answer-style prefs (never a condition) — see lib/learningProfile. */
+    learningAdaptations?: string[];
+    learningNote?: string;
   }): Promise<{ submission_id: number; conversation_id: string; status: string }> {
     const formData = new FormData();
     formData.append('assignment_id', String(params.assignmentId));
@@ -1524,6 +1557,7 @@ export class WidgetAPIClient {
     formData.append('background', 'true');
     if (params.conversationId) formData.append('conversation_id', params.conversationId);
     if (params.moduleId) formData.append('module_id', String(params.moduleId));
+    appendLearningFields(formData, params);
 
     const url = `${this.baseUrl}/api/widget/assignments/get-feedback?module_token=${encodeURIComponent(params.moduleToken)}`;
     const response = await robustFetch(url, {
@@ -1565,6 +1599,9 @@ export class WidgetAPIClient {
     conversationId?: string;
     moduleId?: number;
     verificationToken?: string;
+    /** Opt-in answer-style prefs (never a condition) — see lib/learningProfile. */
+    learningAdaptations?: string[];
+    learningNote?: string;
   }): Promise<{ response: string; conversation_id: string; message_id?: string }> {
     const formData = new FormData();
     formData.append('assignment_id', String(params.assignmentId));
@@ -1573,6 +1610,7 @@ export class WidgetAPIClient {
     if (params.conversationId) formData.append('conversation_id', params.conversationId);
     if (params.moduleId) formData.append('module_id', String(params.moduleId));
     if (params.verificationToken) formData.append('verification_token', params.verificationToken);
+    appendLearningFields(formData, params);
 
     const url = `${this.baseUrl}/api/widget/assignments/get-feedback?module_token=${encodeURIComponent(params.moduleToken)}`;
     const response = await robustFetch(url, {

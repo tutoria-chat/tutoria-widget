@@ -6,6 +6,8 @@ import { X, ClipboardList, Upload, Loader2, Calendar, ArrowLeft } from 'lucide-r
 import { apiClient } from '@/lib/api-client';
 import { useTranslations } from '@/i18n';
 import { useDialog } from '@/hooks/useDialog';
+import { useLearningProfile } from '@/hooks/useLearningProfile';
+import { learningRequestFields } from '@/lib/learningProfile';
 
 interface Assignment {
   id: number;
@@ -62,6 +64,9 @@ export default function AssignmentFeedbackModal({
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(initialAssignment ?? null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  // Opt-in "jeito de aprender": the feedback is written in the student's
+  // preferred style too (style ids only — never the student's conditions).
+  const [learningProfile] = useLearningProfile();
 
   useEffect(() => {
     if (initialAssignment) return; // selection step is skipped — no list needed
@@ -108,6 +113,7 @@ export default function AssignmentFeedbackModal({
           file: selectedFile,
           conversationId,
           moduleId,
+          ...learningRequestFields(learningProfile),
         });
         onJobStarted({
           submissionId: job.submission_id,
@@ -126,6 +132,7 @@ export default function AssignmentFeedbackModal({
         conversationId,
         moduleId,
         verificationToken,
+        ...learningRequestFields(learningProfile),
       });
       onFeedbackReceived(result.response, result.conversation_id);
       onClose();

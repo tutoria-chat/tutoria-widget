@@ -3,12 +3,21 @@
  * management (the only profile field students may edit — everything else
  * stays under the institution's control).
  */
-import React, { useEffect, useState } from 'react';
-import { Check, Download, KeyRound, Loader2, Maximize2, Settings as SettingsIcon, Volume2 } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Check, Download, KeyRound, Loader2, Lock, Maximize2, Settings as SettingsIcon, SlidersHorizontal, Volume2 } from 'lucide-react';
 import { apiClient } from '../../lib/api-client';
 import { useApp } from '../../app/AppContext';
 import { useReadAloudPref } from '../../hooks/useReadAloudPref';
 import { useSpeechRatePref, SPEECH_RATES } from '../../hooks/useSpeechRatePref';
+import { useLearningProfile } from '../../hooks/useLearningProfile';
+import {
+  ADAPTATION_IDS,
+  CONDITION_IDS,
+  MAX_NOTE_CHARS,
+  toggleAdaptation,
+  toggleCondition,
+  type ConditionId,
+} from '../../lib/learningProfile';
 import { useResponsive, USER_SCALE_MIN, USER_SCALE_MAX } from '../../app/ResponsiveContext';
 import {
   LOCALE_NAMES,
@@ -23,14 +32,44 @@ type Theme = 'light' | 'dark' | 'system';
 interface SettingsPanelProps {
   theme: Theme;
   onThemeChange: (theme: Theme) => void;
+  /** Section to scroll to on open (e.g. from the chat's "Adaptar ao meu jeito"). */
+  focusSection?: 'learning' | null;
+  onFocusHandled?: () => void;
 }
 
-export default function SettingsPanel({ theme, onThemeChange }: SettingsPanelProps) {
+export default function SettingsPanel({ theme, onThemeChange, focusSection, onFocusHandled }: SettingsPanelProps) {
   const t = useTranslations('settings');
   const { locale, setLocale } = useI18n();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Deep-link into "Seu jeito de aprender": scroll this panel's own container
+  // (never the host page the widget is embedded in), focus it, flash a ring.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const learningRef = useRef<HTMLElement>(null);
+  const [highlightLearning, setHighlightLearning] = useState(false);
+
+  useEffect(() => {
+    if (focusSection !== 'learning') return;
+    const box = scrollRef.current;
+    const el = learningRef.current;
+    if (box && el) {
+      const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      const top = box.scrollTop + el.getBoundingClientRect().top - box.getBoundingClientRect().top - 16;
+      box.scrollTo({ top, behavior: reduce ? 'auto' : 'smooth' });
+      el.focus({ preventScroll: true });
+      setHighlightLearning(true);
+    }
+    onFocusHandled?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusSection]);
+
+  useEffect(() => {
+    if (!highlightLearning) return;
+    const timer = setTimeout(() => setHighlightLearning(false), 1600);
+    return () => clearTimeout(timer);
+  }, [highlightLearning]);
 
   const persist = async (prefs: { language?: string; theme?: string }) => {
     setSaving(true);
@@ -71,7 +110,7 @@ export default function SettingsPanel({ theme, onThemeChange }: SettingsPanelPro
     }`;
 
   return (
-    <div className="h-full overflow-y-auto p-6">
+    <div ref={scrollRef} className="h-full overflow-y-auto p-6">
       <div className="flex items-center gap-3">
         <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#5e17eb] to-[#5ce1e6] text-white shadow-lg shadow-[#5e17eb]/25">
           <SettingsIcon className="h-5 w-5" />
@@ -110,6 +149,8 @@ export default function SettingsPanel({ theme, onThemeChange }: SettingsPanelPro
           {error && <span className="text-destructive">{error}</span>}
         </div>
 
+        <LearningSection ref={learningRef} highlight={highlightLearning} />
+
         <VoiceSection />
 
         <DisplaySection optionClass={optionClass} />
@@ -121,6 +162,162 @@ export default function SettingsPanel({ theme, onThemeChange }: SettingsPanelPro
     </div>
   );
 }
+
+/**
+ * "Seu jeito de aprender" — the student may opt in to having answers adapted to
+ * how they learn. An explicit switch with its purpose stated right next to it,
+ * revocable any time (LGPD: specific, highlighted consent). The conditions the
+ * student picks never leave this device; they only pre-select answer-style
+ * adaptations, which are what the chat sends (see lib/learningProfile).
+ */
+const LearningSection = React.forwardRef<HTMLElement, { highlight: boolean }>(function LearningSection(
+  { highlight },
+  ref,
+) {
+  const t = useTranslations('settings');
+  const [profile, setProfile, clearProfile] = useLearningProfile();
+  const [cleared, setCleared] = useState(false);
+  const noteRef = useRef<HTMLTextAreaElement>(null);
+
+  const hasAnything =
+    profile.enabled || profile.conditions.length > 0 || profile.adaptations.length > 0 || profile.note !== '';
+
+  const onCondition = (id: ConditionId) => {
+    const selecting = !profile.conditions.includes(id);
+    setProfile(toggleCondition(profile, id));
+    // "Outra": the note is where the student describes it.
+    if (id === 'other' && selecting) requestAnimationFrame(() => noteRef.current?.focus());
+  };
+
+  return (
+    <section
+      ref={ref}
+      tabIndex={-1}
+      aria-labelledby="learning-title"
+      className={`space-y-3 rounded-md border-t border-border pt-6 outline-none transition-shadow ${
+        highlight ? 'ring-2 ring-[#5e17eb]/60 ring-offset-4 ring-offset-background' : ''
+      }`}
+    >
+      <div className="flex items-center gap-2">
+        <SlidersHorizontal className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+        <h3 id="learning-title" className="text-sm font-medium">{t('learning.title')}</h3>
+      </div>
+      <p className="text-xs text-muted-foreground">{t('learning.intro')}</p>
+
+      <button
+        type="button"
+        role="switch"
+        aria-checked={profile.enabled}
+        onClick={() => {
+          setCleared(false);
+          setProfile({ ...profile, enabled: !profile.enabled });
+        }}
+        className="flex w-full items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2.5 text-left transition-colors hover:bg-accent"
+      >
+        <span className="text-sm">{t('learning.toggle')}</span>
+        <span className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${profile.enabled ? 'bg-primary' : 'bg-muted'}`}>
+          <span
+            className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
+              profile.enabled ? 'left-0.5 translate-x-4' : 'left-0.5'
+            }`}
+          />
+        </span>
+      </button>
+
+      {profile.enabled && (
+        <div className="space-y-4">
+          <fieldset className="space-y-2">
+            <legend className="mb-2 text-sm">{t('learning.conditionsLabel')}</legend>
+            <div className="flex flex-wrap gap-1.5">
+              {CONDITION_IDS.map((id) => {
+                const on = profile.conditions.includes(id);
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => onCondition(id)}
+                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors ${
+                      on
+                        ? 'border-primary bg-primary/10 text-foreground'
+                        : 'border-border bg-background text-muted-foreground hover:bg-accent hover:text-foreground'
+                    }`}
+                  >
+                    {on && <Check className="h-3 w-3 text-primary" aria-hidden="true" />}
+                    {t(`learning.conditions.${id}`)}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-xs text-muted-foreground">{t('learning.conditionsHint')}</p>
+            {profile.conditions.includes('low_vision') && (
+              <p className="text-xs text-muted-foreground">{t('learning.lowVisionTip')}</p>
+            )}
+          </fieldset>
+
+          <details className="rounded-md border border-border">
+            <summary className="cursor-pointer select-none px-3 py-2 text-sm">
+              {t('learning.adaptationsSummary', { count: profile.adaptations.length })}
+            </summary>
+            <div className="space-y-0.5 border-t border-border px-3 py-2">
+              {ADAPTATION_IDS.map((id) => (
+                <label key={id} className="flex cursor-pointer items-start gap-2 py-1 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={profile.adaptations.includes(id)}
+                    onChange={() => setProfile(toggleAdaptation(profile, id))}
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+                  />
+                  <span>{t(`learning.adaptations.${id}`)}</span>
+                </label>
+              ))}
+            </div>
+          </details>
+
+          <div className="space-y-1">
+            <label htmlFor="learning-note" className="text-sm">{t('learning.noteLabel')}</label>
+            <textarea
+              id="learning-note"
+              ref={noteRef}
+              rows={2}
+              maxLength={MAX_NOTE_CHARS}
+              value={profile.note}
+              onChange={(e) => setProfile({ ...profile, note: e.target.value })}
+              placeholder={t('learning.notePlaceholder')}
+              aria-describedby="learning-note-count"
+              className="w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+            <p id="learning-note-count" className="text-right text-[11px] tabular-nums text-muted-foreground">
+              {profile.note.length}/{MAX_NOTE_CHARS}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Shown even before opting in, so the student knows exactly what happens. */}
+      <div className="flex gap-2 rounded-md bg-muted/60 p-3">
+        <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <p className="text-xs text-muted-foreground">{t('learning.privacy')}</p>
+      </div>
+
+      {hasAnything && (
+        <button
+          type="button"
+          onClick={() => {
+            clearProfile();
+            setCleared(true);
+          }}
+          className="text-xs text-destructive underline-offset-2 hover:underline"
+        >
+          {t('learning.clear')}
+        </button>
+      )}
+      <div className="h-4 text-xs" role="status" aria-live="polite">
+        {cleared && <span className="text-green-600 dark:text-green-400">{t('learning.cleared')}</span>}
+      </div>
+    </section>
+  );
+});
 
 /**
  * Display controls: a zoom slider (scales the whole rem-based UI) and a

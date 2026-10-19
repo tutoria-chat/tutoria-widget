@@ -156,6 +156,13 @@ export default function Shell({
       ? initialPanel
       : navItems[0]?.key ?? 'settings';
   const [activePanel, setActivePanel] = useState<PanelKey>(defaultPanel);
+  // Settings section to scroll to when opened from elsewhere (e.g. the chat's
+  // "Adaptar ao meu jeito" button → "Seu jeito de aprender").
+  const [settingsFocus, setSettingsFocus] = useState<'learning' | null>(null);
+  const openLearningSettings = () => {
+    setSettingsFocus('learning');
+    setActivePanel('settings');
+  };
 
   // Compact nav: keep only Home + Chat + a "More" toggle on the bar; the rest
   // appear on a second line when expanded, so nothing ever needs to scroll.
@@ -280,10 +287,10 @@ export default function Shell({
       </header>
 
       {/* Body: side nav + active panel */}
-      <div className="flex flex-1 overflow-hidden max-sm:flex-col-reverse">
+      <div className="flex min-h-0 flex-1 overflow-hidden max-sm:flex-col-reverse">
         {/* Desktop: full labelled sidebar. */}
         <nav
-          className="hidden shrink-0 sm:flex sm:w-56 sm:flex-col sm:gap-1.5 sm:border-r sm:border-border/60 sm:bg-sidebar sm:p-3"
+          className="hidden shrink-0 sm:flex sm:w-56 sm:flex-col sm:gap-1.5 sm:overflow-y-auto sm:overflow-x-hidden sm:border-r sm:border-border/60 sm:bg-sidebar sm:p-3"
           aria-label="Features"
         >
           <div className="mb-2 border-b border-border/60 px-2 pb-3">
@@ -369,7 +376,13 @@ export default function Shell({
             )}
             {activePanel === 'flashcards' && <FlashcardsPanel key={`fc-${activeModuleId}`} />}
             {activePanel === 'enem' && <EnemPanel area={enemArea} />}
-            {activePanel === 'chat' && <ChatPanel key={`chat-${activeModuleId}`} streaming={streaming} />}
+            {activePanel === 'chat' && (
+              <ChatPanel
+                key={`chat-${activeModuleId}`}
+                streaming={streaming}
+                onOpenLearningSettings={openLearningSettings}
+              />
+            )}
             {activePanel === 'quizzes' && (
               <QuizzesPanel key={`quiz-${activeModuleId}`} onOpenChat={() => setActivePanel('chat')} />
             )}
@@ -379,7 +392,14 @@ export default function Shell({
             {activePanel === 'files' && <FilesPanel key={`files-${activeModuleId}`} apiBaseUrl={apiBaseUrl} />}
             {activePanel === 'progress' && <ProgressPanel key={`progress-${activeCourse?.id ?? 0}`} />}
             {activePanel === 'titles' && <TitlesPanel />}
-            {activePanel === 'settings' && <SettingsPanel theme={theme} onThemeChange={onThemeChange} />}
+            {activePanel === 'settings' && (
+              <SettingsPanel
+                theme={theme}
+                onThemeChange={onThemeChange}
+                focusSection={settingsFocus}
+                onFocusHandled={() => setSettingsFocus(null)}
+              />
+            )}
           </div>
         </main>
       </div>
