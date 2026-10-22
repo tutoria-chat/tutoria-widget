@@ -1349,7 +1349,14 @@ export class WidgetAPIClient {
   /**
    * Check if the module requires student verification (matricula)
    */
-  async requiresVerification(moduleToken: string): Promise<{ requires_verification: boolean; course_name: string; tutor_language?: string }> {
+  async requiresVerification(moduleToken: string): Promise<{
+    requires_verification: boolean;
+    course_name: string;
+    tutor_language?: string;
+    /** "empty": no students registered yet; "ended": the class was removed when its time ran out. */
+    roster_status?: 'ok' | 'empty' | 'ended';
+    roster_ended_at?: string | null;
+  }> {
     const url = `${this.baseUrl}/api/widget/requires-verification?module_token=${encodeURIComponent(moduleToken)}`;
 
     try {

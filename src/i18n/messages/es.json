@@ -48,7 +48,11 @@
       "alreadyHasPassword": "Esta cuenta ya tiene una contraseña. Usa la pantalla de inicio de sesión.",
       "chooseUniversityTitle": "Elige tu institución",
       "chooseUniversitySubtitle": "Tu matrícula existe en más de una institución educativa"
-    }
+    },
+    "rosterEmptyTitle": "Este grupo todavía no fue registrado",
+    "rosterEmpty": "Tu profesor todavía no registró a los estudiantes de este curso, así que por ahora no se encuentra ninguna matrícula. Inténtalo más tarde o habla con tu profesor.",
+    "rosterEndedTitle": "El período de este grupo terminó",
+    "rosterEnded": "El acceso a este curso terminó el {date}. Si todavía cursas este curso, habla con tu profesor."
   },
   "shell": {
     "greeting": "¡Hola, {name}!",
