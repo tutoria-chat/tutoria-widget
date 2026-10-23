@@ -85,6 +85,11 @@ function CompanionAppInner({ apiBaseUrl }: { apiBaseUrl: string }) {
   const [bootState, setBootState] = useState<BootState>('loading');
   const [bootError, setBootError] = useState<string | null>(null);
   const [courseName, setCourseName] = useState<string>('');
+  // Why matrícula logins can't work yet (no roster / class ended) — shown on the gate.
+  const [roster, setRoster] = useState<{ status: 'ok' | 'empty' | 'ended'; endedAt: string | null }>({
+    status: 'ok',
+    endedAt: null,
+  });
   const [session, setSession] = useState<WidgetSession | null>(null);
   const [context, setContext] = useState<SessionContext | null>(null);
   const [theme, setTheme] = useState<Theme>('system');
@@ -122,6 +127,7 @@ function CompanionAppInner({ apiBaseUrl }: { apiBaseUrl: string }) {
           const info = await apiClient.requiresVerification(moduleToken);
           if (!cancelled) {
             setCourseName(info.course_name);
+            setRoster({ status: info.roster_status ?? 'ok', endedAt: info.roster_ended_at ?? null });
             // Pre-session locale: ?lang= wins, otherwise the module's tutor
             // language drives the gate (a Brazilian course gates in Portuguese
             // even on an English OS). Student preference takes over post-login.
@@ -236,7 +242,13 @@ function CompanionAppInner({ apiBaseUrl }: { apiBaseUrl: string }) {
         {isDirectMode ? (
           <LoginGate onSession={handleSession} />
         ) : (
-          <MatriculaGate moduleToken={moduleToken} courseName={courseName} onSession={handleSession} />
+          <MatriculaGate
+            moduleToken={moduleToken}
+            courseName={courseName}
+            rosterStatus={roster.status}
+            rosterEndedAt={roster.endedAt}
+            onSession={handleSession}
+          />
         )}
       </Card>
     );

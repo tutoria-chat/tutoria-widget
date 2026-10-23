@@ -48,7 +48,11 @@
       "alreadyHasPassword": "This account already has a password. Use the sign-in screen.",
       "chooseUniversityTitle": "Choose your institution",
       "chooseUniversitySubtitle": "Your student ID exists at more than one institution"
-    }
+    },
+    "rosterEmptyTitle": "This class hasn’t been registered yet",
+    "rosterEmpty": "Your professor hasn’t registered the students of this course yet, so no student ID is found for now. Try again later or talk to your professor.",
+    "rosterEndedTitle": "This class’s period has ended",
+    "rosterEnded": "Access to this course ended on {date}. If you’re still taking it, talk to your professor."
   },
   "shell": {
     "greeting": "Hello, {name}!",

@@ -5,19 +5,29 @@
  * before any feature works. On success the parent receives the session payload.
  */
 import React, { useState } from 'react';
-import { GraduationCap } from 'lucide-react';
+import { GraduationCap, Info } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { CardContent, CardTitle } from '../components/ui/card';
 import { apiClient, type WidgetSession } from '../lib/api-client';
-import { useTranslations } from '../i18n';
+import { useI18n, useTranslations } from '../i18n';
 
 interface MatriculaGateProps {
   moduleToken: string;
   courseName?: string;
+  /** "empty": the course has no students registered yet; "ended": the class's period is over. */
+  rosterStatus?: 'ok' | 'empty' | 'ended';
+  rosterEndedAt?: string | null;
   onSession: (session: WidgetSession) => void;
 }
 
-export default function MatriculaGate({ moduleToken, courseName, onSession }: MatriculaGateProps) {
+export default function MatriculaGate({
+  moduleToken,
+  courseName,
+  rosterStatus = 'ok',
+  rosterEndedAt = null,
+  onSession,
+}: MatriculaGateProps) {
+  const { locale } = useI18n();
   const t = useTranslations('gate');
   const [matricula, setMatricula] = useState('');
   const [password, setPassword] = useState('');
@@ -66,6 +76,28 @@ export default function MatriculaGate({ moduleToken, courseName, onSession }: Ma
         <CardTitle className="text-2xl text-foreground">{t('title')}</CardTitle>
         {courseName && (
           <p className="text-sm text-muted-foreground">{t('subtitle', { courseName })}</p>
+        )}
+
+        {/* Nobody can log in until the class is registered — say so up front. */}
+        {rosterStatus !== 'ok' && (
+          <div
+            role="status"
+            className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2.5 text-left text-sm text-amber-800 dark:text-amber-200"
+          >
+            <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            <div>
+              <p className="font-semibold">{t(rosterStatus === 'ended' ? 'rosterEndedTitle' : 'rosterEmptyTitle')}</p>
+              <p className="mt-0.5">
+                {rosterStatus === 'ended' && rosterEndedAt
+                  ? t('rosterEnded', {
+                      date: new Date(rosterEndedAt).toLocaleDateString(locale === 'en' ? 'en-US' : locale, {
+                        day: 'numeric', month: 'long', year: 'numeric',
+                      }),
+                    })
+                  : t('rosterEmpty')}
+              </p>
+            </div>
+          </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-3">
